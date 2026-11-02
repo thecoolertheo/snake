@@ -16,7 +16,7 @@
     return {
       v: VERSION,
       settings: { color: 0, pattern: 0, eyes: 0, shape: 0, speed: 1, muted: false,
-                  mode: 'classic', board: 'm', apples: 1, ramp: false,
+                  mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
                   volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true },
       best: {},        // "mode|board|apples" -> best score
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0 },
@@ -36,7 +36,7 @@
   function fromOldKeys() {
     const d = defaults();
     const best = +ls.get('snake-best') || 0;
-    if (best) d.best[bestKey('classic', 'm', 1)] = best;   // the old board was 17x15 with one apple
+    if (best) { d.best[bestKey('classic', 'm', 1)] = best; d.settings.boardChosen = true; }   // the old board was 17x15 with one apple; keep it
     try { const skin = JSON.parse(ls.get('snake-skin')); if (skin) merge(d.settings, skin); } catch (e) {}
     if (ls.get('snake-muted') === '1') d.settings.muted = true;
     return d;
@@ -69,7 +69,7 @@
     // Snapshot used by unlock conditions.
     progress() {
       const st = this.data.stats;
-      return { games: st.games, apples: st.apples, longest: st.longest, bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
+      return { games: st.games, apples: st.apples, longest: st.longest, minutes: Math.floor(st.timeMs / 60000), bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
     },
     isUnlocked(id) { return this.data.unlocked.indexOf(id) >= 0; },
     getBest(mode, board, apples) { return this.data.best[bestKey(mode, board, apples)] || 0; },

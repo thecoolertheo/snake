@@ -26,14 +26,32 @@
   };
 
   const ramp = (param, v, t = 0.08) => { const now = actx.currentTime; param.cancelScheduledValues(now); param.setTargetAtTime(v, now, t / 3); };
+  // Smooth linear fade from wherever the value is right now.
+  const fade = (param, v, secs) => {
+    const now = actx.currentTime;
+    param.cancelScheduledValues(now); param.setValueAtTime(param.value, now); param.linearRampToValueAtTime(v, now + secs);
+  };
+  const MUSIC_IN = 2.2, MUSIC_OUT = 1.6, DUCK = 0.8;
+  let musicPlaying = false, stopTimer = 0, lastDuck = null;
 
   // Push current settings into the audio graph.
   A.apply = function () {
     if (!actx) return;
     ramp(master.gain, A.muted ? 0 : A.volume * A.volume);   // squared feels more even on a slider
-    ramp(musicBus.gain, A.musicOn ? (A.duck ? 0.16 : 0.3) : 0, 0.6);
-    if (A.musicOn) startMusic(); else stopMusic();
+    const level = A.duck ? 0.16 : 0.3;
+    if (A.musicOn && !musicPlaying) {          // fade in
+      musicPlaying = true; clearTimeout(stopTimer);
+      startMusic(); fade(musicBus.gain, level, MUSIC_IN);
+    } else if (!A.musicOn && musicPlaying) {   // fade out, then stop scheduling notes
+      musicPlaying = false;
+      fade(musicBus.gain, 0, MUSIC_OUT);
+      clearTimeout(stopTimer); stopTimer = setTimeout(stopMusic, MUSIC_OUT * 1000 + 100);
+    } else if (musicPlaying && lastDuck !== A.duck) {
+      fade(musicBus.gain, level, DUCK);        // menu open/closed: dip smoothly
+    }
+    lastDuck = A.duck;
   };
+  A.musicLevel = () => (musicBus ? musicBus.gain.value : 0);   // for checks/debugging
   A.set = function (o) { Object.assign(A, o); A.apply(); };
   A.suspend = () => { if (actx && actx.state === 'running') actx.suspend(); };
   A.resume = () => { if (actx && actx.state === 'suspended') actx.resume(); };
@@ -61,6 +79,7 @@
     click() { tone(620, 0.04, { type: 'triangle', vol: 0.05 }); },
     poison() { tone(300, 0.18, { type: 'square', vol: 0.06, slide: -140 }); tone(200, 0.22, { vol: 0.12, delay: 0.06, slide: -90 }); },
     portal() { tone(300, 0.22, { vol: 0.12, slide: 900 }); tone(600, 0.2, { type: 'triangle', vol: 0.06, delay: 0.08, slide: 700 }); },
+    gold() { [880, 1175, 1568].forEach((f, i) => tone(f, 0.18, { type: 'triangle', vol: 0.07, delay: 0.04 + i * 0.05 })); },
     wall() { tone(110, 0.12, { type: 'triangle', vol: 0.12, slide: -40 }); },
     passBest() { [784, 1047].forEach((f, i) => tone(f, 0.16, { type: 'triangle', vol: 0.08, delay: i * 0.08 })); },
     newBest() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i === 4 ? 0.5 : 0.16, { type: 'triangle', vol: 0.1, delay: i * 0.09 })); },

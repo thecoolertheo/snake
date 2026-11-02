@@ -84,11 +84,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--c-fg); outl
 .icon-btn svg { width: 20px; height: 20px; }
 
 .stage { position: relative; }
+/* Soft fade from the score bar into the board instead of a hard edge */
+.stage::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 26px; z-index: 1; pointer-events: none;
+  background: linear-gradient(var(--c-surface), rgba(22, 32, 27, .55) 35%, rgba(22, 32, 27, 0)); }
 #c { display: block; touch-action: none; }
 #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
 
 /* ---------- menu ---------- */
-.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--c-scrim); padding: var(--sp-3); touch-action: pan-y; animation: fade var(--t-med) var(--ease); }
+.overlay { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; background: var(--c-scrim); padding: var(--sp-3); touch-action: pan-y; animation: fade var(--t-med) var(--ease); }
 .menu {
   width: min(100%, 440px); max-height: 100%; display: flex; flex-direction: column;
   background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--shadow-2), 0 0 0 1px var(--c-line);
@@ -124,6 +127,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--c-fg); outl
 .mode-card small { font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; }
 .mode-card:hover { background: var(--c-surface-3); }
 .mode-card:active { transform: scale(.97); }
+.mode-card small svg { width: 10px; height: 10px; vertical-align: -1px; }
+.mode-card.locked { background: var(--c-bg); }
+.mode-card.locked > svg { filter: grayscale(1) brightness(.55); }
+.mode-card.locked b { color: var(--c-muted); }
+.best-mode.locked > b { color: var(--c-muted); }
+.best-mode.locked > b svg { filter: grayscale(1) brightness(.6); }
+.best-mode > b .lock { width: 12px; height: 12px; }
 .mode-card[aria-pressed="true"] { border-color: var(--c-accent); background: rgba(91, 140, 255, .14); }
 .mode-desc { margin: calc(var(--sp-1) * -1) 0 0; font-size: var(--fs-sm); color: var(--c-muted); text-align: center; }
 
@@ -149,8 +159,9 @@ input[type=range] { width: 100%; accent-color: var(--c-accent); height: 28px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--c-line); background: var(--c-surface-2); border-radius: var(--r-pill); padding: 6px var(--sp-3); font-size: var(--fs-sm); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
 .chip[aria-pressed="true"] { border-color: var(--c-accent); background: rgba(91, 140, 255, .16); }
-.locked { opacity: .55; }
-.sw.locked { filter: saturate(.35) brightness(.7); opacity: 1; }
+/* Locked items are dimmed with solid colours, never transparency, so nothing behind shows through. */
+.chip.locked { color: var(--c-muted); background: var(--c-bg); }
+.sw.locked { filter: saturate(.35) brightness(.7); }
 .sw .lock { position: absolute; inset: 0; margin: auto; width: 14px; height: 14px; color: #fff; }
 .chip .lock { width: 12px; height: 12px; }
 .lock-note { margin: 0; font-size: var(--fs-sm); color: var(--c-gold); background: rgba(242, 201, 76, .1); border-radius: var(--r-md); padding: var(--sp-2) var(--sp-3); }
@@ -210,7 +221,12 @@ input[type=range] { width: 100%; accent-color: var(--c-accent); height: 28px; }
 .road .start::before { content: ''; position: absolute; left: 50%; top: -26px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--c-good); }
 .stop { position: absolute; top: 0; transform: translateX(-50%); width: 50px; display: grid; justify-items: center; gap: 4px; border: 0; background: none; padding: 0; cursor: pointer; }
 .stop .rw { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--c-surface-2), 0 0 0 5px var(--c-bg); transition: transform var(--t-fast); }
-.stop .rw-eyes { background: var(--c-bg); }
+.stop .rw-eyes, .stop .rw-mode { background: var(--c-bg); }
+.road.many .stop .rw { width: 38px; height: 38px; }
+.road.many .stop .mark { top: 24px; }
+.road.many .rail { top: 19px; }
+.road.many .start::before { top: -29px; }
+.stop .rw-mode svg { width: 28px; height: 28px; }
 .stop .rw-eyes svg { width: 34px; height: 34px; }
 .stop .goal { font-size: var(--fs-xs); font-weight: 700; color: var(--c-muted); font-variant-numeric: tabular-nums; }
 .stop .mark { position: absolute; top: 28px; right: 0; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--c-surface-3); color: var(--c-fg); box-shadow: 0 0 0 2px var(--c-surface-2); }
@@ -237,6 +253,11 @@ input[type=range] { width: 100%; accent-color: var(--c-accent); height: 28px; }
 .dpad button.down { background: var(--c-surface-3); color: var(--c-fg); transform: scale(.94); }
 .dpad [data-dir=up] { grid-area: up; } .dpad [data-dir=down] { grid-area: down; }
 .dpad [data-dir=left] { grid-area: left; } .dpad [data-dir=right] { grid-area: right; }
+
+/* Fill-screen board: no outer margin, rounded corners or shadow; just the safe areas. */
+html.full body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+html.full .wrap { border-radius: 0; box-shadow: none; }
+html.full .app { gap: 0; }
 
 @keyframes fade { from { opacity: 0; } }
 @keyframes pop { from { opacity: 0; transform: scale(.96) translateY(6px); } }

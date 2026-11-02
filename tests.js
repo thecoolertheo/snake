@@ -199,6 +199,36 @@
     eq(g.maxLen, 7); eq(g.cells.length, 5);
   });
 
+  test('Mirror: controls are flipped', () => {
+    const g = mk({ mode: 'mirror' }); eq(g.turn(0, -1), true); g.step();
+    eq(head(g), { x: 2, y: 5 }, 'pressing up goes down');
+    eq(g.turn(1, 0), true, 'pressing right goes left'); g.step();
+    eq(head(g), { x: 1, y: 5 });
+  });
+  test('Mirror: a flipped reversal is still ignored', () => {
+    const g = mk({ mode: 'mirror' }); eq(g.turn(1, 0), false, 'right → left would reverse');
+  });
+  test('Gold Rush: golden apple scores 3, grows 3, counts as 1 eaten', () => {
+    const g = mk({ mode: 'gold' }); g.setApples([{ x: 3, y: 4, kind: 'gold' }]); g.apples[0].until = 99;
+    g.step();
+    eq(g.score, 3, 'score'); eq(g.eaten, 1, 'eaten');
+    g.step(); g.step(); eq(g.cells.length, 6, 'grew by 3');
+  });
+  test('Gold Rush: an uneaten golden apple turns normal when time runs out', () => {
+    const g = mk({ mode: 'gold' }); g.setApples([{ x: 0, y: 0, kind: 'gold' }]); g.apples[0].until = 2;
+    g.step(); eq(g.apples[0].kind, 'gold', 'still gold'); g.step();
+    eq(g.apples[0].kind, 'apple', 'expired'); eq(g.events.some(e => e.type === 'expire'), true, 'event');
+  });
+  test('Gold Rush: golden apples do spawn', () => {
+    const g = new S.Game({ mode: 'gold', apples: 5, rng: S.util.rng(9) }); g.steps = 1;
+    let gold = 0; for (let i = 0; i < 40; i++) { g.apples = []; g.fillApples(); gold += g.apples.filter(a => a.kind === 'gold').length; }
+    eq(gold > 20 && gold < 120, true, 'roughly 30% gold (' + gold + '/200)');
+  });
+  test('Any board size works (fill-screen boards)', () => {
+    const g = new S.Game({ cols: 31, rows: 13, rng: S.util.rng(1) });
+    eq(g.cells[0], { x: 7, y: 6 }); for (let i = 0; i < 23; i++) g.step(); eq(g.alive, true); g.step(); eq(g.alive, false);
+  });
+
   S.testResults = results;
   if (typeof module !== 'undefined' && !root.document) {
     let fail = 0;

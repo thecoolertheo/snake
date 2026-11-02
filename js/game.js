@@ -15,8 +15,14 @@
     { id: 'walls',      name: 'Walls',      desc: 'Every apple leaves a wall behind.', walls: true },
     { id: 'portal',     name: 'Portal',     desc: 'Apples come in pairs that teleport you.', portal: true },
     { id: 'poison',     name: 'Poison',     desc: 'Purple apples shrink you.', poison: true },
-    { id: 'peaceful',   name: 'Peaceful',   desc: 'You can’t die. Just relax.', wrap: true, ghost: true }
+    { id: 'peaceful',   name: 'Peaceful',   desc: 'You can’t die. Just relax.', wrap: true, ghost: true },
+    // Unlockable modes (see skins.js for what unlocks them)
+    { id: 'turbo',      name: 'Turbo',      desc: 'Gets faster with every apple. No speed limit… almost.', turbo: true },
+    { id: 'mirror',     name: 'Mirror',     desc: 'Controls are flipped: left is right, up is down.', mirror: true },
+    { id: 'dark',       name: 'Dark',       desc: 'You can only see what’s near your head.', dark: true },
+    { id: 'gold',       name: 'Gold Rush',  desc: 'Golden apples are worth 3, but they don’t stay long.', gold: true }
   ];
+  const GOLD_CHANCE = 0.3, GOLD_LIFE = 45;   // steps a golden apple stays before turning normal
   const MODE = {}; for (const m of MODES) MODE[m.id] = m;
 
   class Game {
@@ -50,6 +56,7 @@
       this.apples = [];
       this.pairSeq = 0;
       this.score = 0;
+      this.eaten = 0;      // apples eaten (a golden apple scores 3 but is still one apple)
       this.grow = 0;
       this.steps = 0;
       this.maxLen = 3;
@@ -107,9 +114,10 @@
         }
         return;
       }
-      while (this._count('apple') < this.appleCount) {
+      while (this._count('apple') + this._count('gold') < this.appleCount) {
         const c = this.randomFree(); if (!c) break;
-        this.apples.push({ x: c.x, y: c.y, kind: 'apple' });
+        if (r.gold && this.steps > 0 && this.rng() < GOLD_CHANCE) this.apples.push({ x: c.x, y: c.y, kind: 'gold', until: this.steps + GOLD_LIFE });
+        else this.apples.push({ x: c.x, y: c.y, kind: 'apple' });
       }
       if (r.poison) {
         const want = Math.ceil(this.appleCount / 2);
@@ -127,6 +135,7 @@
     // Returns false (ignored), true (queued) or 'redo' (last move was redone in the new direction).
     turn(nx, ny, progress = 1) {
       if (!this.alive) return false;
+      if (this.rules.mirror) { nx = -nx; ny = -ny; }
       const d = this.dir, u = this.undo;
       if (this.queue.length === 0 && u && progress < REDO_WINDOW &&
           d.x === u.dir.x && d.y === u.dir.y && nx * d.x + ny * d.y === 0) {
@@ -207,8 +216,9 @@
             this.apples = this.apples.filter(a => a !== apple && a !== partner);
             this.events.push({ type: 'portal', x: apple.x, y: apple.y, tx: hx, ty: hy, pair: apple.pair });
           } else this.apples.splice(ai, 1);
-          this.score++; this.grow++;
-          this.events.push({ type: 'eat', x: hx, y: hy, kind: apple.kind });
+          const worth = apple.kind === 'gold' ? 3 : 1;
+          this.score += worth; this.grow += worth; this.eaten++;
+          this.events.push({ type: 'eat', x: hx, y: hy, kind: apple.kind, worth });
           if (r.walls) { this.wall[i] = 1; this.pendingWalls.push(i); }
         }
       }
@@ -235,8 +245,13 @@
 
       this.steps++;
       if (this.cells.length > this.maxLen) this.maxLen = this.cells.length;
+      // Golden apples that weren't eaten in time turn back into normal ones.
+      for (const a of this.apples) if (a.kind === 'gold' && this.steps >= a.until) {
+        a.kind = 'apple'; delete a.until;
+        this.events.push({ type: 'expire', x: a.x, y: a.y });
+      }
       if (apple) this.fillApples();
-      const food = r.portal ? this._count('portal') : this._count('apple');
+      const food = r.portal ? this._count('portal') : this._count('apple') + this._count('gold');
       if (food === 0) {
         this.alive = false; this.won = true; this.undo = null;
         this.events.push({ type: 'win' });

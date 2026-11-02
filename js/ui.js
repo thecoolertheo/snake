@@ -13,9 +13,14 @@
     walls: '<rect x="2" y="4" width="9" height="7" rx="1.5" fill="#7d9488"/><rect x="13" y="4" width="9" height="7" rx="1.5" fill="#5e7066"/><rect x="7.5" y="13" width="9" height="7" rx="1.5" fill="#7d9488"/>',
     portal: '<circle cx="7" cy="12" r="5" stroke="#4fc3ff" stroke-width="2.5" fill="none"/><circle cx="17" cy="12" r="5" stroke="#ff9f43" stroke-width="2.5" fill="none"/>',
     poison: '<circle cx="12" cy="14" r="8" fill="#9b5cf0"/><circle cx="9" cy="11" r="2" fill="#e2c2ff" opacity=".7"/><path d="M12 6c0-2 1-3 3-4" stroke="#3f7a3a" stroke-width="2" fill="none" stroke-linecap="round"/>',
-    peaceful: '<path d="M15 3a9 9 0 1 0 6.5 13.5A7.5 7.5 0 0 1 15 3z" fill="#27c2b0"/>'
+    peaceful: '<path d="M15 3a9 9 0 1 0 6.5 13.5A7.5 7.5 0 0 1 15 3z" fill="#27c2b0"/>',
+    turbo: '<path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="#ffc83d"/>',
+    mirror: '<path d="M12 3v18" stroke="#8aa094" stroke-width="2" stroke-dasharray="2 2"/><path d="M9 8l-5 4 5 4zM15 8l5 4-5 4z" fill="#c9a2ff"/>',
+    dark: '<circle cx="12" cy="12" r="10" fill="#0b100d" stroke="#3a4a41" stroke-width="1.5"/><circle cx="12" cy="12" r="5" fill="#ffe9a8" opacity=".9"/><circle cx="12" cy="12" r="8" fill="#ffe9a8" opacity=".18"/>',
+    gold: '<circle cx="12" cy="14" r="8" fill="#ffc83d"/><circle cx="9" cy="11" r="2" fill="#fff6c4"/><path d="M12 6c0-2 1-3 3-4" stroke="#6b4a2b" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M19 3l.8 1.7 1.7.8-1.7.8L19 8l-.8-1.7-1.7-.8 1.7-.8z" fill="#fffbe6"/>'
   };
-  const BOARD_NAMES = { s: 'Small', m: 'Medium', l: 'Large' };
+  const BOARD_NAMES = { s: 'Small', m: 'Medium', l: 'Large', f: 'Fill screen' };
+  const BOARD_KEYS = ['s', 'm', 'l', 'f'];
 
   const ui = S.ui = { tab: 'modes' };
   let st, h, store;   // settings, handlers, store
@@ -45,11 +50,19 @@
       const b = el('button', 'mode-card');
       b.type = 'button'; b.dataset.mode = m.id; b.title = m.desc;
       b.innerHTML = svg(MODE_ICONS[m.id]) + '<b>' + m.name + '</b><small></small>';
-      b.addEventListener('click', () => { st.mode = m.id; h.gameChanged(); h.click(); });
+      b.addEventListener('click', () => {
+        const u = lockedItem('mode', m.id);
+        if (u) { showModeLock(u); return; }
+        hideModeLock(); st.mode = m.id; h.gameChanged(); h.click();
+      });
       grid.appendChild(b);
     }
     ui.modeDesc = el('p', 'mode-desc'); grid.after(ui.modeDesc);
-    seg('segBoard', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']], 'board', true);
+    ui.modeLock = el('div', 'lock-note'); ui.modeLock.hidden = true;
+    ui.modeLock.innerHTML = '<span></span><button type="button" class="link">See it on the roadmap</button>';
+    ui.modeLock.querySelector('button').addEventListener('click', () => { ui.showOnRoad(ui.modeLockFocus); h.click(); });
+    ui.modeDesc.after(ui.modeLock);
+    seg('segBoard', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large'], ['f', 'Fill']], 'board', true);
     seg('segApples', [[1, '1'], [3, '3'], [5, '5']], 'apples', true);
     seg('segSpeed', SK.SPEEDS.map((n, i) => [i, n]), 'speed', false);
     toggle('swRamp', 'ramp');
@@ -81,6 +94,7 @@
       const b = el('button', null, label); b.type = 'button';
       b.addEventListener('click', () => {
         st[key] = v; pressed(box, (c, i) => items[i][0] === st[key]);
+        if (key === 'board') st.boardChosen = true;
         if (isGame) h.gameChanged(); else h.settingsChanged(key);
         h.click();
       });
@@ -155,12 +169,21 @@
     chipsRender('optShape', 'shape', SK.SHAPES);
   }
 
+  function showModeLock(u) {
+    ui.modeLockFocus = u;
+    ui.modeLock.querySelector('span').textContent = 'Locked: ' + SK.itemName(u) + '. ' + S.MODE[u.index].desc + ' To unlock: ' + lockText(u).split('. ').slice(1).join('. ') + ' ';
+    ui.modeLock.hidden = false; ui.modeLock.scrollIntoView({ block: 'nearest', behavior: S.render.reduced ? 'auto' : 'smooth' }); h.click();
+  }
+  function hideModeLock() { if (ui.modeLock) ui.modeLock.hidden = true; }
+
   function renderModes() {
     const cards = $('modeGrid').children;
     for (const b of cards) {
       const id = b.dataset.mode;
       b.setAttribute('aria-pressed', st.mode === id);
-      b.querySelector('small').textContent = 'Best ' + store.getBest(id, st.board, st.apples);
+      const u = lockedItem('mode', id);
+      b.classList.toggle('locked', !!u);
+      b.querySelector('small').innerHTML = u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
     }
     ui.modeDesc.textContent = S.MODE[st.mode].desc;
     ui._seg_board(); ui._seg_apples(); ui._seg_speed();
@@ -182,9 +205,11 @@
     const list = $('bestList'); list.innerHTML = '';
     for (const m of S.MODES) {
       const card = el('div', 'best-mode');
-      let html = '<b>' + svg(MODE_ICONS[m.id]) + m.name + '</b><span class="top">' + store.bestMode(m.id) + '</span><div class="best-grid">';
+      const lk = lockedItem('mode', m.id);
+      card.classList.toggle('locked', !!lk);
+      let html = '<b>' + svg(MODE_ICONS[m.id]) + m.name + (lk ? ' ' + LOCK : '') + '</b><span class="top">' + store.bestMode(m.id) + '</span><div class="best-grid">';
       html += '<span class="h rh"></span><span class="h">1 apple</span><span class="h">3 apples</span><span class="h">5 apples</span>';
-      for (const b of ['s', 'm', 'l']) {
+      for (const b of BOARD_KEYS) {
         html += '<span class="h rh">' + BOARD_NAMES[b] + '</span>';
         for (const a of [1, 3, 5]) {
           const v = store.getBest(m.id, b, a), cur = m.id === st.mode && b === st.board && a === st.apples;
@@ -198,7 +223,7 @@
   }
   function patternSwatch(i) {
     const n = SK.PATTERNS[i];
-    if (n === 'Sunset') return 'linear-gradient(135deg,#ffcf5c,#ff6f61,#7a5cff)';
+    if (SK.GRADIENTS[n]) return 'linear-gradient(135deg,' + SK.GRADIENTS[n].map(c => 'rgb(' + c.join(',') + ')').join(',') + ')';
     if (n === 'Duo') return 'linear-gradient(90deg,#9db8ff 50%,#5b8cff 50%)';
     if (n === 'Zebra') return 'repeating-linear-gradient(90deg,#2a3f73 0 3px,#5b8cff 3px 11px)';
     if (n === 'Spots') return 'radial-gradient(circle at 35% 40%,rgba(0,0,0,.35) 18%,transparent 20%),radial-gradient(circle at 68% 65%,rgba(0,0,0,.35) 18%,transparent 20%),#5b8cff';
@@ -216,6 +241,7 @@
     return '<svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="15" r="12" fill="#5b8cff"/>' + eyes + '</svg>';
   }
   function rewardPreview(u) {
+    if (u.kind === 'mode') return '<i class="rw rw-mode">' + svg(MODE_ICONS[u.index]) + '</i>';
     if (u.kind === 'color') return '<i class="rw" style="background:' + SK.COLORS[u.index][1] + '"></i>';
     if (u.kind === 'pattern') return '<i class="rw" style="background:' + patternSwatch(u.index) + '"></i>';
     return '<i class="rw rw-eyes">' + eyePreview(u.index) + '</i>';
@@ -251,7 +277,7 @@
     }
     if (!best) return '';
     const v = best.value(p), t = best.track;
-    const need = (t.id === 'apples' || t.id === 'games') ? (best.goal - v) + ' more ' + t.unit : best.text.charAt(0).toLowerCase() + best.text.slice(1);
+    const need = t.cumulative ? (best.goal - v) + ' more ' + t.unit : best.text.charAt(0).toLowerCase() + best.text.slice(1);
     return 'Next unlock: ' + need + ' → ' + SK.itemName(best);
   };
 
@@ -263,12 +289,12 @@
       let next = null;
       html += '<article class="track" data-track="' + t.id + '"><header>' + svg(TRACK_ICONS[t.id]) + '<b>' + t.name + '</b><span class="cur">' + v + '</span></header>';
       html += '<p class="how">' + t.how + '</p>';
-      html += '<div class="road"><div class="rail"><i style="width:' + (trackFill(t, v) * 100).toFixed(1) + '%"></i></div><span class="start">0</span>';
+      html += '<div class="road' + (n >= 5 ? ' many' : '') + '"><div class="rail"><i style="width:' + (trackFill(t, v) * 100).toFixed(1) + '%"></i></div><span class="start">0</span>';
       t.steps.forEach((s, i) => {
         const u = SK.UNLOCKS.find(x => x.id === s.id), done = store.isUnlocked(u.id);
         if (!done && !next) next = u;
         const cls = done ? 'done' : (next === u ? 'next' : 'locked');
-        const worn = done && st[u.kind === 'color' ? 'color' : u.kind] === u.index;
+        const worn = done && st[SK.settingKey(u.kind)] === u.index;
         html += '<button type="button" class="stop ' + cls + (worn ? ' worn' : '') + '" data-id="' + u.id + '" style="left:' + ((i + 1) / n * 100) + '%" ' +
           'aria-label="' + SK.itemName(u) + ': ' + u.text + (done ? ', unlocked' : '') + '">' + rewardPreview(u) +
           '<span class="mark">' + (done ? CHECK : LOCK) + '</span><span class="goal">' + s.goal + '</span></button>';
@@ -284,10 +310,11 @@
     const b = e.target.closest('.stop'); if (!b) return;
     const u = SK.UNLOCKS.find(x => x.id === b.dataset.id), note = b.closest('.track').querySelector('[data-note]');
     if (store.isUnlocked(u.id)) {   // wear it
-      st[u.kind === 'color' ? 'color' : u.kind] = u.index; h.settingsChanged(u.kind); h.click();
+      st[SK.settingKey(u.kind)] = u.index; h.click();
+      if (u.kind === 'mode') h.gameChanged(); else h.settingsChanged(u.kind);
       renderRoadmap(); renderSkins();
       const n2 = $('roadmap').querySelector('[data-track="' + u.track.id + '"] [data-note]');
-      n2.innerHTML = '<b class="ok">Now wearing:</b> ' + SK.itemName(u);
+      n2.innerHTML = '<b class="ok">' + (u.kind === 'mode' ? 'Selected:' : 'Now wearing:') + '</b> ' + SK.itemName(u);
     } else {
       const v = Math.min(u.value(store.progress()), u.goal);
       note.innerHTML = '<b>' + SK.itemName(u) + ':</b> ' + u.text + ' <small>(' + v + '/' + u.goal + ')</small>';

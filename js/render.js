@@ -8,7 +8,6 @@
   const TILE_A = '#1c2a22', TILE_B = '#18241d', GREY = [86, 96, 90];
   const HUE_Q = 8;        // rainbow hue is bucketed in 8° steps so neighbouring points share one stroke
   const SHADE_GROUP = 3;  // the shadow (mostly hidden) uses 3× coarser buckets: half the strokes
-  const SUNSET = [[255, 207, 92], [255, 111, 97], [122, 92, 255]];
   const PORTAL_COLORS = ['#4fc3ff', '#ff9f43', '#c77dff', '#5be37d', '#ff6fb1'];
   const TAU = Math.PI * 2;
 
@@ -114,11 +113,12 @@
       this.shadow = U.mix(base, [0, 0, 0], 0.5);
       this.fadeTo = U.mix(base, [15, 22, 18], 0.6);
       this.pat = SK.PATTERNS[skin.pattern] || 'Solid';
+      this.stops = SK.GRADIENTS[this.pat] || null;
       this.flash = flash;
     }
-    _sunset(t) {   // t 0..1 tail→head
-      const s = t * 2, i = Math.min(1, s | 0), f = s - i;
-      return U.mix(SUNSET[i], SUNSET[i + 1], f);
+    _grad(t) {   // gradient patterns: t 0..1 tail→head across three colour stops
+      const G = this.stops, s = t * 2, i = Math.min(1, s | 0), f = s - i;
+      return U.mix(G[i], G[i + 1], f);
     }
     _color(key, shade) {
       const cache = shade ? this.shade : this.body;
@@ -128,7 +128,7 @@
       let c;
       if (shade) {
         if (pat === 'Rainbow') c = U.hsl(raw * HUE_Q * SHADE_GROUP, 60, 32);
-        else if (pat === 'Sunset') c = U.mix(this._sunset(Math.min(1, raw * SHADE_GROUP / 32)), [0, 0, 0], 0.5);
+        else if (this.stops) c = U.mix(this._grad(Math.min(1, raw * SHADE_GROUP / 32)), [0, 0, 0], 0.5);
         else c = this.shadow;
       }
       else if (pat === 'Stripes') c = raw === 0 ? this.dark : this.base;
@@ -136,7 +136,7 @@
       else if (pat === 'Zebra') c = raw === 0 ? this.zebra : this.base;
       else if (pat === 'Fade') c = U.mix(this.base, this.fadeTo, raw / 32);
       else if (pat === 'Rainbow') c = U.hsl(raw * HUE_Q, 85, 62);
-      else if (pat === 'Sunset') c = this._sunset(raw / 32);
+      else if (this.stops) c = this._grad(raw / 32);
       else c = this.base;
       if (gl) c = U.mix(c, GREY, gl / 16 * 0.85);
       if (!shade && this.flash) c = U.mix(c, [255, 255, 255], this.flash);
@@ -152,7 +152,7 @@
       const pat = this.pat, tapered = SK.SHAPES[skin.shape] === 'Tapered';
       const sig2 = 2 * (cell * 0.45) ** 2, grey = fx.grey || 0;
       const nb = fx.nBulges || 0, bulges = fx.bulges;
-      const hueN = 360 / HUE_Q, coarse = pat === 'Rainbow' || pat === 'Sunset';
+      const hueN = 360 / HUE_Q, grad = !!this.stops, coarse = pat === 'Rainbow' || grad;
 
       // Per-point colour key and width, computed once and shared by every pass.
       for (let i = 0; i < n; i++) {
@@ -163,7 +163,7 @@
         else if (pat === 'Duo') raw = ((m % (cell * 2)) + cell * 2) % (cell * 2) < cell ? 0 : 1;
         else if (pat === 'Fade') raw = Math.round((1 - m / M) * 32);
         else if (pat === 'Rainbow') raw = Math.round(m / cell * 28 / HUE_Q) % hueN;
-        else if (pat === 'Sunset') raw = Math.round(m / M * 32);
+        else if (grad) raw = Math.round(m / M * 32);
         let gl = 0;
         if (grey) { const f = (M - m) / M; gl = Math.round(U.clamp((grey * 1.4 - f) / 0.4, 0, 1) * 16); }
         P.k[i] = raw * 17 + gl;
@@ -269,6 +269,10 @@
           g.fillStyle = bodyCol; g.beginPath(); g.arc(ex, ey, rr + 0.8 * k, Math.PI / 2, Math.PI * 1.5); g.fill();
           g.strokeStyle = ink; g.lineWidth = 1.5 * k; g.beginPath(); g.moveTo(ex, ey - rr); g.lineTo(ex, ey + rr); g.stroke();
         }
+        if (style === 'Angry') {   // brows slanting down towards the nose
+          g.strokeStyle = ink; g.lineWidth = 2.4 * k; g.lineCap = 'round';
+          g.beginPath(); g.moveTo(ex - 3 * k, ey + s * 6.5 * k); g.lineTo(ex + 6 * k, ey + s * 1.5 * k); g.stroke();
+        }
       }
     }
     g.restore();
@@ -314,7 +318,8 @@
     const key = kind + (color || '');
     if (grads[key]) return grads[key];
     const gr = g.createRadialGradient(-0.35, -0.4, 0.05, 0, 0, 1);
-    if (kind === 'poison') { gr.addColorStop(0, '#e2c2ff'); gr.addColorStop(0.45, '#9b5cf0'); gr.addColorStop(1, '#4a1f86'); }
+    if (kind === 'gold') { gr.addColorStop(0, '#fff6c4'); gr.addColorStop(0.45, '#ffc83d'); gr.addColorStop(1, '#a86f00'); }
+    else if (kind === 'poison') { gr.addColorStop(0, '#e2c2ff'); gr.addColorStop(0.45, '#9b5cf0'); gr.addColorStop(1, '#4a1f86'); }
     else if (kind === 'portal') { const c = U.hexRgb(color); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, color); gr.addColorStop(1, U.rgb(U.mix(c, [0, 0, 0], 0.55))); }
     else { gr.addColorStop(0, '#ff9c8f'); gr.addColorStop(0.5, '#ff4a3d'); gr.addColorStop(1, '#b81f19'); }
     return (grads[key] = gr);
@@ -328,8 +333,12 @@
     return s < 1 ? 1 + Math.sin(s * Math.PI) * 0.25 - (1 - s) * 0.6 : 1;
   }
 
-  function drawApple(g, a, t) {
+  function drawApple(g, a, t, game) {
     const pop = popScale(a, t);
+    // Golden apples blink in their last few steps before turning normal.
+    let alpha = 1;
+    if (a.kind === 'gold' && game) { const left = a.until - game.steps; if (left <= 10) alpha = 0.55 + 0.45 * Math.abs(Math.cos(t / (left <= 4 ? 70 : 140))); }
+    if (alpha < 1) g.globalAlpha = alpha;
     const bob = R.reduced ? 1 : 1 + Math.sin(t / 220 + a.x) * 0.04;
     const cx = a.x * CELL + CELL / 2, cy = a.y * CELL + CELL / 2 + 1, r = CELL * 0.33 * pop * bob;
     if (r <= 0) return;
@@ -356,6 +365,13 @@
       g.fillStyle = a.kind === 'poison' ? '#3f7a3a' : '#5fd16a';
       g.beginPath(); g.ellipse(cx + 7, cy - r * 1.25, 5.5, 2.6, -0.5, 0, TAU); g.fill();
     }
+    if (a.kind === 'gold' && !R.reduced) {   // twinkle
+      const tw = (Math.sin(t / 180 + a.y) + 1) / 2, sx = cx + r * 0.75, sy = cy - r * 0.55, sr = 2 + 3 * tw;
+      g.fillStyle = '#fffbe6'; g.beginPath();
+      g.moveTo(sx, sy - sr); g.lineTo(sx + sr * 0.3, sy - sr * 0.3); g.lineTo(sx + sr, sy); g.lineTo(sx + sr * 0.3, sy + sr * 0.3);
+      g.lineTo(sx, sy + sr); g.lineTo(sx - sr * 0.3, sy + sr * 0.3); g.lineTo(sx - sr, sy); g.lineTo(sx - sr * 0.3, sy - sr * 0.3); g.fill();
+    }
+    g.globalAlpha = 1;
   }
 
   const wallBorn = new Map();   // tile index -> time it turned solid
@@ -511,6 +527,21 @@
     }
   }
 
+  // Dark mode: everything outside a pool of light around the head is hidden.
+  // Apples show as faint glints so you know roughly where to go.
+  function drawDark(g, cols, rows, hx, hy, apples, t) {
+    const W = cols * CELL, H = rows * CELL, r0 = CELL * 1.6, r1 = CELL * 4.2;
+    const gr = g.createRadialGradient(hx, hy, r0, hx, hy, r1);
+    gr.addColorStop(0, 'rgba(6,9,7,0)'); gr.addColorStop(1, 'rgba(6,9,7,0.97)');
+    g.fillStyle = gr; g.fillRect(-CELL, -CELL, W + CELL * 2, H + CELL * 2);
+    g.fillStyle = 'rgba(255,120,100,0.35)';
+    for (const a of apples) {
+      const ax = a.x * CELL + CELL / 2, ay = a.y * CELL + CELL / 2;
+      if (Math.hypot(ax - hx, ay - hy) < r1) continue;
+      dot(g, ax, ay, 2.5 + (R.reduced ? 0 : Math.sin(t / 300 + a.x) * 0.8));
+    }
+  }
+
   // Big "3 2 1" in the middle of the board. f = 0..1 through the current number.
   function drawCountdown(g, cols, rows, label, f) {
     const cx = cols * CELL / 2, cy = rows * CELL / 2;
@@ -524,6 +555,6 @@
     g.restore(); g.globalAlpha = 1;
   }
 
-  Object.assign(R, { SnakeDrawer, View, Confetti, drawApple, drawWalls, drawBoard, drawCountdown });
+  Object.assign(R, { SnakeDrawer, View, Confetti, drawApple, drawWalls, drawBoard, drawCountdown, drawDark });
   S.render = R;
 })(window);

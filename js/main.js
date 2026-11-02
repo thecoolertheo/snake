@@ -3,15 +3,21 @@
   'use strict';
   const S = root.Snake, U = S.util, R = S.render, SK = S.skins, A = S.audio, ui = S.ui, store = S.store;
   const CELL = R.CELL;
-  const BOARDS = { s: [10, 9], m: [17, 15], l: [24, 21] };
+  const BOARDS = { s: [10, 9], m: [17, 15], l: [24, 21] };   // 'f' (fill screen) is worked out from the screen
   const COUNT_MS = 420;          // each number of the 3-2-1 countdown
   const $ = id => document.getElementById(id);
 
   const data = store.load();
   const settings = data.settings;
-  if (!BOARDS[settings.board]) settings.board = 'm';
+  if (!BOARDS[settings.board] && settings.board !== 'f') settings.board = 'm';
+  // Until you pick a board size yourself, start with one that suits the screen:
+  // phones get Small, tablets and laptops Medium, big desktop screens Large.
+  if (!settings.boardChosen) {
+    const short = Math.min(root.innerWidth, root.innerHeight), long = Math.max(root.innerWidth, root.innerHeight);
+    settings.board = short < 500 ? 's' : (short >= 900 && long >= 1400 ? 'l' : 'm');
+  }
   if ([1, 3, 5].indexOf(settings.apples) < 0) settings.apples = 1;
-  if (!S.MODE[settings.mode]) settings.mode = 'classic';
+  const modeOpen = id => { const u = SK.unlockFor('mode', id); return !u || store.isUnlocked(u.id); };
 
   // Reduced motion: no shake, no confetti, fewer particles.
   const rm = root.matchMedia ? root.matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -38,8 +44,31 @@
 
   const baseMs = () => SK.SPEED_MS[settings.speed];
   // Optional ramp: 1.5% faster per apple, never faster than 60% of the base interval.
-  const stepMs = () => baseMs() * (settings.ramp && game ? Math.max(0.6, Math.pow(0.985, game.score)) : 1);
-  const board = () => BOARDS[settings.board];
+  // Turbo mode: 3% faster per point, down to 45% of the base interval.
+  const stepMs = () => {
+    if (!game) return baseMs();
+    if (game.rules.turbo) return baseMs() * Math.max(0.45, Math.pow(0.97, game.score));
+    return baseMs() * (settings.ramp ? Math.max(0.6, Math.pow(0.985, game.score)) : 1);
+  };
+  // Space the board can use, in CSS pixels (after the bar, padding and D-pad).
+  function available() {
+    const E = ui.el, cs = getComputedStyle(document.body);
+    document.documentElement.classList.toggle('full', settings.board === 'f');
+    const showPad = !!settings.dpad;
+    E.dpad.hidden = !showPad;
+    const side = showPad && root.innerWidth > root.innerHeight * 1.15;
+    E.app.classList.toggle('side', side);
+    let w = document.documentElement.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    let h = root.innerHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - E.bar.offsetHeight;
+    if (showPad) { if (side) w -= E.dpad.offsetWidth + 12; else h -= E.dpad.offsetHeight + 12; }
+    return { w, h };
+  }
+  // Fill screen: as many ~30-46px cells as fit the space, so the board covers it edge to edge.
+  function board() {
+    if (settings.board !== 'f') return BOARDS[settings.board];
+    const a = available(), target = U.clamp(Math.min(a.w, a.h) / 12, 28, 46);
+    return [Math.max(8, Math.floor(a.w / target)), Math.max(8, Math.floor(a.h / target))];
+  }
   const currentBest = () => store.getBest(settings.mode, settings.board, settings.apples);
   const vibrate = p => { if (settings.vibrate && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} };
 
@@ -92,8 +121,10 @@
       switch (e.type) {
         case 'eat': {
           ui.setScore(game.score, true);
-          if (e.kind !== 'portal') view.fx.burst(cx, cy, now, ['#ff5a4e', '#5fd16a', '#ffd5cf']);
-          eats.push(gameTime); mouth = 0; A.sfx.eat(); vibrate(12);
+          if (e.kind === 'gold') { view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22); A.sfx.gold(); }
+          else if (e.kind !== 'portal') view.fx.burst(cx, cy, now, ['#ff5a4e', '#5fd16a', '#ffd5cf']);
+          for (let k = 0; k < (e.worth || 1); k++) eats.push(gameTime - k * stepMs() * 0.6);
+          mouth = 0; A.sfx.eat(); vibrate(e.kind === 'gold' ? [12, 30, 12] : 12);
           if (!passedBest && bestBefore > 0 && game.score > bestBefore) { passedBest = true; A.sfx.passBest(); ui.bump(ui.el.best, true); }
           ui.setBest(Math.max(bestBefore, game.score), passedBest);
           break;
@@ -107,6 +138,7 @@
         case 'poison': view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); vibrate([10, 40, 10]); break;
         case 'shrink': view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); break;
         case 'wall': A.sfx.wall(); break;
+        case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
           state = 'dying'; deathT = now; A.sfx.die(); vibrate([40, 40, 90]);
           setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, 1100);
@@ -120,7 +152,7 @@
   // Records the finished game: stats, best score, unlocks. Returns what changed.
   function endGame() {
     const s = data.stats;
-    s.games++; s.apples += game.score; s.longest = Math.max(s.longest, game.maxLen);
+    s.games++; s.apples += game.eaten; s.longest = Math.max(s.longest, game.maxLen);
     const isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
     const unlocked = checkUnlocks();
     store.save();
@@ -134,6 +166,7 @@
     return out;
   }
   if (checkUnlocks().length) store.save();   // goals can change between versions
+  if (!S.MODE[settings.mode] || !modeOpen(settings.mode)) settings.mode = 'classic';
 
   function finish(title) {
     const r = endGame();
@@ -148,14 +181,13 @@
 
   // ---------- layout: the board fills the space it has, at device resolution ----------
   function fit() {
-    const E = ui.el, cs = getComputedStyle(document.body);
-    const showPad = !!settings.dpad;
-    E.dpad.hidden = !showPad;
-    const side = showPad && root.innerWidth > root.innerHeight * 1.15;
-    E.app.classList.toggle('side', side);
-    let availW = document.documentElement.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    let availH = root.innerHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - E.bar.offsetHeight;
-    if (showPad) { if (side) availW -= E.dpad.offsetWidth + 12; else availH -= E.dpad.offsetHeight + 12; }
+    const E = ui.el, a = available(), availW = a.w, availH = a.h;
+    // A fill-screen board that no longer matches the screen (rotation, resize) is rebuilt,
+    // but only between games.
+    if (settings.board === 'f' && game && (state === 'menu' || state === 'over')) {
+      const [c, r] = board();
+      if (c !== game.cols || r !== game.rows) { newGame(); return; }
+    }
     const cell = Math.max(8, Math.min(availW / view.cols, availH / view.rows));
     const w = Math.floor(cell * view.cols), h = Math.floor(cell * view.rows);
     E.wrap.style.width = w + 'px';
@@ -236,9 +268,10 @@
 
     const g = view.begin(shake ? (Math.random() * 2 - 1) * shake : 0, shake ? (Math.random() * 2 - 1) * shake : 0);
     R.drawWalls(g, game, t);
-    for (const ap of game.apples) R.drawApple(g, ap, t);
+    for (const ap of game.apples) R.drawApple(g, ap, t, game);
     const a = U.lerpAng(U.angOf(game.prevDir.x, game.prevDir.y), U.angOf(game.dir.x, game.dir.y), U.ease(Math.min(1, p / 0.7)));
     view.snake.draw(g, game.cells, game.prevTail, p, CELL, a, settings, fx);
+    if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }
     view.fx.draw(g, t, fdt);
     if (state === 'countdown') {
       const ce = t - countT, n = Math.min(2, Math.floor(ce / COUNT_MS));

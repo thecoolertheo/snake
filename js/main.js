@@ -42,6 +42,17 @@
   const pvView = new R.View($('pv'), PV_COLS, PV_ROWS, true);
   const pvSnake = new R.SnakeDrawer();
   const confetti = new R.Confetti($('confetti'));
+  const ambient = new R.Ambient();
+  const liveUnlocked = [];   // rewards unlocked during the current game
+  let liveCheckT = 0;
+
+  // Each mode has its own look: board colours + ambient effect, and an accent for the menu.
+  function applyTheme() {
+    const T = R.THEMES[settings.mode] || R.THEMES.classic, st = document.documentElement.style;
+    st.setProperty('--mode-accent', T.accent); st.setProperty('--mode-glow', T.glow);
+    view.setTheme(settings.mode); pvView.setTheme(settings.mode);
+    if (game) ambient.reset(T.amb, game.cols, game.rows);
+  }
 
   const baseMs = () => SK.SPEED_MS[settings.speed];
   // Optional ramp: 1.5% faster per apple, never faster than 60% of the base interval.
@@ -71,7 +82,11 @@
     return [Math.max(8, Math.floor(a.w / target)), Math.max(8, Math.floor(a.h / target))];
   }
   const currentBest = () => store.getBest(settings.mode, settings.board, settings.apples);
-  const vibrate = p => { if (settings.vibrate && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} };
+  // Only after the player has interacted (browsers block it otherwise and log a warning).
+  const vibrate = p => {
+    const ua = navigator.userActivation;
+    if (settings.vibrate && navigator.vibrate && (!ua || ua.hasBeenActive)) try { navigator.vibrate(p); } catch (e) {}
+  };
 
   function newGame() {
     const [cols, rows] = board();
@@ -81,6 +96,8 @@
     lastDir = game.dir; pendingNew = false;
     bestBefore = currentBest(); passedBest = false;
     ui.setScore(0); ui.setBest(bestBefore);
+    liveUnlocked.length = 0;
+    applyTheme(); fit();
   }
 
   function showMenu(title, btn, extra) {
@@ -123,11 +140,15 @@
         case 'eat': {
           ui.setScore(game.score, true);
           if (e.kind === 'gold') { view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22); A.sfx.gold(); }
-          else if (e.kind !== 'portal') view.fx.burst(cx, cy, now, ['#ff5a4e', '#5fd16a', '#ffd5cf']);
+          else if (e.kind !== 'portal') {
+            const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
+            view.fx.burst(cx, cy, now, B.colors, B.shape === 'dot' ? 14 : 16, B.shape);
+          }
           for (let k = 0; k < (e.worth || 1); k++) eats.push(gameTime - k * stepMs() * 0.6);
           mouth = 0; A.sfx.eat(); vibrate(e.kind === 'gold' ? [12, 30, 12] : 12);
           if (!passedBest && bestBefore > 0 && game.score > bestBefore) { passedBest = true; A.sfx.passBest(); ui.bump(ui.el.best, true); }
           ui.setBest(Math.max(bestBefore, game.score), passedBest);
+          liveCheck();
           break;
         }
         case 'portal': {
@@ -170,15 +191,33 @@
   if (checkUnlocks().length) store.save();   // goals can change between versions
   if (!S.MODE[settings.mode] || !modeOpen(settings.mode)) settings.mode = 'classic';
 
+  // Unlock rewards the moment you reach them mid-game (toast + a burst of confetti).
+  function liveCheck() {
+    if (!game || state !== 'play') return;
+    const b = store.progress(), mode = settings.mode;
+    const p = { games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
+      bestAny: Math.max(b.bestAny, game.score), bestMode: m => Math.max(b.bestMode(m), m === mode ? game.score : 0) };
+    let changed = false;
+    for (const u of SK.UNLOCKS) {
+      if (store.isUnlocked(u.id) || u.value(p) < u.goal) continue;
+      data.unlocked.push(u.id); liveUnlocked.push(u); changed = true;
+      const r = ui.toast(u);
+      A.sfx.unlock(); vibrate([15, 40, 15]);
+      if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 40);
+    }
+    if (changed) store.save();
+  }
+
   function finish(title) {
     const r = endGame();
+    r.unlocked = liveUnlocked.concat(r.unlocked);
     let badge = '';
     if (r.isBest) badge = 'New best!';
-    if (r.unlocked.length) badge = (badge ? badge + ' · ' : '') + 'Unlocked ' + r.unlocked.map(SK.itemName).join(', ');
+    if (r.unlocked.length) badge = (badge ? badge + ' · ' : '') + (r.unlocked.length > 2 ? 'Unlocked ' + r.unlocked.length + ' rewards' : 'Unlocked ' + r.unlocked.map(SK.itemName).join(', '));
     ui.setBest(currentBest());
     showMenu(title, 'Play again', { badge, next: ui.nextGoal() });
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
-    if (r.unlocked.length) A.sfx.unlock();
+    if (r.unlocked.length > liveUnlocked.length) A.sfx.unlock();   // end-of-game unlocks (e.g. games played)
   }
 
   // ---------- layout: the board fills the space it has, at device resolution ----------
@@ -300,6 +339,7 @@
     // Fixed timestep: the game advances in whole steps; rendering interpolates between them.
     if (state === 'play') {
       acc += dt; gameTime += dt; data.stats.timeMs += dt;
+      if ((liveCheckT += dt) > 1000) { liveCheckT = 0; liveCheck(); }   // time-based milestones
       let ms = stepMs();
       while (acc >= ms && state === 'play') { acc -= ms; game.step(); handleEvents(); ms = stepMs(); }
     }
@@ -345,6 +385,7 @@
     eats.length = w; fx.nBulges = w;
 
     const g = view.begin(shake ? (Math.random() * 2 - 1) * shake : 0, shake ? (Math.random() * 2 - 1) * shake : 0);
+    ambient.draw(g, t, fdt);
     R.drawWalls(g, game, t);
     for (const ap of game.apples) R.drawApple(g, ap, t, game, p);
     const a = U.lerpAng(U.angOf(game.prevDir.x, game.prevDir.y), U.angOf(game.dir.x, game.dir.y), U.ease(Math.min(1, p / 0.7)));

@@ -51,7 +51,9 @@
     for (const m of S.MODES) {
       const b = el('button', 'mode-card');
       b.type = 'button'; b.dataset.mode = m.id; b.title = m.desc;
-      b.innerHTML = svg(MODE_ICONS[m.id]) + '<b>' + m.name + '</b><small></small>';
+      const T = S.render.THEMES[m.id];
+      if (T) { b.style.setProperty('--ta', T.a); b.style.setProperty('--tb', T.b); b.style.setProperty('--acc', T.accent); }
+      b.innerHTML = '<span class="mc-ic">' + svg(MODE_ICONS[m.id]) + '</span><b>' + m.name + '</b><small></small>';
       b.addEventListener('click', () => {
         const u = lockedItem('mode', m.id);
         if (u) { showModeLock(u); return; }
@@ -74,8 +76,8 @@
 
     // Settings
     const vol = $('volume'), volOut = $('volOut');
-    vol.value = Math.round(st.volume * 100); volOut.textContent = vol.value + '%';
-    vol.addEventListener('input', () => { st.volume = vol.value / 100; volOut.textContent = vol.value + '%'; h.settingsChanged('volume'); });
+    vol.value = Math.round(st.volume * 100); volOut.textContent = vol.value + '%'; vol.style.setProperty('--fill', vol.value + '%');
+    vol.addEventListener('input', () => { st.volume = vol.value / 100; volOut.textContent = vol.value + '%'; vol.style.setProperty('--fill', vol.value + '%'); h.settingsChanged('volume'); });
     vol.addEventListener('change', () => h.click());
     toggle('swSfx', 'sfx'); toggle('swMusic', 'music'); toggle('swDpad', 'dpad'); toggle('swVibrate', 'vibrate');
     if (!navigator.vibrate) $('vibNote').textContent = 'Not supported on this device (iPhone and iPad can’t vibrate from a web page)';
@@ -95,6 +97,7 @@
     E.mute.addEventListener('click', () => { st.muted = !st.muted; ui.renderMute(); h.settingsChanged('muted'); if (!st.muted) h.click(); });
     ui.renderMute();
     ui.refresh();
+    root.addEventListener('resize', () => ui.moveInk());
   };
 
   function seg(id, items, key, isGame) {
@@ -153,6 +156,8 @@
     $('lockRoad').addEventListener('click', () => { ui.showOnRoad(ui.lockFocus); h.click(); });
     $('roadmap').addEventListener('click', onRoadClick);
     chips('optShape', 'shape', SK.SHAPES);
+    chips('optHat', 'hat', SK.HATS, 'hat');
+    chips('optBurst', 'burst', SK.BURSTS, 'burst');
   }
   function showLock(u) { ui.lockFocus = u; ui.el.lockText.textContent = lockText(u) + ' '; ui.el.lockNote.hidden = false; ui.el.lockNote.scrollIntoView({ block: 'nearest', behavior: S.render.reduced ? 'auto' : 'smooth' }); h.click(); }
   function hideLock() { ui.el.lockNote.hidden = true; }
@@ -168,14 +173,16 @@
     const chipsRender = (id, key, items, kind) => [...$(id).children].forEach((b, i) => {
       const u = kind && lockedItem(kind, i);
       b.classList.toggle('locked', !!u);
-      b.innerHTML = (u ? LOCK : '') + items[i];
+      b.innerHTML = chipIcon(kind || key, i) + '<span>' + items[i] + '</span>' + (u ? LOCK : '');
       b.setAttribute('aria-pressed', st[key] === i);
     });
     chipsRender('optPattern', 'pattern', SK.PATTERNS, 'pattern');
     chipsRender('optEyes', 'eyes', SK.EYES, 'eyes');
     const got = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length;
-    $('unlockSum').innerHTML = '<span><b>' + got + ' of ' + SK.UNLOCKS.length + '</b> extra items unlocked</span><button type="button" class="link" data-go="unlocks">See how to unlock them</button>';
+    $('unlockSum').innerHTML = '<span class="us-ring" style="--p:' + (got / SK.UNLOCKS.length * 100).toFixed(1) + '%"></span><span><b>' + got + ' of ' + SK.UNLOCKS.length + '</b> rewards unlocked<br><button type="button" class="link" data-go="unlocks">See the roadmap</button></span>';
     chipsRender('optShape', 'shape', SK.SHAPES);
+    chipsRender('optHat', 'hat', SK.HATS, 'hat');
+    chipsRender('optBurst', 'burst', SK.BURSTS, 'burst');
   }
 
   function showModeLock(u) {
@@ -206,9 +213,11 @@
 
   function renderStats() {
     const s = store.data.stats;
+    const got = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length;
     $('statTiles').innerHTML = [
-      ['Games played', s.games], ['Apples eaten', s.apples], ['Longest snake', s.longest], ['Time played', fmtTime(s.timeMs)]
-    ].map(([k, v]) => '<div class="tile"><b>' + v + '</b><small>' + k + '</small></div>').join('');
+      ['games', 'Games played', s.games], ['apples', 'Apples eaten', s.apples], ['length', 'Longest snake', s.longest],
+      ['time', 'Time played', fmtTime(s.timeMs)], ['best', 'Best score', store.bestAny()], ['rewards', 'Rewards', got + '/' + SK.UNLOCKS.length]
+    ].map(([ic, k, v]) => '<div class="tile">' + svg(TRACK_ICONS[ic]) + '<b>' + v + '</b><small>' + k + '</small></div>').join('');
 
     // Every best score in one place: one card per mode with a board × apples grid.
     const list = $('bestList'); list.innerHTML = '';
@@ -235,25 +244,28 @@
     if (SK.GRADIENTS[n]) return 'linear-gradient(135deg,' + SK.GRADIENTS[n].map(c => 'rgb(' + c.join(',') + ')').join(',') + ')';
     if (n === 'Duo') return 'linear-gradient(90deg,#9db8ff 50%,#5b8cff 50%)';
     if (n === 'Zebra') return 'repeating-linear-gradient(90deg,#2a3f73 0 3px,#5b8cff 3px 11px)';
+    if (n === 'Candy') return 'repeating-linear-gradient(135deg,#ff4d6d 0 5px,#fff0f5 5px 8px)';
+    if (n === 'Tiger') return 'repeating-linear-gradient(100deg,#ff9838 0 7px,#28160a 7px 9px)';
+    if (n === 'Stripes') return 'repeating-linear-gradient(90deg,#3f62b3 0 4px,#5b8cff 4px 10px)';
+    if (n === 'Fade') return 'linear-gradient(90deg,#2c4370,#5b8cff)';
+    if (n === 'Rainbow') return 'linear-gradient(90deg,#ff5a4e,#ffc83d,#4cc35b,#27c2b0,#5b8cff,#9b6bff)';
+    if (n === 'Galaxy') return 'radial-gradient(circle at 30% 35%,#fff 6%,transparent 8%),radial-gradient(circle at 70% 60%,#fff 5%,transparent 7%),linear-gradient(135deg,#28287a,#6e32aa,#eb5abe)';
     if (n === 'Spots') return 'radial-gradient(circle at 35% 40%,rgba(0,0,0,.35) 18%,transparent 20%),radial-gradient(circle at 68% 65%,rgba(0,0,0,.35) 18%,transparent 20%),#5b8cff';
     return '#5b8cff';
   }
 
-  // Small snake-head picture showing an eye style (for the roadmap).
-  function eyePreview(i) {
-    const n = SK.EYES[i], pupil = (x, y) => n === 'Star'
-      ? '<path transform="translate(' + x + ' ' + y + ')" d="M0-3.2l.9 2 2.2.2-1.7 1.4.5 2.2L0 1.5l-1.9 1.1.5-2.2-1.7-1.4 2.2-.2z" fill="#f0a500"/>'
-      : n === 'Heart' ? '<path transform="translate(' + x + ' ' + y + ')" d="M0 2.6C-3.6 0-3 -3 -1.4-3 -.6-3 0-2.4 0-1.8 0-2.4.6-3 1.4-3 3-3 3.6 0 0 2.6z" fill="#ff4d7a"/>'
-      : '<circle cx="' + x + '" cy="' + y + '" r="2" fill="#0f1512"/>';
-    const eyes = n === 'Cyclops' ? '<circle cx="14" cy="13" r="6.5" fill="#fff"/><circle cx="14" cy="13" r="3.2" fill="#0f1512"/><circle cx="15.3" cy="11.6" r="1" fill="#fff"/>'
-      : '<circle cx="9.5" cy="12" r="4.2" fill="#fff"/><circle cx="18.5" cy="12" r="4.2" fill="#fff"/>' + pupil(9.5, 12.4) + pupil(18.5, 12.4);
-    return '<svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="15" r="12" fill="#5b8cff"/>' + eyes + '</svg>';
-  }
   function rewardPreview(u) {
     if (u.kind === 'mode') return '<i class="rw rw-mode">' + svg(MODE_ICONS[u.index]) + '</i>';
     if (u.kind === 'color') return '<i class="rw" style="background:' + SK.COLORS[u.index][1] + '"></i>';
     if (u.kind === 'pattern') return '<i class="rw" style="background:' + patternSwatch(u.index) + '"></i>';
-    return '<i class="rw rw-eyes">' + eyePreview(u.index) + '</i>';
+    return '<i class="rw rw-img"><img alt="" src="' + S.render.icon(u.kind, u.index) + '"></i>';
+  }
+  // Tiny picture at the start of each chip in the Snake tab.
+  function chipIcon(kind, i) {
+    if (kind === 'pattern') return '<i class="ci" style="background:' + patternSwatch(i) + '"></i>';
+    if (kind === 'eyes' || kind === 'hat' || kind === 'burst') return '<img class="ci-img" alt="" src="' + S.render.icon(kind, i, SK.COLORS[st.color][1]) + '">';
+    if (kind === 'shape') return '<i class="ci ci-tail' + (i ? ' tapered' : '') + '"></i>';
+    return '';
   }
   const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const TRACK_ICONS = {
@@ -261,7 +273,9 @@
     games: '<path d="M7 5v14l12-7z" fill="#5b8cff"/>',
     best: '<path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/>',
     length: '<path d="M3 16h10a4 4 0 0 0 0-8H9" stroke="#4cc35b" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="19" cy="16" r="3" fill="#4cc35b"/>',
-    walls: MODE_ICONS.walls, portal: MODE_ICONS.portal
+    walls: MODE_ICONS.walls, portal: MODE_ICONS.portal, poison: MODE_ICONS.poison, borderless: MODE_ICONS.borderless,
+    time: '<circle cx="12" cy="12" r="9" fill="none" stroke="#7cc8ff" stroke-width="2.2"/><path d="M12 7v5l3.5 2" stroke="#7cc8ff" stroke-width="2.2" fill="none" stroke-linecap="round"/>',
+    rewards: '<path d="M4 10h16v10H4z" fill="#c77dff"/><path d="M3 7h18v4H3z" fill="#e2b8ff"/><path d="M11 7h2v13h-2z" fill="#ffc83d"/><path d="M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1z" fill="none" stroke="#ffc83d" stroke-width="1.6"/>'
   };
 
   // How far along a track's path the fill reaches: stops are evenly spaced, the fill
@@ -292,13 +306,19 @@
 
   function renderRoadmap() {
     const box = $('roadmap'), p = store.progress();
+    const got = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length, pct = got / SK.UNLOCKS.length * 100;
+    const ng = ui.nextGoal();
+    $('roadHero').innerHTML = '<div class="rh-top"><b>' + got + '<small> / ' + SK.UNLOCKS.length + '</small></b><span>rewards unlocked</span></div>' +
+      '<div class="rh-bar"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
+      '<p>Modes, colours, patterns, eyes, hats and eat effects unlock as your stats grow. Tap anything you’ve unlocked to use it.' +
+      (ng ? '<br><b>' + ng + '</b>' : '') + '</p>';
     let html = '';
     for (const t of SK.TRACKS) {
       const v = t.value(p), n = t.steps.length;
       let next = null;
       html += '<article class="track" data-track="' + t.id + '"><header>' + svg(TRACK_ICONS[t.id]) + '<b>' + t.name + '</b><span class="cur">' + v + '</span></header>';
       html += '<p class="how">' + t.how + '</p>';
-      html += '<div class="road' + (n >= 5 ? ' many' : '') + '"><div class="rail"><i style="width:' + (trackFill(t, v) * 100).toFixed(1) + '%"></i></div><span class="start">0</span>';
+      html += '<div class="road-scroll"><div class="road" style="width:max(100%,' + (n * 68 + 40) + 'px)"><div class="rail"><i style="width:' + (trackFill(t, v) * 100).toFixed(1) + '%"></i></div><span class="start">0</span>';
       t.steps.forEach((s, i) => {
         const u = SK.UNLOCKS.find(x => x.id === s.id), done = store.isUnlocked(u.id);
         if (!done && !next) next = u;
@@ -308,11 +328,16 @@
           'aria-label="' + SK.itemName(u) + ': ' + u.text + (done ? ', unlocked' : '') + '">' + rewardPreview(u) +
           '<span class="mark">' + (done ? CHECK : LOCK) + '</span><span class="goal">' + s.goal + '</span></button>';
       });
-      html += '</div><p class="next" data-note>' + (next
+      html += '</div></div><p class="next" data-note>' + (next
         ? '<b>Next:</b> ' + SK.itemName(next) + ' at ' + next.goal + ' ' + t.unit + ' <small>(' + Math.max(0, next.goal - v) + ' to go)</small>'
         : '<b class="ok">All rewards on this path unlocked!</b>') + '</p></article>';
     }
     box.innerHTML = html;
+    // Scroll each path so its next reward is in view, like the current level on a map.
+    for (const sc of box.querySelectorAll('.road-scroll')) {
+      const nx = sc.querySelector('.stop.next') || sc.querySelector('.stop:last-of-type');
+      if (nx) sc.scrollLeft = Math.max(0, nx.offsetLeft - sc.clientWidth * 0.6);
+    }
   }
 
   function onRoadClick(e) {
@@ -339,6 +364,7 @@
     const stop = $('roadmap').querySelector('[data-id="' + u.id + '"]'); if (!stop) return;
     const tr = stop.closest('.track');
     ui.el.panels.scrollTop = tr.offsetTop - ui.el.panels.offsetTop - 8;
+    const sc = stop.closest('.road-scroll'); if (sc) sc.scrollLeft = Math.max(0, stop.offsetLeft - sc.clientWidth / 2);
     stop.classList.add('focus'); setTimeout(() => stop.classList.remove('focus'), 1800);
     tr.querySelector('[data-note]').innerHTML = '<b>' + SK.itemName(u) + ':</b> ' + u.text + ' <small>(' + Math.min(u.value(store.progress()), u.goal) + '/' + u.goal + ')</small>';
   };
@@ -355,13 +381,31 @@
 
   ui.setTab = function (name, scrollToBest) {
     ui.tab = name;
-    for (const b of $('tabs').children) b.setAttribute('aria-selected', b.dataset.tab === name);
+    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === name);
+    ui.moveInk();
     for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
     hideLock();
     if (name === 'stats') renderStats();
     if (name === 'unlocks') renderRoadmap();
     ui.el.panels.scrollTop = 0;
     if (scrollToBest) { const hd = $('bestHeading'); ui.el.panels.scrollTop = hd.offsetTop - ui.el.panels.offsetTop - 8; }
+  };
+
+  // Sliding highlight behind the active tab.
+  ui.moveInk = () => {
+    const b = $('tabs').querySelector('[aria-selected="true"]'), ink = $('tabInk');
+    if (!b || !b.offsetWidth) return;
+    ink.style.width = b.offsetWidth + 'px'; ink.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+  };
+
+  // In-game "Unlocked!" toast. Returns its position so confetti can burst from it.
+  ui.toast = function (u) {
+    const box = $('toasts');
+    const t = el('div', 'toast', rewardPreview(u) + '<span><small>Unlocked!</small><b>' + SK.itemName(u) + '</b></span>');
+    box.appendChild(t);
+    setTimeout(() => t.classList.add('out'), 2800);
+    setTimeout(() => t.remove(), 3300);
+    return t.getBoundingClientRect();
   };
 
   ui.renderMute = () => {
@@ -383,6 +427,7 @@
     E.badge.hidden = !o.badge; if (o.badge) E.badge.textContent = o.badge;
     E.nextGoal.hidden = !o.next; if (o.next) E.nextGoal.textContent = o.next;
     E.overlay.hidden = false;
+    requestAnimationFrame(ui.moveInk);
     // Pause shows a compact card (no tabs, never scrolls); everything else shows the full menu.
     $('menu').classList.toggle('compact', !!o.compact); $('pauseBox').hidden = !o.compact;
     ui.renderMute();
@@ -393,7 +438,7 @@
     (o.compact ? $('resumeBtn') : E.play).focus({ preventScroll: true });
   };
   // Open the full tabbed menu from the pause card.
-  ui.expand = () => { $('menu').classList.remove('compact'); $('pauseBox').hidden = true; };
+  ui.expand = () => { $('menu').classList.remove('compact'); $('pauseBox').hidden = true; requestAnimationFrame(ui.moveInk); };
   ui.setPlayLabel = t => { ui.el.play.textContent = t; };
   ui.hideMenu = () => {
     ui.el.overlay.hidden = true;

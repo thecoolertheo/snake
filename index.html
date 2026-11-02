@@ -72,57 +72,78 @@
           </div>
 
           <div class="tabs" role="tablist" id="tabs">
-            <button role="tab" type="button" data-tab="modes" aria-selected="true">Modes</button>
-            <button role="tab" type="button" data-tab="snake" aria-selected="false">Snake</button>
-            <button role="tab" type="button" data-tab="unlocks" aria-selected="false">Unlocks</button>
-            <button role="tab" type="button" data-tab="stats" aria-selected="false">Stats</button>
-            <button role="tab" type="button" data-tab="settings" aria-selected="false">Settings</button>
+            <button role="tab" type="button" data-tab="modes" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
+            <button role="tab" type="button" data-tab="snake" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h8a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="19.5" cy="4" r="2"/></svg><span>Snake</span></button>
+            <button role="tab" type="button" data-tab="unlocks" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.5L16 11H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Unlocks</span></button>
+            <button role="tab" type="button" data-tab="stats" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="17" rx="1"/></svg><span>Stats</span></button>
+            <button role="tab" type="button" data-tab="settings" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5-2.1-.6a7 7 0 0 0-.7-1.7l1-2-2-2-1.9 1.1a7 7 0 0 0-1.7-.7L13 3h-2l-.6 2.1a7 7 0 0 0-1.7.7L6.8 4.7l-2 2 1 2a7 7 0 0 0-.7 1.7L3 11v2l2.1.6c.2.6.4 1.2.7 1.7l-1 1.9 2 2 1.9-1c.5.3 1.1.5 1.7.7L11 21h2l.6-2.1a7 7 0 0 0 1.7-.7l1.9 1 2-2-1-1.9c.3-.5.5-1.1.7-1.7L21 13z"/></svg><span>Settings</span></button>
+            <i class="tab-ink" id="tabInk"></i>
           </div>
 
           <div class="panels" id="panels">
             <section class="panel" role="tabpanel" data-panel="modes">
-              <div class="mode-grid" id="modeGrid"></div>
-              <div class="field"><span class="label">Board</span><div class="seg" id="segBoard"></div></div>
-              <div class="field"><span class="label">Apples</span><div class="seg" id="segApples"></div></div>
-              <div class="field"><span class="label">Speed</span><div class="seg" id="segSpeed"></div></div>
-              <button class="switch-row" type="button" role="switch" id="swRamp" aria-checked="false">
-                <span><b>Speed up as you score</b><small>Gets a little faster with every apple</small></span><i class="switch"></i>
-              </button>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Game mode</span></h3>
+                <div class="mode-grid" id="modeGrid"></div>
+              </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke="currentColor" stroke-width="1.2" opacity=".6"/></svg><span>Board</span></h3>
+                <div class="field"><span class="label">Size</span><div class="seg" id="segBoard"></div></div>
+                <div class="field"><span class="label">Apples</span><div class="seg" id="segApples"></div></div>
+                <div class="field"><span class="label">Speed</span><div class="seg" id="segSpeed"></div></div>
+                <button class="switch-row" type="button" role="switch" id="swRamp" aria-checked="false">
+                  <span><b>Speed up as you score</b><small>Gets a little faster with every apple</small></span><i class="switch"></i>
+                </button>
+              </div>
             </section>
 
             <section class="panel" role="tabpanel" data-panel="snake" hidden>
               <div class="unlock-sum" id="unlockSum"></div>
-              <div class="field"><span class="label">Colour</span><div class="swatches" id="optColor"></div></div>
-              <div class="field"><span class="label">Pattern</span><div class="chips" id="optPattern"></div></div>
-              <div class="field"><span class="label">Eyes</span><div class="chips" id="optEyes"></div></div>
-              <div class="field"><span class="label">Tail</span><div class="chips" id="optShape"></div></div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.4-4-8.2-9-8.2z"/><circle cx="7.5" cy="11" r="1.4" fill="#16201b"/><circle cx="10" cy="7" r="1.4" fill="#16201b"/><circle cx="14.5" cy="7" r="1.4" fill="#16201b"/></svg><span>Colour</span></h3>
+                <div class="swatches" id="optColor"></div>
+              </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="1.4"/></svg><span>Pattern</span></h3>
+                <div class="chips" id="optPattern"></div>
+              </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.6" fill="#16201b"/><circle cx="15" cy="10" r="1.6" fill="#16201b"/><path d="M8.5 14.5c2 2 5 2 7 0" stroke="#16201b" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg><span>Face</span></h3>
+                <div class="field"><span class="label">Eyes</span><div class="chips" id="optEyes"></div></div>
+                <div class="field"><span class="label">Hat</span><div class="chips" id="optHat"></div></div>
+              </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="1.4"/></svg><span>Extras</span></h3>
+                <div class="field"><span class="label">Tail</span><div class="chips" id="optShape"></div></div>
+                <div class="field"><span class="label">Eat effect</span><div class="chips" id="optBurst"></div></div>
+              </div>
               <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
             </section>
 
             <section class="panel" role="tabpanel" data-panel="unlocks" hidden>
-              <p class="road-intro">New modes, colours, patterns and eyes unlock automatically as your stats grow. Follow each path to see what's next. Tap a reward you've unlocked to use it.</p>
+              <div class="road-hero" id="roadHero"></div>
               <div class="roadmap" id="roadmap"></div>
             </section>
 
             <section class="panel" role="tabpanel" data-panel="settings" hidden>
-              <label class="field"><span class="label">Volume <output id="volOut">80%</output></span>
-                <input type="range" id="volume" min="0" max="100" step="5" value="80"></label>
-              <button class="switch-row" type="button" role="switch" id="swSfx" aria-checked="true"><span><b>Sound effects</b></span><i class="switch"></i></button>
-              <button class="switch-row" type="button" role="switch" id="swMusic" aria-checked="false"><span><b>Background music</b><small>A soft loop while you play</small></span><i class="switch"></i></button>
-              <button class="switch-row" type="button" role="switch" id="swDpad" aria-checked="false"><span><b>On-screen D-pad</b><small>Buttons under the board for touch screens</small></span><i class="switch"></i></button>
-              <button class="switch-row" type="button" role="switch" id="swVibrate" aria-checked="true"><span><b>Vibration</b><small id="vibNote">Short buzz when you eat or crash</small></span><i class="switch"></i></button>
-              <div class="help">
-                <p><b>Keyboard</b> Arrow keys or WASD · Esc or P to pause</p>
-                <p><b>Touch</b> Swipe anywhere on the screen, or use the D-pad</p>
-                <p><b>Gamepad</b> D-pad or left stick · Start to pause · A to play</p>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span>Sound</span></h3>
+                <label class="field"><span class="label">Volume <output id="volOut">80%</output></span>
+                  <input type="range" id="volume" min="0" max="100" step="5" value="80"></label>
+                <button class="switch-row" type="button" role="switch" id="swSfx" aria-checked="true"><span><b>Sound effects</b><small>Eating, turning, crashing</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swMusic" aria-checked="false"><span><b>Background music</b><small>A soft loop while you play</small></span><i class="switch"></i></button>
+              </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10a5 5 0 0 1 5 5v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a5 5 0 0 1 5-5z"/><path d="M7 10v4M5 12h4" stroke="#16201b" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.5" cy="11" r="1.1" fill="#16201b"/><circle cx="18.5" cy="13" r="1.1" fill="#16201b"/></svg><span>Controls</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swDpad" aria-checked="false"><span><b>On-screen D-pad</b><small>Buttons under the board for touch screens</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swVibrate" aria-checked="true"><span><b>Vibration</b><small id="vibNote">Short buzz when you eat or crash</small></span><i class="switch"></i></button>
+                <div class="help">
+                  <p><kbd>←↑↓→</kbd><kbd>WASD</kbd><span>Steer</span></p>
+                  <p><kbd>Esc</kbd><kbd>P</kbd><span>Pause</span></p>
+                  <p><kbd>Swipe</kbd><span>Anywhere on the screen</span></p>
+                  <p><kbd>Gamepad</kbd><span>D-pad or stick · Start pauses · A plays</span></p>
+                </div>
               </div>
             </section>
 
             <section class="panel" role="tabpanel" data-panel="stats" hidden>
               <div class="tiles" id="statTiles"></div>
-              <h2 class="sub" id="bestHeading">Best scores</h2>
-              <p class="hint">Each mode keeps a best for every board size and apple count. Your current setup is highlighted.</p>
-              <div class="best-list" id="bestList"></div>
+              <div class="card" id="bestHeading"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z"/></svg><span>Best scores</span></h3>
+                <p class="hint">Each mode keeps a best for every board size and apple count. Your current setup is outlined.</p>
+                <div class="best-list" id="bestList"></div>
+              </div>
             </section>
           </div>
 
@@ -140,6 +161,7 @@
     <button type="button" data-dir="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M12 18l-7-9h14z"/></svg></button>
   </div>
 </main>
+<div class="toasts" id="toasts" aria-live="polite"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
 <script src="js/util.js"></script>

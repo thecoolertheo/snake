@@ -17,7 +17,7 @@
       v: VERSION,
       settings: { color: 0, pattern: 0, eyes: 0, shape: 0, speed: 1, muted: false,
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
-                  volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true },
+                  volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0 },
       best: {},        // "mode|board|apples" -> best score
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0 },
       unlocked: []

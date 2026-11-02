@@ -1,6 +1,6 @@
 {
-  "name": "Nightcoil",
-  "short_name": "Nightcoil",
+  "name": "Snake Plus",
+  "short_name": "Snake Plus",
   "description": "A dark-mode snake game with a dozen modes, a long road of unlocks and smooth controls.",
   "start_url": "./",
   "scope": "./",

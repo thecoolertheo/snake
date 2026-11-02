@@ -4,7 +4,7 @@
   const S = root.Snake, U = S.util, R = S.render, SK = S.skins, A = S.audio, ui = S.ui, store = S.store;
   const CELL = R.CELL;
   const BOARDS = { s: [10, 9], m: [17, 15], l: [24, 21] };   // 'f' (fill screen) is worked out from the screen
-  const GAME_NAME = 'Nightcoil';
+  const GAME_NAME = 'Snake Plus';
   const COUNT_MS = 420;
   const XP_APPLE = 10, XP_GAME = 15, XP_BEST = 50;
   // Trails: a couple of particles from the tail end on every step.

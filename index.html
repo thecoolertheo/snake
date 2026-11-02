@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1512">
+<title>Night Snake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="bar" id="bar">
+    <span title="Score"><svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="8" fill="#ff5a4e"/><path d="M12 6c0-2 1-3 3-4" stroke="#5fd16a" stroke-width="2" fill="none" stroke-linecap="round"/></svg><b id="score">0</b></span>
+    <span title="Best"><svg viewBox="0 0 24 24"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg><b id="best">0</b></span>
+    <span class="spacer"></span>
+    <button class="icon-btn" id="muteBtn" type="button" aria-label="Sound on"></button>
+    <button class="icon-btn" id="menuBtn" type="button" aria-label="Pause and open menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="menu">
+        <h1 id="ovTitle">Snake</h1>
+        <div class="scores">
+          <div class="stat" title="Score"><svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="8" fill="#ff5a4e"/><path d="M12 6c0-2 1-3 3-4" stroke="#5fd16a" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span id="mScore">0</span></div>
+          <div class="stat" title="Best"><svg viewBox="0 0 24 24"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg><span id="mBest">0</span></div>
+        </div>
+        <canvas id="pv"></canvas>
+        <div class="field"><span>Color</span><div class="swatches" id="optColor"></div></div>
+        <div class="grid4">
+          <label class="field"><span>Pattern</span><select id="optPattern"></select></label>
+          <label class="field"><span>Eyes</span><select id="optEyes"></select></label>
+          <label class="field"><span>Tail</span><select id="optShape"></select></label>
+          <label class="field"><span>Speed</span><select id="optSpeed"></select></label>
+        </div>
+        <button id="playBtn" type="button">Play</button>
+        <p class="hint">Arrow keys or WASD · swipe on touch · Esc to pause</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/util.js"></script>
+<script src="js/game.js"></script>
+<script src="js/store.js"></script>
+<script src="js/skins.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/render.js"></script>
+<script src="js/input.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

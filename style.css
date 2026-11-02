@@ -439,3 +439,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 /* Pause card keeps its look but follows the mode accent */
 .pbtn.tog[aria-pressed="true"] { border-color: color-mix(in srgb, var(--mode-accent) 55%, transparent); }
 .road-scroll { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); }
+
+/* Accent follows the snake's colour (set from JS: --mode-accent, --accent-glow, --mode-ink) */
+:root { --accent-glow: rgba(91, 140, 255, .16); --mode-ink: #fff; }
+.menu-head { background: radial-gradient(ellipse 80% 90% at 50% 0%, var(--accent-glow), transparent 75%); }
+.play { background: var(--mode-accent); color: var(--mode-ink); box-shadow: 0 6px 18px -4px var(--mode-accent); transition: background var(--t-med), transform var(--t-fast), filter var(--t-fast); }
+.switch-row[aria-checked="true"] .switch::after { background: var(--mode-ink); }
+.link { color: var(--mode-accent); }
+.us-ring, .rh-bar i { transition: background var(--t-med); }

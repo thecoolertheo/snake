@@ -4,7 +4,8 @@
   const S = root.Snake, U = S.util, R = S.render, SK = S.skins, A = S.audio, ui = S.ui, store = S.store;
   const CELL = R.CELL;
   const BOARDS = { s: [10, 9], m: [17, 15], l: [24, 21] };   // 'f' (fill screen) is worked out from the screen
-  const COUNT_MS = 420;          // each number of the 3-2-1 countdown
+  const COUNT_MS = 420;
+  const GRACE_FRACTION = 0.5;    // how long the grace beat lasts, as a fraction of a step          // each number of the 3-2-1 countdown
   const $ = id => document.getElementById(id);
 
   const data = store.load();
@@ -46,10 +47,22 @@
   const liveUnlocked = [];   // rewards unlocked during the current game
   let liveCheckT = 0;
 
+  // The menu's accent colour follows your snake: its colour, or the main colour of its pattern.
+  function applyAccent() {
+    const pat = SK.PATTERNS[settings.pattern];
+    let c = U.hexRgb((SK.COLORS[settings.color] || SK.COLORS[0])[1]);
+    if (SK.GRADIENTS[pat]) c = SK.GRADIENTS[pat][1];
+    else if (SK.FIXED_BANDS[pat]) c = SK.FIXED_BANDS[pat][0];
+    const lum = (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255, st = document.documentElement.style;
+    st.setProperty('--mode-accent', U.rgb(c));
+    st.setProperty('--accent-glow', 'rgba(' + c.join(',') + ',.16)');
+    st.setProperty('--mode-ink', lum > 0.62 ? '#0f1512' : '#ffffff');   // readable text/knobs on top of the accent
+  }
+
   // Each mode has its own look: board colours + ambient effect, and an accent for the menu.
   function applyTheme() {
     const T = R.THEMES[settings.mode] || R.THEMES.classic, st = document.documentElement.style;
-    st.setProperty('--mode-accent', T.accent); st.setProperty('--mode-glow', T.glow);
+    st.setProperty('--mode-glow', T.glow);
     view.setTheme(settings.mode); pvView.setTheme(settings.mode);
     if (game) ambient.reset(T.amb, game.cols, game.rows);
   }
@@ -340,8 +353,10 @@
     if (state === 'play') {
       acc += dt; gameTime += dt; data.stats.timeMs += dt;
       if ((liveCheckT += dt) > 1000) { liveCheckT = 0; liveCheck(); }   // time-based milestones
-      let ms = stepMs();
-      while (acc >= ms && state === 'play') { acc -= ms; game.step(); handleEvents(); ms = stepMs(); }
+      // The grace beat before a crash only lasts half a step, so it saves a quick turn but isn't a free pause.
+      const due = () => stepMs() * (game.inGrace ? GRACE_FRACTION : 1);
+      let ms = due();
+      while (acc >= ms && state === 'play') { acc -= ms; game.step(); handleEvents(); ms = due(); }
     }
     const ms = stepMs();
     // During the grace beat the head holds still at the edge instead of sliding.
@@ -425,6 +440,7 @@
     },
     settingsChanged: key => {
       store.save(); applyAudio();
+      if (key === 'color' || key === 'pattern') applyAccent();
       if (key === 'dpad') fit();
       if (key === 'speed' || key === 'ramp') ui.refresh();
     },
@@ -462,6 +478,7 @@
   if (root.ResizeObserver) new ResizeObserver(fit).observe(document.documentElement);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 
+  applyAccent();
   newGame();
   showMenu('Snake', 'Play');
   requestAnimationFrame(t => { last = t; frame(t); });

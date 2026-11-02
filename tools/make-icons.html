@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Icon maker</title>
+<!-- Draws the app icon in code. Open this page, then run makeIcon(size, maskable) to get a PNG data URL.
+     The PNGs in icons/ were produced from this page. -->
+<body style="background:#222">
+<script>
+function makeIcon(size, maskable) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'), s = size / 100;
+  g.scale(s, s);
+  // background: board tiles with soft light
+  g.fillStyle = '#18241d'; g.fillRect(0, 0, 100, 100);
+  g.fillStyle = '#1c2a22';
+  for (let x = 0; x < 5; x++) for (let y = 0; y < 5; y++) if ((x + y) % 2 === 0) g.fillRect(x * 20, y * 20, 20, 20);
+  let gr = g.createRadialGradient(50, 35, 0, 50, 50, 75);
+  gr.addColorStop(0, 'rgba(190,255,215,0.10)'); gr.addColorStop(0.6, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.45)');
+  g.fillStyle = gr; g.fillRect(0, 0, 100, 100);
+  // content scaled into the safe zone for maskable icons
+  const k = maskable ? 0.72 : 0.9;
+  g.translate(50, 50); g.scale(k, k); g.translate(-50, -50);
+  // snake body
+  const path = () => { g.beginPath(); g.moveTo(14, 78); g.lineTo(44, 78); g.arcTo(62, 78, 62, 60, 18); g.lineTo(62, 50); g.arcTo(62, 32, 44, 32, 18); g.lineTo(36, 32); };
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  path(); g.strokeStyle = '#2d4680'; g.lineWidth = 19; g.translate(0, 2.2); g.stroke(); g.translate(0, -2.2);
+  path(); g.strokeStyle = '#5b8cff'; g.lineWidth = 19; g.stroke();
+  path(); g.strokeStyle = 'rgba(255,255,255,.14)'; g.lineWidth = 5; g.translate(0, -4); g.stroke(); g.translate(0, 4);
+  // head facing left with eyes
+  g.fillStyle = '#5b8cff'; g.beginPath(); g.arc(33, 32, 11, 0, Math.PI * 2); g.fill();
+  for (const ey of [26, 38]) {
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(30, ey, 4, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#0f1512'; g.beginPath(); g.arc(28.5, ey, 2.1, 0, Math.PI * 2); g.fill();
+  }
+  // apple
+  const ax = 16, ay = 31, r = 8;
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(ax + 1, ay + r * .95, r * .8, r * .28, 0, 0, Math.PI * 2); g.fill();
+  gr = g.createRadialGradient(ax - 3, ay - 3, .5, ax, ay, r);
+  gr.addColorStop(0, '#ff9c8f'); gr.addColorStop(.5, '#ff4a3d'); gr.addColorStop(1, '#b81f19');
+  g.fillStyle = gr; g.beginPath(); g.arc(ax, ay, r, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(ax - 3, ay - 3.4, 2, 1.2, -.6, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#6b4a2b'; g.lineWidth = 2; g.beginPath(); g.moveTo(ax, ay - r * .8); g.quadraticCurveTo(ax + 1, ay - r * 1.2, ax + 2.5, ay - r * 1.4); g.stroke();
+  g.fillStyle = '#5fd16a'; g.beginPath(); g.ellipse(ax + 5.5, ay - r * 1.25, 4, 2, -.5, 0, Math.PI * 2); g.fill();
+  return c.toDataURL('image/png');
+}
+</script>

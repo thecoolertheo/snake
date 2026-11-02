@@ -16,9 +16,10 @@
     return {
       v: VERSION,
       settings: { color: 0, pattern: 0, eyes: 0, shape: 0, speed: 1, muted: false,
-                  mode: 'classic', board: 'm', apples: 1 },
+                  mode: 'classic', board: 'm', apples: 1, ramp: false,
+                  volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true },
       best: {},        // "mode|board|apples" -> best score
-      stats: {},
+      stats: { games: 0, apples: 0, longest: 0, timeMs: 0 },
       unlocked: []
     };
   }
@@ -63,6 +64,14 @@
       return this.data;
     },
     save() { ls.set(KEY, JSON.stringify(this.data)); },
+    bestAny() { let b = 0; for (const k in this.data.best) b = Math.max(b, this.data.best[k]); return b; },
+    bestMode(mode) { let b = 0; for (const k in this.data.best) if (k.split('|')[0] === mode) b = Math.max(b, this.data.best[k]); return b; },
+    // Snapshot used by unlock conditions.
+    progress() {
+      const st = this.data.stats;
+      return { games: st.games, apples: st.apples, longest: st.longest, bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
+    },
+    isUnlocked(id) { return this.data.unlocked.indexOf(id) >= 0; },
     getBest(mode, board, apples) { return this.data.best[bestKey(mode, board, apples)] || 0; },
     // Returns true when this is a new best.
     submitBest(mode, board, apples, score) {

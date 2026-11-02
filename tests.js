@@ -128,6 +128,77 @@
     eq(Array.from(g.occ), Array.from(occ));
   });
 
+  // ---------- modes ----------
+  test('Borderless: wraps around the right edge', () => {
+    const g = mk({ mode: 'borderless', cols: 5 }); g.setApples([{ x: 0, y: 0 }]);
+    g.step(); g.step(); g.step();
+    eq(g.alive, true, 'alive'); eq(head(g), { x: 0, y: 4 }, 'head');
+    eq(g.cells[0].ja, { x: 5, y: 4 }, 'jump in'); eq(g.cells[0].jb, { x: -1, y: 4 }, 'jump out');
+  });
+  test('Borderless: wraps around the top edge', () => {
+    const g = mk({ mode: 'borderless', rows: 3 }); g.setApples([{ x: 9, y: 2 }]);
+    g.turn(0, -1); g.step(); g.step();
+    eq(head(g), { x: 2, y: 2 });
+  });
+  test('Borderless: running into yourself still kills', () => {
+    const g = mk({ mode: 'borderless' }); g.grow = 3; g.step(); g.step(); g.step();
+    g.turn(0, 1); g.step(); g.turn(-1, 0); g.step(); g.turn(0, -1); g.step();
+    eq(g.alive, false);
+  });
+  test('Walls: the eaten tile turns into a wall once the tail leaves', () => {
+    const g = mk({ mode: 'walls' }); g.setApples([{ x: 3, y: 4 }]); g.step();
+    const i = g.idx(3, 4);
+    eq(g.wall[i], 1, 'pending while body is on it');
+    for (let s = 0; s < 4; s++) g.step();
+    eq(g.wall[i], 2, 'solid after tail passes'); eq(g.wallCount, 1, 'count');
+    eq(g.events.some(e => e.type === 'wall'), true, 'wall event');
+  });
+  test('Walls: hitting a wall kills', () => {
+    const g = mk({ mode: 'walls' }); g.wall[g.idx(4, 4)] = 2; g.step(); g.step();
+    eq(g.alive, false);
+  });
+  test('Walls: apples never spawn on walls', () => {
+    const g = new S.Game({ cols: 4, rows: 3, mode: 'walls', rng: S.util.rng(5) });
+    for (let x = 0; x < 4; x++) g.wall[g.idx(x, 0)] = 2;
+    for (let n = 0; n < 50; n++) { g.apples = []; g.fillApples(); const a = g.apples[0]; eq(g.wall[g.idx(a.x, a.y)], 0); }
+  });
+  test('Portal: apples spawn in pairs', () => {
+    const g = new S.Game({ mode: 'portal', apples: 3, rng: S.util.rng(2) });
+    eq(g.apples.length, 6, 'apples'); eq(new Set(g.apples.map(a => a.pair)).size, 3, 'pairs');
+  });
+  test('Portal: entering one apple comes out of its partner', () => {
+    const g = mk({ mode: 'portal' });
+    g.setApples([{ x: 3, y: 4, kind: 'portal', pair: 0 }, { x: 7, y: 1, kind: 'portal', pair: 0 }]);
+    g.step();
+    eq(head(g), { x: 7, y: 1 }, 'head'); eq(g.score, 1, 'score'); eq(g.cells.length, 4, 'grew');
+    eq(g.apples.length, 2, 'new pair'); eq(g.apples.some(a => a.x === 7 && a.y === 1), false, 'old pair gone');
+    g.step(); eq(head(g), { x: 8, y: 1 }, 'keeps direction');
+  });
+  test('Poison: purple apple shrinks by 2, never below 3', () => {
+    const g = mk({ mode: 'poison' }); g.grow = 3; g.step(); g.step(); g.step();   // length 6
+    g.setApples([{ x: 6, y: 4, kind: 'poison' }, { x: 0, y: 0 }]);
+    g.step();
+    eq(g.cells.length, 4, 'length'); eq(g.score, 0, 'score');
+    g.setApples([{ x: 7, y: 4, kind: 'poison' }, { x: 0, y: 0 }]); g.step();
+    eq(g.cells.length, 3, 'min length');
+  });
+  test('Poison: keeps normal and poison apples on the board', () => {
+    const g = new S.Game({ mode: 'poison', apples: 3, rng: S.util.rng(4) });
+    eq(g.apples.filter(a => a.kind === 'apple').length, 3); eq(g.apples.filter(a => a.kind === 'poison').length, 2);
+  });
+  test('Peaceful: edges wrap and you pass through yourself', () => {
+    const g = mk({ mode: 'peaceful' }); g.grow = 3; g.step(); g.step(); g.step();
+    g.turn(0, 1); g.step(); g.turn(-1, 0); g.step(); g.turn(0, -1); g.step();
+    eq(g.alive, true, 'alive after self-crossing');
+    for (let s = 0; s < 20; s++) g.step();
+    eq(g.alive, true, 'alive after wrapping');
+  });
+  test('maxLen tracks the longest the snake got', () => {
+    const g = mk({ mode: 'poison' }); g.grow = 4; for (let s = 0; s < 4; s++) g.step();
+    g.setApples([{ x: 7, y: 4, kind: 'poison' }, { x: 0, y: 0 }]); g.step();
+    eq(g.maxLen, 7); eq(g.cells.length, 5);
+  });
+
   S.testResults = results;
   if (typeof module !== 'undefined' && !root.document) {
     let fail = 0;

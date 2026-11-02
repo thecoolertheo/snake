@@ -4,43 +4,125 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f1512">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="A dark-mode snake game with six modes, unlockable skins and smooth controls.">
+<!-- Installable: Add to Home Screen opens it full-screen on iPhone/iPad -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Snake">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Night Snake</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="wrap" id="wrap">
-  <div class="bar" id="bar">
-    <span title="Score"><svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="8" fill="#ff5a4e"/><path d="M12 6c0-2 1-3 3-4" stroke="#5fd16a" stroke-width="2" fill="none" stroke-linecap="round"/></svg><b id="score">0</b></span>
-    <span title="Best"><svg viewBox="0 0 24 24"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg><b id="best">0</b></span>
-    <span class="spacer"></span>
-    <button class="icon-btn" id="muteBtn" type="button" aria-label="Sound on"></button>
-    <button class="icon-btn" id="menuBtn" type="button" aria-label="Pause and open menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
-  </div>
-  <div class="stage" id="stage">
-    <canvas id="c"></canvas>
-    <div class="overlay" id="overlay">
-      <div class="menu">
-        <h1 id="ovTitle">Snake</h1>
-        <div class="scores">
-          <div class="stat" title="Score"><svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="8" fill="#ff5a4e"/><path d="M12 6c0-2 1-3 3-4" stroke="#5fd16a" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span id="mScore">0</span></div>
-          <div class="stat" title="Best"><svg viewBox="0 0 24 24"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg><span id="mBest">0</span></div>
+<main class="app" id="app">
+  <div class="wrap" id="wrap">
+    <div class="bar" id="bar">
+      <span class="hud" title="Score">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="14" r="8" fill="#ff5a4e"/><path d="M12 6c0-2 1-3 3-4" stroke="#5fd16a" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        <b id="score">0</b>
+      </span>
+      <button class="hud hud-btn" id="bestBtn" type="button" aria-label="Best score – show all best scores" title="All best scores">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg>
+        <b id="best">0</b>
+      </button>
+      <span class="mode-tag" id="modeTag">Classic</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="muteBtn" type="button" aria-label="Sound on"></button>
+      <button class="icon-btn" id="menuBtn" type="button" aria-label="Pause and open menu"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="c" aria-label="Snake board"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="menu" id="menu" role="dialog" aria-labelledby="ovTitle">
+          <div class="menu-head">
+            <h1 id="ovTitle">Snake</h1>
+            <div class="scores">
+              <div class="big-stat">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="14" r="8" fill="#ff5a4e"/><path d="M12 6c0-2 1-3 3-4" stroke="#5fd16a" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+                <span class="num" id="mScore">0</span><small>Score</small>
+              </div>
+              <button class="big-stat big-stat-btn" id="mBestBtn" type="button" title="All best scores">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg>
+                <span class="num" id="mBest">0</span><small>Best</small>
+              </button>
+            </div>
+            <p class="badge" id="badge" hidden></p>
+            <canvas id="pv" aria-hidden="true"></canvas>
+            <p class="mode-line" id="modeLine"></p>
+          </div>
+
+          <div class="tabs" role="tablist" id="tabs">
+            <button role="tab" type="button" data-tab="modes" aria-selected="true">Modes</button>
+            <button role="tab" type="button" data-tab="snake" aria-selected="false">Snake</button>
+            <button role="tab" type="button" data-tab="settings" aria-selected="false">Settings</button>
+            <button role="tab" type="button" data-tab="stats" aria-selected="false">Stats</button>
+          </div>
+
+          <div class="panels" id="panels">
+            <section class="panel" role="tabpanel" data-panel="modes">
+              <div class="mode-grid" id="modeGrid"></div>
+              <div class="field"><span class="label">Board</span><div class="seg" id="segBoard"></div></div>
+              <div class="field"><span class="label">Apples</span><div class="seg" id="segApples"></div></div>
+              <div class="field"><span class="label">Speed</span><div class="seg" id="segSpeed"></div></div>
+              <button class="switch-row" type="button" role="switch" id="swRamp" aria-checked="false">
+                <span><b>Speed up as you score</b><small>Gets a little faster with every apple</small></span><i class="switch"></i>
+              </button>
+            </section>
+
+            <section class="panel" role="tabpanel" data-panel="snake" hidden>
+              <div class="field"><span class="label">Colour</span><div class="swatches" id="optColor"></div></div>
+              <div class="field"><span class="label">Pattern</span><div class="chips" id="optPattern"></div></div>
+              <div class="field"><span class="label">Eyes</span><div class="chips" id="optEyes"></div></div>
+              <div class="field"><span class="label">Tail</span><div class="chips" id="optShape"></div></div>
+              <p class="lock-note" id="lockNote" hidden></p>
+            </section>
+
+            <section class="panel" role="tabpanel" data-panel="settings" hidden>
+              <label class="field"><span class="label">Volume <output id="volOut">80%</output></span>
+                <input type="range" id="volume" min="0" max="100" step="5" value="80"></label>
+              <button class="switch-row" type="button" role="switch" id="swSfx" aria-checked="true"><span><b>Sound effects</b></span><i class="switch"></i></button>
+              <button class="switch-row" type="button" role="switch" id="swMusic" aria-checked="false"><span><b>Background music</b><small>A soft loop while you play</small></span><i class="switch"></i></button>
+              <button class="switch-row" type="button" role="switch" id="swDpad" aria-checked="false"><span><b>On-screen D-pad</b><small>Buttons under the board for touch screens</small></span><i class="switch"></i></button>
+              <button class="switch-row" type="button" role="switch" id="swVibrate" aria-checked="true"><span><b>Vibration</b><small id="vibNote">Short buzz when you eat or crash</small></span><i class="switch"></i></button>
+              <div class="help">
+                <p><b>Keyboard</b> Arrow keys or WASD · Esc or P to pause</p>
+                <p><b>Touch</b> Swipe anywhere on the screen, or use the D-pad</p>
+                <p><b>Gamepad</b> D-pad or left stick · Start to pause · A to play</p>
+              </div>
+            </section>
+
+            <section class="panel" role="tabpanel" data-panel="stats" hidden>
+              <div class="tiles" id="statTiles"></div>
+              <h2 class="sub" id="bestHeading">Best scores</h2>
+              <p class="hint">Each mode keeps a best for every board size and apple count. Your current setup is highlighted.</p>
+              <div class="best-list" id="bestList"></div>
+              <h2 class="sub">Unlocks</h2>
+              <div class="unlock-list" id="unlockList"></div>
+            </section>
+          </div>
+
+          <div class="menu-foot">
+            <button id="playBtn" class="play" type="button">Play</button>
+          </div>
         </div>
-        <canvas id="pv"></canvas>
-        <div class="field"><span>Color</span><div class="swatches" id="optColor"></div></div>
-        <div class="grid4">
-          <label class="field"><span>Pattern</span><select id="optPattern"></select></label>
-          <label class="field"><span>Eyes</span><select id="optEyes"></select></label>
-          <label class="field"><span>Tail</span><select id="optShape"></select></label>
-          <label class="field"><span>Speed</span><select id="optSpeed"></select></label>
-        </div>
-        <button id="playBtn" type="button">Play</button>
-        <p class="hint">Arrow keys or WASD · swipe on touch · Esc to pause</p>
       </div>
     </div>
   </div>
-</div>
+  <div class="dpad" id="dpad" hidden aria-label="Direction pad">
+    <button type="button" data-dir="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M12 6l7 9H5z"/></svg></button>
+    <button type="button" data-dir="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M6 12l9-7v14z"/></svg></button>
+    <button type="button" data-dir="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M18 12l-9 7V5z"/></svg></button>
+    <button type="button" data-dir="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M12 18l-7-9h14z"/></svg></button>
+  </div>
+</main>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
 <script src="js/util.js"></script>
 <script src="js/game.js"></script>
 <script src="js/store.js"></script>
@@ -50,5 +132,14 @@
 <script src="js/input.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
+<script>
+  // Offline support + Home Screen install. Both need http(s), so skip them when opened as a file.
+  if (location.protocol.startsWith('http')) {
+    const m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest.webmanifest'; document.head.appendChild(m);
+  }
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+</script>
 </body>
 </html>

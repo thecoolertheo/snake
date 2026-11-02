@@ -110,6 +110,7 @@
       this.base = base;
       this.dark = U.mix(base, [0, 0, 0], 0.3);
       this.light = U.mix(base, [255, 255, 255], 0.38);
+      this.zebra = U.mix(base, [0, 0, 0], 0.55);
       this.shadow = U.mix(base, [0, 0, 0], 0.5);
       this.fadeTo = U.mix(base, [15, 22, 18], 0.6);
       this.pat = SK.PATTERNS[skin.pattern] || 'Solid';
@@ -132,6 +133,7 @@
       }
       else if (pat === 'Stripes') c = raw === 0 ? this.dark : this.base;
       else if (pat === 'Duo') c = raw === 0 ? this.light : this.base;
+      else if (pat === 'Zebra') c = raw === 0 ? this.zebra : this.base;
       else if (pat === 'Fade') c = U.mix(this.base, this.fadeTo, raw / 32);
       else if (pat === 'Rainbow') c = U.hsl(raw * HUE_Q, 85, 62);
       else if (pat === 'Sunset') c = this._sunset(raw / 32);
@@ -157,6 +159,7 @@
         const m = P.m[i];
         let raw = 0;
         if (pat === 'Stripes') raw = ((m % cell) + cell) % cell < cell * 0.4 ? 0 : 1;
+        else if (pat === 'Zebra') raw = ((m % cell) + cell) % cell < cell * 0.2 ? 0 : 1;
         else if (pat === 'Duo') raw = ((m % (cell * 2)) + cell * 2) % (cell * 2) < cell ? 0 : 1;
         else if (pat === 'Fade') raw = Math.round((1 - m / M) * 32);
         else if (pat === 'Rainbow') raw = Math.round(m / cell * 28 / HUE_Q) % hueN;
@@ -175,7 +178,10 @@
       if (pat === 'Spots') this._spots(g, cell, M);
       this._gloss(g, W);
 
-      const hx = P.x[n - 1], hy = P.y[n - 1], hc = this._color(P.k[n - 1], false);
+      // Banded patterns keep the head the main colour, so it doesn't flicker as bands slide past.
+      const banded = pat === 'Stripes' || pat === 'Zebra' || pat === 'Duo';
+      const hk = banded ? 17 + P.k[n - 1] % 17 : P.k[n - 1];
+      const hx = P.x[n - 1], hy = P.y[n - 1], hc = this._color(hk, false);
       drawHead(g, hx, hy, headAng, k, fx, hc, skin, P.w[n - 1] / 2 * 1.06);
     }
 
@@ -237,8 +243,9 @@
       g.fillStyle = 'rgba(255,255,255,.55)';
       for (let s = -1; s <= 1; s += 2) g.fillRect(6.5 * k, s * 8 * k - 4 * k, 1.6 * k, 3 * k);
     } else {
-      for (let s = -1; s <= 1; s += 2) {
-        const big = style === 'Big', ex = (big ? 3 : 4) * k, ey = s * (big ? 9.5 : 8) * k, rr = (big ? 7.5 : 5.5) * k;
+      const big = style === 'Big', one = style === 'Cyclops';
+      for (let s = one ? 0 : -1; s <= (one ? 0 : 1); s += 2) {
+        const ex = (big ? 3 : one ? 3 : 4) * k, ey = s * (big ? 9.5 : 8) * k, rr = (big ? 7.5 : one ? 8.5 : 5.5) * k;
         if (dead) {
           g.fillStyle = '#fff'; dot(g, ex, ey, rr);
           g.strokeStyle = ink; g.lineWidth = 1.8 * k; g.lineCap = 'round'; const q = rr * 0.5;
@@ -249,8 +256,13 @@
         const open = 1 - blink;
         g.save(); g.translate(ex, ey); g.scale(Math.max(0.08, open), 1);
         g.fillStyle = '#fff'; dot(g, 0, 0, rr);
-        g.fillStyle = ink; dot(g, (big ? 2.6 : 2) * k, 0, (big ? 3.8 : 2.8) * k);
-        if (big) { g.fillStyle = '#fff'; dot(g, 3.4 * k, -1.4 * k, 1.2 * k); }
+        if (style === 'Star') { g.fillStyle = '#f0a500'; star(g, 2 * k, 0, 3.6 * k); }
+        else if (style === 'Heart') { g.fillStyle = '#ff4d7a'; heart(g, 2 * k, 0, 3.4 * k); }
+        else {
+          const pr = (big ? 3.8 : one ? 4.4 : 2.8) * k;
+          g.fillStyle = ink; dot(g, (big ? 2.6 : one ? 3 : 2) * k, 0, pr);
+          if (big || one) { g.fillStyle = '#fff'; dot(g, (one ? 4.2 : 3.4) * k, -1.5 * k, 1.3 * k); }
+        }
         g.restore();
         if (open < 0.25) { g.strokeStyle = ink; g.lineWidth = 1.5 * k; g.lineCap = 'round'; g.beginPath(); g.moveTo(ex, ey - rr); g.lineTo(ex, ey + rr); g.stroke(); }
         else if (style === 'Sleepy') {
@@ -260,6 +272,23 @@
       }
     }
     g.restore();
+  }
+
+  // Pupils for the Star and Heart eyes. Drawn in the head's rotated frame, so "up" is the snake's left.
+  function star(g, x, y, r) {
+    g.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r;
+      g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    g.closePath(); g.fill();
+  }
+  function heart(g, x, y, r) {   // the point faces forward (+x), the way the snake looks
+    g.save(); g.translate(x, y); g.rotate(-Math.PI / 2);
+    g.beginPath(); g.moveTo(0, r * 0.95);
+    g.bezierCurveTo(-r * 1.3, 0, -r * 0.95, -r * 1.05, 0, -r * 0.35);
+    g.bezierCurveTo(r * 0.95, -r * 1.05, r * 1.3, 0, 0, r * 0.95);
+    g.fill(); g.restore();
   }
 
   // Checkerboard, plus soft light from the top and a vignette. Drawn once into a cache.

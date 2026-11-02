@@ -53,6 +53,7 @@
               </button>
             </div>
             <p class="badge" id="badge" hidden></p>
+            <p class="next-goal" id="nextGoal" hidden></p>
             <canvas id="pv" aria-hidden="true"></canvas>
             <p class="mode-line" id="modeLine"></p>
           </div>
@@ -60,8 +61,9 @@
           <div class="tabs" role="tablist" id="tabs">
             <button role="tab" type="button" data-tab="modes" aria-selected="true">Modes</button>
             <button role="tab" type="button" data-tab="snake" aria-selected="false">Snake</button>
-            <button role="tab" type="button" data-tab="settings" aria-selected="false">Settings</button>
+            <button role="tab" type="button" data-tab="unlocks" aria-selected="false">Unlocks</button>
             <button role="tab" type="button" data-tab="stats" aria-selected="false">Stats</button>
+            <button role="tab" type="button" data-tab="settings" aria-selected="false">Settings</button>
           </div>
 
           <div class="panels" id="panels">
@@ -76,11 +78,17 @@
             </section>
 
             <section class="panel" role="tabpanel" data-panel="snake" hidden>
+              <div class="unlock-sum" id="unlockSum"></div>
               <div class="field"><span class="label">Colour</span><div class="swatches" id="optColor"></div></div>
               <div class="field"><span class="label">Pattern</span><div class="chips" id="optPattern"></div></div>
               <div class="field"><span class="label">Eyes</span><div class="chips" id="optEyes"></div></div>
               <div class="field"><span class="label">Tail</span><div class="chips" id="optShape"></div></div>
-              <p class="lock-note" id="lockNote" hidden></p>
+              <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
+            </section>
+
+            <section class="panel" role="tabpanel" data-panel="unlocks" hidden>
+              <p class="road-intro">New colours, patterns and eyes unlock automatically as your stats grow. Follow each path to see what's next. Tap a reward you've unlocked to wear it.</p>
+              <div class="roadmap" id="roadmap"></div>
             </section>
 
             <section class="panel" role="tabpanel" data-panel="settings" hidden>
@@ -102,8 +110,6 @@
               <h2 class="sub" id="bestHeading">Best scores</h2>
               <p class="hint">Each mode keeps a best for every board size and apple count. Your current setup is highlighted.</p>
               <div class="best-list" id="bestList"></div>
-              <h2 class="sub">Unlocks</h2>
-              <div class="unlock-list" id="unlockList"></div>
             </section>
           </div>
 

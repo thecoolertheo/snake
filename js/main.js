@@ -122,11 +122,18 @@
     const s = data.stats;
     s.games++; s.apples += game.score; s.longest = Math.max(s.longest, game.maxLen);
     const isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
-    const p = store.progress(), unlocked = [];
-    for (const u of SK.UNLOCKS) if (!store.isUnlocked(u.id) && u.value(p) >= u.goal) { data.unlocked.push(u.id); unlocked.push(u); }
+    const unlocked = checkUnlocks();
     store.save();
     return { isBest: isBest && game.score > 0, celebrate: isBest && (bestBefore > 0 || game.score >= 10), unlocked };
   }
+
+  // Unlocks anything whose milestone has been reached. Returns the newly unlocked rewards.
+  function checkUnlocks() {
+    const p = store.progress(), out = [];
+    for (const u of SK.UNLOCKS) if (!store.isUnlocked(u.id) && u.value(p) >= u.goal) { data.unlocked.push(u.id); out.push(u); }
+    return out;
+  }
+  if (checkUnlocks().length) store.save();   // goals can change between versions
 
   function finish(title) {
     const r = endGame();
@@ -134,7 +141,7 @@
     if (r.isBest) badge = 'New best!';
     if (r.unlocked.length) badge = (badge ? badge + ' · ' : '') + 'Unlocked ' + r.unlocked.map(SK.itemName).join(', ');
     ui.setBest(currentBest());
-    showMenu(title, 'Play again', { badge });
+    showMenu(title, 'Play again', { badge, next: ui.nextGoal() });
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
     if (r.unlocked.length) A.sfx.unlock();
   }

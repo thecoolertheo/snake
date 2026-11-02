@@ -51,6 +51,7 @@
   test('hitting the wall kills', () => {
     const g = mk({ cols: 5 }); g.setApples([{ x: 0, y: 0 }]);
     g.step(); g.step(); eq(g.alive, true, 'alive at edge'); g.step();
+    eq(g.alive, true, 'grace step'); g.step();
     eq(g.alive, false, 'alive'); eq(g.events.some(e => e.type === 'die'), true, 'die event');
   });
   test('dead snake does not move', () => {
@@ -58,7 +59,7 @@
   });
   test('running into your body kills', () => {
     const g = mk(); g.grow = 3; g.step(); g.step(); g.step();   // length 6
-    g.turn(0, 1); g.step(); g.turn(-1, 0); g.step(); g.turn(0, -1); g.step();
+    g.turn(0, 1); g.step(); g.turn(-1, 0); g.step(); g.turn(0, -1); g.step(); g.step();
     eq(g.alive, false);
   });
   test('moving into the cell the tail is leaving is allowed', () => {
@@ -142,7 +143,7 @@
   });
   test('Borderless: running into yourself still kills', () => {
     const g = mk({ mode: 'borderless' }); g.grow = 3; g.step(); g.step(); g.step();
-    g.turn(0, 1); g.step(); g.turn(-1, 0); g.step(); g.turn(0, -1); g.step();
+    g.turn(0, 1); g.step(); g.turn(-1, 0); g.step(); g.turn(0, -1); g.step(); g.step();
     eq(g.alive, false);
   });
   test('Walls: the eaten tile turns into a wall once the tail leaves', () => {
@@ -154,7 +155,7 @@
     eq(g.events.some(e => e.type === 'wall'), true, 'wall event');
   });
   test('Walls: hitting a wall kills', () => {
-    const g = mk({ mode: 'walls' }); g.wall[g.idx(4, 4)] = 2; g.step(); g.step();
+    const g = mk({ mode: 'walls' }); g.wall[g.idx(4, 4)] = 2; g.step(); g.step(); g.step();
     eq(g.alive, false);
   });
   test('Walls: apples never spawn on walls', () => {
@@ -226,7 +227,59 @@
   });
   test('Any board size works (fill-screen boards)', () => {
     const g = new S.Game({ cols: 31, rows: 13, rng: S.util.rng(1) });
-    eq(g.cells[0], { x: 7, y: 6 }); for (let i = 0; i < 23; i++) g.step(); eq(g.alive, true); g.step(); eq(g.alive, false);
+    eq(g.cells[0], { x: 7, y: 6 }); for (let i = 0; i < 23; i++) g.step(); eq(g.alive, true); g.step(); g.step(); eq(g.alive, false);
+  });
+
+  // ---------- grace period ----------
+  test('Grace: the snake waits one step before hitting the edge', () => {
+    const g = mk({ cols: 4 }); g.step();             // head at x=3, the last column
+    g.step();
+    eq(g.alive, true, 'alive'); eq(g.inGrace, true, 'in grace'); eq(head(g), { x: 3, y: 4 }, 'did not move');
+    eq(g.events.some(e => e.type === 'grace'), true, 'grace event');
+  });
+  test('Grace: turning during the grace step saves you', () => {
+    const g = mk({ cols: 4 }); g.step(); g.step();   // in grace at the edge
+    eq(g.turn(0, 1, 0.1), true, 'turn queued (no redo during grace)'); g.step();
+    eq(g.alive, true, 'alive'); eq(head(g), { x: 3, y: 5 }, 'turned down'); eq(g.inGrace, false, 'grace over');
+  });
+  test('Grace: you get a fresh grace after moving again', () => {
+    const g = mk({ cols: 4 }); g.step(); g.step(); g.turn(0, 1); g.step();   // saved, heading down
+    g.turn(1, 0); g.step(); eq(g.inGrace, true, 'second grace'); eq(g.alive, true);
+  });
+  test('Grace: also applies to running into yourself', () => {
+    const g = mk(); g.grow = 3; g.step(); g.step(); g.step();
+    g.turn(0, 1); g.step(); g.turn(-1, 0); g.step(); g.turn(0, -1); g.step();
+    eq(g.alive, true, 'grace'); g.turn(-1, 0); g.step(); eq(g.alive, true, 'escaped left');
+  });
+  test('Grace can be turned off (menu preview)', () => {
+    const g = mk({ cols: 4, grace: false }); g.step(); g.step(); eq(g.alive, false);
+  });
+
+  // ---------- Hunger / Runaway ----------
+  test('Hunger: shrinks after 30 hungry steps, then every 8', () => {
+    const g = mk({ mode: 'hunger', cols: 60 }); g.grow = 5; for (let i = 0; i < 5; i++) g.step();   // length 8
+    for (let i = 5; i < 29; i++) g.step(); eq(g.cells.length, 8, 'still 8 at step 29');
+    g.step(); eq(g.cells.length, 7, 'shrank at 30');
+    for (let i = 0; i < 8; i++) g.step(); eq(g.cells.length, 6, 'shrank again 8 later');
+  });
+  test('Hunger: eating resets the timer', () => {
+    const g = mk({ mode: 'hunger', cols: 60 }); for (let i = 0; i < 20; i++) g.step();
+    g.setApples([{ x: g.cells[0].x + 1, y: 4 }]); g.step(); eq(g.hungry, 0); eq(g.hungerLevel(), 0);
+  });
+  test('Hunger: starving at length 2 ends the game', () => {
+    const g = new S.Game({ mode: 'hunger', cols: 200, rows: 3, rng: S.util.rng(1) }); g.setApples([{ x: 0, y: 0 }]);
+    for (let i = 0; i < 60 && g.alive; i++) g.step();
+    eq(g.alive, false, 'dead'); eq(g.events.some(e => e.type === 'starve'), true, 'starve event');
+  });
+  test('Runaway: a nearby apple hops further away', () => {
+    let moved = 0;
+    for (let seed = 0; seed < 20; seed++) {
+      const g = mk({ mode: 'runaway', rng: S.util.rng(seed) }); g.setApples([{ x: 7, y: 2 }]);
+      g.step(); g.step(); g.step();                     // a hop check happens every 3 steps
+      const a = g.apples[0];
+      if (a.movedAt) { moved++; eq(Math.abs(a.x - g.cells[0].x) + Math.abs(a.y - g.cells[0].y) >= 2, true, 'moved away'); }
+    }
+    eq(moved > 5, true, 'hopped in some games (' + moved + '/20)');
   });
 
   S.testResults = results;

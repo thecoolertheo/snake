@@ -107,7 +107,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--c-fg); outl
 .big-stat-btn { cursor: pointer; }
 .big-stat-btn:hover { background: var(--c-surface-2); }
 .badge { margin: 0; padding: var(--sp-1) var(--sp-3); border-radius: var(--r-pill); background: rgba(242, 201, 76, .14); color: var(--c-gold); font-size: var(--fs-sm); font-weight: 700; animation: pop var(--t-med) var(--ease); text-align: center; }
-#pv { width: min(100%, 240px); aspect-ratio: 7 / 3; border-radius: var(--r-md); display: block; box-shadow: inset 0 0 0 1px var(--c-line); }
+#pv { width: min(100%, 260px); aspect-ratio: 10 / 4; border-radius: var(--r-md); display: block; box-shadow: inset 0 0 0 1px var(--c-line); }
 .mode-line { margin: 0; color: var(--c-muted); font-size: var(--fs-sm); text-align: center; }
 
 .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--sp-1); margin: 0 var(--sp-4); padding: var(--sp-1); background: var(--c-bg); border-radius: var(--r-md); }
@@ -200,6 +200,19 @@ input[type=range] { width: 100%; accent-color: var(--c-accent); height: 28px; }
 .play:hover { filter: brightness(1.08); }
 .play:active { transform: scale(.98); }
 
+/* ---------- compact pause card ---------- */
+.menu.compact { width: min(100%, 380px); }
+.menu.compact .tabs, .menu.compact .panels, .menu.compact .menu-foot, .menu.compact #pv { display: none; }
+.pause-box { display: grid; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4) var(--sp-4); }
+.pause-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.pbtn { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); padding: 12px var(--sp-2); border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface-2); font-size: var(--fs-md); font-weight: 500; cursor: pointer; transition: background var(--t-fast), transform var(--t-fast); }
+.pbtn:hover { background: var(--c-surface-3); }
+.pbtn:active { transform: scale(.97); }
+.pbtn svg, .pbtn .ic svg { width: 20px; height: 20px; display: block; }
+.pbtn.tog[aria-pressed="false"] { color: var(--c-muted); background: var(--c-bg); }
+.pbtn.tog[aria-pressed="true"] { border-color: rgba(91, 140, 255, .5); }
+.pause-hint { margin: 0; text-align: center; font-size: var(--fs-xs); color: var(--c-muted); }
+
 /* ---------- unlock roadmap ---------- */
 .next-goal { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); text-align: center; }
 .link { border: 0; background: none; padding: 0; color: var(--c-accent); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -285,6 +298,10 @@ html.full .app { gap: 0; }
   #pv { width: 200px; }
 }
 @media (max-height: 400px) { .menu-head #pv { display: none; } }
+@media (max-height: 520px) and (min-width: 560px) {
+  .menu.compact { width: min(100%, 640px); }
+  .menu.compact .pause-box { grid-row: 1 / 4; align-content: center; padding: var(--sp-4); }
+}
 
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {

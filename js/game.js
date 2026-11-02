@@ -20,8 +20,11 @@
     { id: 'turbo',      name: 'Turbo',      desc: 'Gets faster with every apple. No speed limit… almost.', turbo: true },
     { id: 'mirror',     name: 'Mirror',     desc: 'Controls are flipped: left is right, up is down.', mirror: true },
     { id: 'dark',       name: 'Dark',       desc: 'You can only see what’s near your head.', dark: true },
-    { id: 'gold',       name: 'Gold Rush',  desc: 'Golden apples are worth 3, but they don’t stay long.', gold: true }
+    { id: 'gold',       name: 'Gold Rush',  desc: 'Golden apples are worth 3, but they don’t stay long.', gold: true },
+    { id: 'hunger',     name: 'Hunger',     desc: 'Keep eating! You shrink when hungry and starve at length 1.', hunger: true },
+    { id: 'runaway',    name: 'Runaway',    desc: 'Apples hop away when you get close.', runaway: true }
   ];
+  const HUNGER_START = 30, HUNGER_EVERY = 8;   // steps without food before shrinking, then one cell per 8 steps
   const GOLD_CHANCE = 0.3, GOLD_LIFE = 45;   // steps a golden apple stays before turning normal
   const MODE = {}; for (const m of MODES) MODE[m.id] = m;
 
@@ -33,6 +36,7 @@
       this.mode = MODE[opts.mode] ? opts.mode : 'classic';
       this.rules = MODE[this.mode];
       this.rng = opts.rng || Math.random;
+      this.useGrace = opts.grace !== false;   // Google-style beat of grace before a crash
       this.reset();
     }
 
@@ -61,6 +65,8 @@
       this.steps = 0;
       this.maxLen = 3;
       this.alive = true;
+      this.inGrace = false;
+      this.hungry = 0;
       this.won = false;
       this.undo = null;
       this.events = [];
@@ -137,7 +143,7 @@
       if (!this.alive) return false;
       if (this.rules.mirror) { nx = -nx; ny = -ny; }
       const d = this.dir, u = this.undo;
-      if (this.queue.length === 0 && u && progress < REDO_WINDOW &&
+      if (this.queue.length === 0 && u && !this.inGrace && progress < REDO_WINDOW &&
           d.x === u.dir.x && d.y === u.dir.y && nx * d.x + ny * d.y === 0) {
         this._revert();
         this.queue.push({ x: nx, y: ny });
@@ -161,7 +167,19 @@
       this.undo = null;
     }
 
+    // About to crash. The first time, the snake waits one step at the edge (like Google Snake)
+    // so you can still turn away. If it's still heading into trouble next step, it dies.
+    _crash(x, y, nd) {
+      if (this.useGrace && !this.inGrace) {
+        this.inGrace = true; this.undo = null; this.prevDir = nd; this.dir = nd;
+        this.events.push({ type: 'grace', x, y });
+        return;
+      }
+      this._die(x, y);
+    }
+
     _die(x, y) {
+      this.inGrace = false;
       this.alive = false; this.queue.length = 0; this.undo = null; this.prevDir = this.dir;
       this.events.push({ type: 'die', x, y });
     }
@@ -177,7 +195,7 @@
       let jump = null;
 
       if (!this.inBounds(hx, hy)) {
-        if (!r.wrap) return this._die(hx, hy);
+        if (!r.wrap) return this._crash(hx, hy, nd);
         const wx = (hx + this.cols) % this.cols, wy = (hy + this.rows) % this.rows;
         jump = { ja: { x: hx, y: hy }, jb: { x: wx - nd.x, y: wy - nd.y } };
         hx = wx; hy = wy;
@@ -194,8 +212,9 @@
       const feeds = apple && apple.kind !== 'poison';
       const tailMoves = this.grow === 0 && !feeds;
       const i = this.idx(hx, hy);
-      if (this.wall[i] === 2) return this._die(hx, hy);
-      if (!r.ghost && this.occ[i] > 0 && !(tailMoves && tail.x === hx && tail.y === hy)) return this._die(hx, hy);
+      if (this.wall[i] === 2) return this._crash(hx, hy, nd);
+      if (!r.ghost && this.occ[i] > 0 && !(tailMoves && tail.x === hx && tail.y === hy)) return this._crash(hx, hy, nd);
+      this.inGrace = false;
 
       const u = { prevTail: this.prevTail, dir: this.dir, prevDir: this.prevDir, grow: this.grow, popped: null };
       this.prevDir = this.dir; this.dir = nd;
@@ -243,8 +262,20 @@
         }
       }
 
+      // Hunger: after a while without food you lose a cell every few steps; at length 1 you starve.
+      if (r.hunger) {
+        this.hungry = feeds ? 0 : this.hungry + 1;
+        if (this.hungry >= HUNGER_START && (this.hungry - HUNGER_START) % HUNGER_EVERY === 0) {
+          if (this.cells.length <= 2) { this.events.push({ type: 'starve' }); return this._die(hx, hy); }
+          const t = this._popTail();
+          this.prevTail = { x: t.x, y: t.y }; this.undo = null;
+          this.events.push({ type: 'shrink', x: t.x, y: t.y });
+        }
+      }
+
       this.steps++;
       if (this.cells.length > this.maxLen) this.maxLen = this.cells.length;
+      if (r.runaway && this.steps % 3 === 0) this._flee();
       // Golden apples that weren't eaten in time turn back into normal ones.
       for (const a of this.apples) if (a.kind === 'gold' && this.steps >= a.until) {
         a.kind = 'apple'; delete a.until;
@@ -258,6 +289,43 @@
       }
     }
   }
+
+  // 0..1: how close a Hunger snake is to its next shrink (0 = just ate).
+  Game.prototype.hungerLevel = function () {
+    if (!this.rules.hunger) return 0;
+    if (this.hungry < HUNGER_START) return this.hungry / HUNGER_START;
+    return 1;
+  };
+
+  // Runaway: apples near your head hop to a neighbouring free tile that's further from you.
+  Game.prototype._flee = function () {
+    const h = this.cells[0];
+    for (const a of this.apples) {
+      if (a.kind !== 'apple') continue;
+      const d0 = Math.abs(a.x - h.x) + Math.abs(a.y - h.y);
+      if (d0 > 5 || this.rng() > 0.7) continue;
+      let best = null, bestD = d0, n = 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const x = a.x + dx, y = a.y + dy;
+        if (!this.inBounds(x, y) || !this.isFree(x, y)) continue;
+        const d = Math.abs(x - h.x) + Math.abs(y - h.y);
+        if (d > bestD) { bestD = d; best = { x, y }; n = 1; }
+        else if (d === bestD && best && this.rng() < 1 / ++n) best = { x, y };
+      }
+      if (best) {
+        a.fx = a.x; a.fy = a.y; a.movedAt = this.steps;
+        a.x = best.x; a.y = best.y;
+        this.events.push({ type: 'hop', x: a.x, y: a.y });
+      }
+    }
+  };
+
+  // Used by the menu preview: drop the tail cell (the preview snake shrinks back down).
+  Game.prototype.trimTail = function () {
+    if (this.cells.length <= 3) return false;
+    const t = this._popTail(); this.prevTail = { x: t.x, y: t.y }; this.undo = null;
+    return true;
+  };
 
   S.Game = Game;
   S.MODES = MODES;

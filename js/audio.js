@@ -80,6 +80,7 @@
     poison() { tone(300, 0.18, { type: 'square', vol: 0.06, slide: -140 }); tone(200, 0.22, { vol: 0.12, delay: 0.06, slide: -90 }); },
     portal() { tone(300, 0.22, { vol: 0.12, slide: 900 }); tone(600, 0.2, { type: 'triangle', vol: 0.06, delay: 0.08, slide: 700 }); },
     gold() { [880, 1175, 1568].forEach((f, i) => tone(f, 0.18, { type: 'triangle', vol: 0.07, delay: 0.04 + i * 0.05 })); },
+    grace() { tone(180, 0.09, { type: 'triangle', vol: 0.07, slide: -40 }); },
     wall() { tone(110, 0.12, { type: 'triangle', vol: 0.12, slide: -40 }); },
     passBest() { [784, 1047].forEach((f, i) => tone(f, 0.16, { type: 'triangle', vol: 0.08, delay: i * 0.08 })); },
     newBest() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i === 4 ? 0.5 : 0.16, { type: 'triangle', vol: 0.1, delay: i * 0.09 })); },

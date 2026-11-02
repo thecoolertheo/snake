@@ -49,8 +49,9 @@
       steps: [
         { id: 'c-ruby',  goal: 15, kind: 'color', index: 12 },
         { id: 'm-turbo', goal: 20, ...mode('turbo') },
-        { id: 'c-gold',  goal: 25, kind: 'color', index: 8 },
-        { id: 'e-heart', goal: 40, kind: 'eyes',  index: 5 }
+        { id: 'c-gold',    goal: 25, kind: 'color', index: 8 },
+        { id: 'm-runaway', goal: 30, ...mode('runaway') },
+        { id: 'e-heart',   goal: 40, kind: 'eyes',  index: 5 }
       ] },
     { id: 'length', name: 'Longest snake', unit: 'long', how: 'How long your snake has ever grown in one game.',
       value: p => p.longest, verb: g => 'Grow to ' + g + ' long',
@@ -63,6 +64,7 @@
       value: p => p.minutes, verb: g => 'Play for ' + (g >= 60 ? g / 60 + ' hour' + (g > 60 ? 's' : '') : g + ' minutes'), cumulative: true,
       steps: [
         { id: 'c-sky',    goal: 10,  kind: 'color',   index: 15 },
+        { id: 'm-hunger', goal: 30,  ...mode('hunger') },
         { id: 'p-ocean',  goal: 60,  kind: 'pattern', index: 8 },
         { id: 'e-angry',  goal: 180, kind: 'eyes',    index: 7 }
       ] },

@@ -17,6 +17,8 @@
     turbo: '<path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="#ffc83d"/>',
     mirror: '<path d="M12 3v18" stroke="#8aa094" stroke-width="2" stroke-dasharray="2 2"/><path d="M9 8l-5 4 5 4zM15 8l5 4-5 4z" fill="#c9a2ff"/>',
     dark: '<circle cx="12" cy="12" r="10" fill="#0b100d" stroke="#3a4a41" stroke-width="1.5"/><circle cx="12" cy="12" r="5" fill="#ffe9a8" opacity=".9"/><circle cx="12" cy="12" r="8" fill="#ffe9a8" opacity=".18"/>',
+    hunger: '<path d="M7 3v7a2 2 0 0 0 4 0V3M9 10v11" stroke="#ff9838" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M16 3c-2 1-2.5 4-2.5 7H17V21" stroke="#ff9838" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    runaway: '<circle cx="15" cy="14" r="6.5" fill="#ff5a4e"/><path d="M15 7.5c0-1.6.8-2.4 2.4-3.2" stroke="#5fd16a" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M2 11h5M3 15h4M2 19h5" stroke="#8aa094" stroke-width="2" stroke-linecap="round"/>',
     gold: '<circle cx="12" cy="14" r="8" fill="#ffc83d"/><circle cx="9" cy="11" r="2" fill="#fff6c4"/><path d="M12 6c0-2 1-3 3-4" stroke="#6b4a2b" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M19 3l.8 1.7 1.7.8-1.7.8L19 8l-.8-1.7-1.7-.8 1.7-.8z" fill="#fffbe6"/>'
   };
   const BOARD_NAMES = { s: 'Small', m: 'Medium', l: 'Large', f: 'Fill screen' };
@@ -77,6 +79,13 @@
     vol.addEventListener('change', () => h.click());
     toggle('swSfx', 'sfx'); toggle('swMusic', 'music'); toggle('swDpad', 'dpad'); toggle('swVibrate', 'vibrate');
     if (!navigator.vibrate) $('vibNote').textContent = 'Not supported on this device (iPhone and iPad can’t vibrate from a web page)';
+
+    // Compact pause card
+    $('resumeBtn').addEventListener('click', h.play);
+    $('restartBtn').addEventListener('click', h.restart);
+    $('homeBtn').addEventListener('click', h.home);
+    $('pSound').addEventListener('click', () => { st.muted = !st.muted; ui.renderMute(); h.settingsChanged('muted'); if (!st.muted) h.click(); });
+    $('pMusic').addEventListener('click', () => { st.music = !st.music; ui.renderMute(); $('swMusic').setAttribute('aria-checked', st.music); h.settingsChanged('music'); h.click(); });
 
     // Bar + header buttons
     E.play.addEventListener('click', h.play);
@@ -314,6 +323,7 @@
       if (u.kind === 'mode') h.gameChanged(); else h.settingsChanged(u.kind);
       renderRoadmap(); renderSkins();
       const n2 = $('roadmap').querySelector('[data-track="' + u.track.id + '"] [data-note]');
+      ui.bump(ui.el.pv);
       n2.innerHTML = '<b class="ok">' + (u.kind === 'mode' ? 'Selected:' : 'Now wearing:') + '</b> ' + SK.itemName(u);
     } else {
       const v = Math.min(u.value(store.progress()), u.goal);
@@ -355,6 +365,8 @@
   };
 
   ui.renderMute = () => {
+    const ps = $('pSound'); ps.setAttribute('aria-pressed', !st.muted); ps.querySelector('.ic').innerHTML = st.muted ? ICON_OFF : ICON_ON;
+    $('pMusic').setAttribute('aria-pressed', !!st.music);
     ui.el.mute.innerHTML = st.muted ? ICON_OFF : ICON_ON;
     ui.el.mute.setAttribute('aria-label', st.muted ? 'Sound off' : 'Sound on');
   };
@@ -371,12 +383,17 @@
     E.badge.hidden = !o.badge; if (o.badge) E.badge.textContent = o.badge;
     E.nextGoal.hidden = !o.next; if (o.next) E.nextGoal.textContent = o.next;
     E.overlay.hidden = false;
+    // Pause shows a compact card (no tabs, never scrolls); everything else shows the full menu.
+    $('menu').classList.toggle('compact', !!o.compact); $('pauseBox').hidden = !o.compact;
+    ui.renderMute();
     ui.refresh();
     if (o.tab) ui.setTab(o.tab, o.tab === 'stats');
     else if (ui.tab === 'stats') renderStats();
     else if (ui.tab === 'unlocks') renderRoadmap();
-    E.play.focus({ preventScroll: true });
+    (o.compact ? $('resumeBtn') : E.play).focus({ preventScroll: true });
   };
+  // Open the full tabbed menu from the pause card.
+  ui.expand = () => { $('menu').classList.remove('compact'); $('pauseBox').hidden = true; };
   ui.setPlayLabel = t => { ui.el.play.textContent = t; };
   ui.hideMenu = () => {
     ui.el.overlay.hidden = true;

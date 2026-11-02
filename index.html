@@ -58,6 +58,19 @@
             <p class="mode-line" id="modeLine"></p>
           </div>
 
+          <div class="pause-box" id="pauseBox" hidden>
+            <button class="play" id="resumeBtn" type="button">Resume</button>
+            <div class="pause-row">
+              <button class="pbtn" id="restartBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Restart</button>
+              <button class="pbtn" id="homeBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="currentColor"/></svg>Main menu</button>
+            </div>
+            <div class="pause-row">
+              <button class="pbtn tog" id="pSound" type="button" aria-pressed="true"><span class="ic"></span>Sound</button>
+              <button class="pbtn tog" id="pMusic" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></svg>Music</button>
+            </div>
+            <p class="pause-hint">Esc, P or Start also resumes</p>
+          </div>
+
           <div class="tabs" role="tablist" id="tabs">
             <button role="tab" type="button" data-tab="modes" aria-selected="true">Modes</button>
             <button role="tab" type="button" data-tab="snake" aria-selected="false">Snake</button>

@@ -38,7 +38,8 @@
 
   const cv = $('c');
   const view = new R.View(cv, 17, 15, true);
-  const pvView = new R.View($('pv'), 7, 3, true);
+  const PV_COLS = 10, PV_ROWS = 4;
+  const pvView = new R.View($('pv'), PV_COLS, PV_ROWS, true);
   const pvSnake = new R.SnakeDrawer();
   const confetti = new R.Confetti($('confetti'));
 
@@ -98,7 +99,7 @@
   function pause() {
     if (state !== 'play' && state !== 'countdown') return;
     state = 'paused'; store.save();
-    showMenu('Paused', 'Resume');
+    showMenu('Paused', 'Resume', { compact: true });
   }
 
   function turn(nx, ny) {
@@ -138,6 +139,7 @@
         case 'poison': view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); vibrate([10, 40, 10]); break;
         case 'shrink': view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); break;
         case 'wall': A.sfx.wall(); break;
+        case 'grace': squashT = now; A.sfx.grace(); vibrate(8); break;
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
           state = 'dying'; deathT = now; A.sfx.die(); vibrate([40, 40, 90]);
@@ -192,23 +194,98 @@
     const w = Math.floor(cell * view.cols), h = Math.floor(cell * view.rows);
     E.wrap.style.width = w + 'px';
     view.resize(w, h);
-    if (ui.menuOpen() && E.pv.offsetParent) { const pw = E.pv.clientWidth || 200; pvView.resize(pw, Math.round(pw * 3 / 7)); }
+    if (ui.menuOpen() && E.pv.offsetParent) { const pw = E.pv.clientWidth || 200; pvView.resize(pw, Math.round(pw * PV_ROWS / PV_COLS)); }
     if (confetti.active) confetti.resize();
   }
 
   // ---------- drawing ----------
-  const PV_TRACK = []; for (let x = 0; x < 7; x++) PV_TRACK.push({ x, y: 0 }); PV_TRACK.push({ x: 6, y: 1 });
-  for (let x = 6; x >= 0; x--) PV_TRACK.push({ x, y: 2 }); PV_TRACK.push({ x: 0, y: 1 });
-  const pvCells = [];
-  const pvFx = { mouth: 0, blink: 0 };
-  function drawPreview(t) {
-    const st = t / baseMs(), hi = Math.floor(st), p = st - hi, L = PV_TRACK.length, at = i => PV_TRACK[((i % L) + L) % L];
-    pvCells.length = 0; for (let i = 0; i < 6; i++) pvCells.push(at(hi - i));
-    const g = pvView.begin();
-    const c0 = pvCells[0], c1 = pvCells[1], c2 = pvCells[2];
-    const a = U.lerpAng(U.angOf(c1.x - c2.x, c1.y - c2.y), U.angOf(c0.x - c1.x, c0.y - c1.y), U.ease(Math.min(1, p / 0.7)));
-    pvFx.blink = fx.blink;
-    pvSnake.draw(g, pvCells, at(hi - 6), p, CELL, a, settings, pvFx);
+  // ---------- menu preview: a little snake that plays by itself ----------
+  // It heads for apples (avoiding moves that would trap it), wanders a bit, grows,
+  // and once it fills ~40% of the mini board it shrinks back to 3 and starts over.
+  const PV_MAX = Math.round(PV_COLS * PV_ROWS * 0.4);
+  let pvGame = null, pvAcc = 0, pvShrinking = false;
+  const pvEats = [], pvBulges = new Float32Array(16), pvTime = { t: 0 };
+  const pvFx = { mouth: 0, blink: 0, bulges: pvBulges, nBulges: 0, squash: 0 };
+  const DIRS4 = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+  function pvNew() { pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: 1, mode: 'classic', grace: false }); pvShrinking = false; pvEats.length = 0; }
+  // Can the snake step onto (x, y)? The tail cell is fine because it moves away.
+  function pvOpen(g, x, y) {
+    if (!g.inBounds(x, y)) return false;
+    const t = g.cells[g.cells.length - 1];
+    return g.occ[g.idx(x, y)] === 0 || (t.x === x && t.y === y && g.grow === 0);
+  }
+  // How many tiles can be reached from (x, y): used to avoid trapping itself.
+  function pvRoom(g, x, y) {
+    const seen = new Uint8Array(g.cols * g.rows), q = [x, y]; seen[g.idx(x, y)] = 1; let n = 0;
+    while (q.length) {
+      const cy = q.pop(), cx = q.pop(); n++;
+      for (const d of DIRS4) {
+        const nx = cx + d.x, ny = cy + d.y;
+        if (pvOpen(g, nx, ny) && !seen[g.idx(nx, ny)]) { seen[g.idx(nx, ny)] = 1; q.push(nx, ny); }
+      }
+    }
+    return n;
+  }
+  // First step of the shortest path to the apple (breadth-first search), or null.
+  function pvPathStep(g) {
+    const a = g.apples[0], h = g.cells[0]; if (!a) return null;
+    const prev = new Int16Array(g.cols * g.rows).fill(-1), start = g.idx(h.x, h.y), q = [start];
+    prev[start] = start;
+    while (q.length) {
+      const i = q.shift(), x = i % g.cols, y = (i / g.cols) | 0;
+      if (x === a.x && y === a.y) {
+        let k = i; while (prev[k] !== start) k = prev[k];
+        return { x: (k % g.cols) - h.x, y: ((k / g.cols) | 0) - h.y };
+      }
+      for (const d of DIRS4) {
+        const nx = x + d.x, ny = y + d.y;
+        if (pvOpen(g, nx, ny) && prev[g.idx(nx, ny)] < 0) { prev[g.idx(nx, ny)] = i; q.push(g.idx(nx, ny)); }
+      }
+    }
+    return null;
+  }
+  function pvChoose(g) {
+    const h = g.cells[0], len = g.cells.length;
+    const safe = DIRS4.filter(d => !(d.x === -g.dir.x && d.y === -g.dir.y) && pvOpen(g, h.x + d.x, h.y + d.y))
+      .map(d => ({ d, room: pvRoom(g, h.x + d.x, h.y + d.y) }));
+    if (!safe.length) return null;
+    const roomy = safe.filter(c => c.room >= len);
+    const path = pvPathStep(g);
+    if (path && Math.random() < 0.75) { const c = roomy.find(c => c.d.x === path.x && c.d.y === path.y); if (c) return c.d; }
+    const pool = roomy.length ? roomy : safe.sort((a, b) => b.room - a.room).slice(0, 1);
+    // Wander: usually keep going straight if that's fine, otherwise pick at random.
+    const straight = pool.find(c => c.d.x === g.dir.x && c.d.y === g.dir.y);
+    if (straight && Math.random() < 0.6) return straight.d;
+    return pool[(Math.random() * pool.length) | 0].d;
+  }
+  function pvStep() {
+    const g = pvGame, d = pvChoose(g);
+    if (!d) { pvNew(); return; }
+    g.turn(d.x, d.y, 1); g.step();
+    if (!g.alive) { pvNew(); return; }
+    for (const e of g.events) if (e.type === 'eat') pvEats.push(pvTime.t);
+    g.events.length = 0;
+    if (g.cells.length >= PV_MAX) pvShrinking = true;
+    if (pvShrinking && (!g.trimTail() || g.cells.length <= 3)) pvShrinking = false;
+  }
+  function drawPreview(t, dt) {
+    if (!pvGame) pvNew();
+    const ms = baseMs();
+    pvAcc += dt; pvTime.t += dt;
+    while (pvAcc >= ms) { pvAcc -= ms; pvStep(); }
+    const g = pvGame, p = Math.min(1, pvAcc / ms);
+    let w = 0;
+    for (let i = 0; i < pvEats.length; i++) {
+      const d = (pvTime.t - pvEats[i]) / ms * CELL * 1.6;
+      if (d < g.cells.length * CELL + CELL && w < pvBulges.length) { pvEats[w] = pvEats[i]; pvBulges[w++] = d; }
+    }
+    pvEats.length = w; pvFx.nBulges = w; pvFx.blink = fx.blink;
+    const c0 = g.cells[0], c1 = g.cells[1], ap = g.apples[0];
+    pvFx.mouth = ap && Math.abs(ap.x - c0.x) + Math.abs(ap.y - c0.y) <= 1 ? 1 - p * 0.3 : Math.max(0, pvFx.mouth - dt / 120);
+    const gc = pvView.begin();
+    for (const a of g.apples) R.drawApple(gc, a, t, g, p);
+    const ang = U.lerpAng(U.angOf(g.prevDir.x, g.prevDir.y), U.angOf(g.dir.x, g.dir.y), U.ease(Math.min(1, p / 0.7)));
+    pvSnake.draw(gc, g.cells, g.prevTail, p, CELL, ang, settings, pvFx);
   }
 
   function frame(t) {
@@ -227,7 +304,8 @@
       while (acc >= ms && state === 'play') { acc -= ms; game.step(); handleEvents(); ms = stepMs(); }
     }
     const ms = stepMs();
-    const p = state === 'play' ? Math.min(acc / ms, 1) : 1;
+    // During the grace beat the head holds still at the edge instead of sliding.
+    const p = state === 'play' && !game.inGrace ? Math.min(acc / ms, 1) : 1;
 
     // Mouth opens as the head approaches an apple.
     let target = 0;
@@ -268,9 +346,10 @@
 
     const g = view.begin(shake ? (Math.random() * 2 - 1) * shake : 0, shake ? (Math.random() * 2 - 1) * shake : 0);
     R.drawWalls(g, game, t);
-    for (const ap of game.apples) R.drawApple(g, ap, t, game);
+    for (const ap of game.apples) R.drawApple(g, ap, t, game, p);
     const a = U.lerpAng(U.angOf(game.prevDir.x, game.prevDir.y), U.angOf(game.dir.x, game.dir.y), U.ease(Math.min(1, p / 0.7)));
     view.snake.draw(g, game.cells, game.prevTail, p, CELL, a, settings, fx);
+    if (game.rules.hunger && state !== 'menu') R.drawHunger(g, game.cols, game.rows, game.hungerLevel(), t);
     if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }
     view.fx.draw(g, t, fdt);
     if (state === 'countdown') {
@@ -278,7 +357,7 @@
       R.drawCountdown(g, game.cols, game.rows, String(3 - n), (ce - n * COUNT_MS) / COUNT_MS);
     }
 
-    if (ui.menuOpen()) drawPreview(t);
+    if (ui.menuOpen() && pvView.cv.offsetParent) drawPreview(t, Math.min(dt, 100));
     confetti.draw(t, dt);
     requestAnimationFrame(frame);
   }
@@ -294,7 +373,7 @@
       if (state === 'dying') return;
       if (state === 'play' || state === 'countdown') pause();
       if (!ui.menuOpen()) showMenu('Snake', 'Play');
-      ui.setTab('stats', true);
+      ui.expand(); ui.setTab('stats', true);
     },
     gameChanged: () => {
       store.save();
@@ -308,7 +387,21 @@
       if (key === 'dpad') fit();
       if (key === 'speed' || key === 'ramp') ui.refresh();
     },
-    click: () => A.sfx.click()
+    click: () => A.sfx.click(),
+    // Pause card: restart counts the current game, then starts a fresh one with a countdown.
+    restart: () => {
+      if (state !== 'paused') return;
+      A.sfx.click();
+      if (game.steps > 0) endGame();
+      newGame(); state = 'menu'; start();
+    },
+    home: () => {
+      if (state !== 'paused') return;
+      A.sfx.click();
+      if (game.steps > 0) endGame();
+      newGame(); state = 'menu';
+      showMenu('Snake', 'Play');
+    }
   });
   S.input.init({
     dir: turn,
@@ -333,5 +426,5 @@
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // Handy for debugging and automated checks.
-  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame };
+  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get preview() { return pvGame; } };
 })(window);

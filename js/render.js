@@ -333,14 +333,18 @@
     return s < 1 ? 1 + Math.sin(s * Math.PI) * 0.25 - (1 - s) * 0.6 : 1;
   }
 
-  function drawApple(g, a, t, game) {
+  function drawApple(g, a, t, game, p) {
     const pop = popScale(a, t);
     // Golden apples blink in their last few steps before turning normal.
     let alpha = 1;
     if (a.kind === 'gold' && game) { const left = a.until - game.steps; if (left <= 10) alpha = 0.55 + 0.45 * Math.abs(Math.cos(t / (left <= 4 ? 70 : 140))); }
     if (alpha < 1) g.globalAlpha = alpha;
     const bob = R.reduced ? 1 : 1 + Math.sin(t / 220 + a.x) * 0.04;
-    const cx = a.x * CELL + CELL / 2, cy = a.y * CELL + CELL / 2 + 1, r = CELL * 0.33 * pop * bob;
+    let ax = a.x, ay = a.y, hop = 0;
+    if (game && a.movedAt === game.steps && p != null && p < 1) {   // Runaway: slide + little hop to the new tile
+      const e = U.ease(p); ax = a.fx + (a.x - a.fx) * e; ay = a.fy + (a.y - a.fy) * e; hop = Math.sin(p * Math.PI) * 6;
+    }
+    const cx = ax * CELL + CELL / 2, cy = ay * CELL + CELL / 2 + 1 - hop, r = CELL * 0.33 * pop * bob;
     if (r <= 0) return;
     const portal = a.kind === 'portal', color = portal ? PORTAL_COLORS[a.pair % PORTAL_COLORS.length] : null;
     // contact shadow
@@ -542,6 +546,16 @@
     }
   }
 
+  // Hunger mode: a thin meter along the bottom edge that fills and turns red as you get hungry.
+  function drawHunger(g, cols, rows, level, t) {
+    const W = cols * CELL, H = rows * CELL, h = 6, x = W * 0.2, w = W * 0.6, y = H - h - 8;
+    g.fillStyle = 'rgba(0,0,0,0.45)'; roundRect(g, x - 2, y - 2, w + 4, h + 4, 5); g.fill();
+    const c = level < 0.6 ? '#4cc35b' : level < 0.85 ? '#f2cd3f' : '#ff5a4e';
+    g.globalAlpha = level >= 1 && !R.reduced ? 0.55 + 0.45 * Math.abs(Math.sin(t / 150)) : 1;
+    g.fillStyle = c; roundRect(g, x, y, Math.max(h, w * Math.min(1, level)), h, 3); g.fill();
+    g.globalAlpha = 1;
+  }
+
   // Big "3 2 1" in the middle of the board. f = 0..1 through the current number.
   function drawCountdown(g, cols, rows, label, f) {
     const cx = cols * CELL / 2, cy = rows * CELL / 2;
@@ -555,6 +569,6 @@
     g.restore(); g.globalAlpha = 1;
   }
 
-  Object.assign(R, { SnakeDrawer, View, Confetti, drawApple, drawWalls, drawBoard, drawCountdown, drawDark });
+  Object.assign(R, { SnakeDrawer, View, Confetti, drawApple, drawWalls, drawBoard, drawCountdown, drawDark, drawHunger });
   S.render = R;
 })(window);

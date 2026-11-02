@@ -4,7 +4,16 @@
   const S = root.Snake, U = S.util, R = S.render, SK = S.skins, A = S.audio, ui = S.ui, store = S.store;
   const CELL = R.CELL;
   const BOARDS = { s: [10, 9], m: [17, 15], l: [24, 21] };   // 'f' (fill screen) is worked out from the screen
+  const GAME_NAME = 'Nightcoil';
   const COUNT_MS = 420;
+  const XP_APPLE = 10, XP_GAME = 15, XP_BEST = 50;
+  // Trails: a couple of particles from the tail end on every step.
+  function emitTrail(v, g) {
+    const name = SK.TRAILS[settings.trail]; if (!name || name === 'None') return;
+    const T = SK.TRAIL_STYLES[name], tl = g.cells[g.cells.length - 1], now = performance.now();
+    v.fx.trail(tl.x * CELL + CELL / 2, tl.y * CELL + CELL / 2, now, T[0], T[1]);
+    if (Math.random() < 0.5) v.fx.trail(tl.x * CELL + CELL / 2, tl.y * CELL + CELL / 2, now, T[0], T[1]);
+  }
   const GRACE_FRACTION = 0.5;    // how long the grace beat lasts, as a fraction of a step          // each number of the 3-2-1 countdown
   const $ = id => document.getElementById(id);
 
@@ -61,9 +70,9 @@
 
   // Each mode has its own look: board colours + ambient effect, and an accent for the menu.
   function applyTheme() {
-    const T = R.THEMES[settings.mode] || R.THEMES.classic, st = document.documentElement.style;
+    const st = document.documentElement.style;
+    const T = view.setTheme(settings.mode, settings.boardSkin); pvView.setTheme(settings.mode, settings.boardSkin);
     st.setProperty('--mode-glow', T.glow);
-    view.setTheme(settings.mode); pvView.setTheme(settings.mode);
     if (game) ambient.reset(T.amb, game.cols, game.rows);
   }
 
@@ -155,7 +164,7 @@
           if (e.kind === 'gold') { view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22); A.sfx.gold(); }
           else if (e.kind !== 'portal') {
             const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
-            view.fx.burst(cx, cy, now, B.colors, B.shape === 'dot' ? 14 : 16, B.shape);
+            view.fx.burst(cx, cy, now, B.colors, B.count || (B.shape === 'dot' ? 14 : 16), B.shape);
           }
           for (let k = 0; k < (e.worth || 1); k++) eats.push(gameTime - k * stepMs() * 0.6);
           mouth = 0; A.sfx.eat(); vibrate(e.kind === 'gold' ? [12, 30, 12] : 12);
@@ -190,6 +199,7 @@
     const s = data.stats;
     s.games++; s.apples += game.eaten; s.longest = Math.max(s.longest, game.maxLen);
     const isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
+    s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0);
     const unlocked = checkUnlocks();
     store.save();
     return { isBest: isBest && game.score > 0, celebrate: isBest && (bestBefore > 0 || game.score >= 10), unlocked };
@@ -201,6 +211,9 @@
     for (const u of SK.UNLOCKS) if (!store.isUnlocked(u.id) && u.value(p) >= u.goal) { data.unlocked.push(u.id); out.push(u); }
     return out;
   }
+  // XP arrived in a later version: give existing players credit for what they've already done.
+  if (!data.stats.xpInit) { data.stats.xp = Math.max(data.stats.xp, data.stats.apples * XP_APPLE + data.stats.games * XP_GAME); data.stats.xpInit = true; store.save(); }
+  let shownLevel = SK.levelOf(data.stats.xp);
   if (checkUnlocks().length) store.save();   // goals can change between versions
   if (!S.MODE[settings.mode] || !modeOpen(settings.mode)) settings.mode = 'classic';
 
@@ -208,7 +221,14 @@
   function liveCheck() {
     if (!game || state !== 'play') return;
     const b = store.progress(), mode = settings.mode;
-    const p = { games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
+    const liveXp = data.stats.xp + game.eaten * XP_APPLE, level = SK.levelOf(liveXp);
+    if (level > shownLevel) {   // level up mid-game
+      shownLevel = level;
+      const r = ui.toastLevel(level, SK.titleOf(level));
+      A.sfx.newBest(); vibrate([15, 40, 15]);
+      if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 50);
+    }
+    const p = { level, games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
       bestAny: Math.max(b.bestAny, game.score), bestMode: m => Math.max(b.bestMode(m), m === mode ? game.score : 0) };
     let changed = false;
     for (const u of SK.UNLOCKS) {
@@ -226,6 +246,8 @@
     r.unlocked = liveUnlocked.concat(r.unlocked);
     let badge = '';
     if (r.isBest) badge = 'New best!';
+    const lvl = SK.levelOf(data.stats.xp);
+    if (lvl > shownLevel) { shownLevel = lvl; badge = (badge ? badge + ' · ' : '') + 'Level ' + lvl + '!'; A.sfx.newBest(); }
     if (r.unlocked.length) badge = (badge ? badge + ' · ' : '') + (r.unlocked.length > 2 ? 'Unlocked ' + r.unlocked.length + ' rewards' : 'Unlocked ' + r.unlocked.map(SK.itemName).join(', '));
     ui.setBest(currentBest());
     showMenu(title, 'Play again', { badge, next: ui.nextGoal() });
@@ -315,7 +337,12 @@
     if (!d) { pvNew(); return; }
     g.turn(d.x, d.y, 1); g.step();
     if (!g.alive) { pvNew(); return; }
-    for (const e of g.events) if (e.type === 'eat') pvEats.push(pvTime.t);
+    emitTrail(pvView, g);
+    for (const e of g.events) if (e.type === 'eat') {
+      pvEats.push(pvTime.t);
+      const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
+      pvView.fx.burst(e.x * CELL + CELL / 2, e.y * CELL + CELL / 2, performance.now(), B.colors, B.count || 14, B.shape);
+    }
     g.events.length = 0;
     if (g.cells.length >= PV_MAX) pvShrinking = true;
     if (pvShrinking && (!g.trimTail() || g.cells.length <= 3)) pvShrinking = false;
@@ -338,11 +365,13 @@
     for (const a of g.apples) R.drawApple(gc, a, t, g, p);
     const ang = U.lerpAng(U.angOf(g.prevDir.x, g.prevDir.y), U.angOf(g.dir.x, g.dir.y), U.ease(Math.min(1, p / 0.7)));
     pvSnake.draw(gc, g.cells, g.prevTail, p, CELL, ang, settings, pvFx);
+    pvView.fx.draw(gc, t, Math.min(dt, 50));
   }
 
   function frame(t) {
     const dt = Math.min(250, t - last); last = t;
     S.input.pollGamepads();
+    R.food = settings.food;
 
     if (state === 'countdown') {
       const e = t - countT, n = Math.floor(e / COUNT_MS);
@@ -356,7 +385,7 @@
       // The grace beat before a crash only lasts half a step, so it saves a quick turn but isn't a free pause.
       const due = () => stepMs() * (game.inGrace ? GRACE_FRACTION : 1);
       let ms = due();
-      while (acc >= ms && state === 'play') { acc -= ms; game.step(); handleEvents(); ms = due(); }
+      while (acc >= ms && state === 'play') { acc -= ms; game.step(); emitTrail(view, game); handleEvents(); ms = due(); }
     }
     const ms = stepMs();
     // During the grace beat the head holds still at the edge instead of sliding.
@@ -428,7 +457,7 @@
     openBest: () => {
       if (state === 'dying') return;
       if (state === 'play' || state === 'countdown') pause();
-      if (!ui.menuOpen()) showMenu('Snake', 'Play');
+      if (!ui.menuOpen()) showMenu(GAME_NAME, 'Play');
       ui.expand(); ui.setTab('stats', true);
     },
     gameChanged: () => {
@@ -441,6 +470,7 @@
     settingsChanged: key => {
       store.save(); applyAudio();
       if (key === 'color' || key === 'pattern') applyAccent();
+      if (key === 'board' || key === 'boardSkin') { applyTheme(); fit(); }
       if (key === 'dpad') fit();
       if (key === 'speed' || key === 'ramp') ui.refresh();
     },
@@ -457,7 +487,7 @@
       A.sfx.click();
       if (game.steps > 0) endGame();
       newGame(); state = 'menu';
-      showMenu('Snake', 'Play');
+      showMenu(GAME_NAME, 'Play');
     }
   });
   S.input.init({
@@ -480,7 +510,7 @@
 
   applyAccent();
   newGame();
-  showMenu('Snake', 'Play');
+  showMenu(GAME_NAME, 'Play');
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // Handy for debugging and automated checks.

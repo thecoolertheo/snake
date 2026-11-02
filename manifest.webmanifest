@@ -1,7 +1,7 @@
 {
-  "name": "Night Snake",
-  "short_name": "Snake",
-  "description": "A dark-mode snake game with six modes, unlockable skins and smooth controls.",
+  "name": "Nightcoil",
+  "short_name": "Nightcoil",
+  "description": "A dark-mode snake game with a dozen modes, a long road of unlocks and smooth controls.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

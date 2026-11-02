@@ -447,3 +447,21 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .switch-row[aria-checked="true"] .switch::after { background: var(--mode-ink); }
 .link { color: var(--mode-accent); }
 .us-ring, .rh-bar i { transition: background var(--t-med); }
+
+/* Player level badge in the menu header */
+.lvl { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: var(--sp-2); row-gap: 5px; width: min(100%, 280px);
+  padding: 6px 12px 8px 6px; border: 1px solid var(--c-line); border-radius: var(--r-md); background: rgba(0, 0, 0, .22); cursor: pointer; text-align: left; }
+.lvl:hover { background: rgba(255, 255, 255, .05); }
+.lv-n { grid-row: span 2; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-weight: 700; font-size: var(--fs-lg);
+  color: var(--mode-ink); background: linear-gradient(160deg, var(--mode-accent), color-mix(in srgb, var(--mode-accent) 55%, #000)); box-shadow: 0 4px 12px -4px var(--mode-accent); }
+.lv-t { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.lv-t b { font-size: var(--fs-sm); white-space: nowrap; }
+.lv-t small { font-size: var(--fs-xs); color: var(--c-muted); white-space: nowrap; }
+.lv-bar { display: block; height: 5px; border-radius: 99px; background: rgba(0, 0, 0, .35); overflow: hidden; }
+.lv-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--c-good), var(--mode-accent)); }
+.chip .ci-board { width: 20px; height: 20px; border-radius: 6px; }
+.toast .rw-lvl { background: linear-gradient(160deg, #ffc83d, #d99a00); color: #2b1d00; font-weight: 700; font-size: var(--fs-lg); font-style: normal; }
+.toast-lvl { border-color: #ffc83d; box-shadow: 0 10px 30px rgba(0, 0, 0, .45), 0 0 24px -6px #ffc83d; }
+.toast-lvl small { color: #ffc83d; }
+@media (max-height: 700px) { .lvl { padding: 4px 10px 6px 4px; } .lv-n { width: 30px; height: 30px; font-size: var(--fs-md); } }
+@media (max-height: 400px) { .lvl { display: none; } }

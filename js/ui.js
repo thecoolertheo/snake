@@ -44,6 +44,7 @@
 
     // Tabs
     ui.el.panels.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) { ui.setTab(b.dataset.go); h.click(); } });
+    $('lvl').addEventListener('click', () => { ui.setTab('unlocks'); h.click(); });
     $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { ui.setTab(b.dataset.tab); h.click(); } });
 
     // Modes
@@ -158,6 +159,9 @@
     chips('optShape', 'shape', SK.SHAPES);
     chips('optHat', 'hat', SK.HATS, 'hat');
     chips('optBurst', 'burst', SK.BURSTS, 'burst');
+    chips('optTrail', 'trail', SK.TRAILS, 'trail');
+    chips('optFood', 'food', SK.FOODS, 'food');
+    chips('optBoardSkin', 'boardSkin', SK.BOARDS, 'board');
   }
   function showLock(u) { ui.lockFocus = u; ui.el.lockText.textContent = lockText(u) + ' '; ui.el.lockNote.hidden = false; ui.el.lockNote.scrollIntoView({ block: 'nearest', behavior: S.render.reduced ? 'auto' : 'smooth' }); h.click(); }
   function hideLock() { ui.el.lockNote.hidden = true; }
@@ -183,6 +187,9 @@
     chipsRender('optShape', 'shape', SK.SHAPES);
     chipsRender('optHat', 'hat', SK.HATS, 'hat');
     chipsRender('optBurst', 'burst', SK.BURSTS, 'burst');
+    chipsRender('optTrail', 'trail', SK.TRAILS, 'trail');
+    chipsRender('optFood', 'food', SK.FOODS, 'food');
+    chipsRender('optBoardSkin', 'boardSkin', SK.BOARDS, 'board');
   }
 
   function showModeLock(u) {
@@ -254,7 +261,13 @@
     return '#5b8cff';
   }
 
+  // Two-tone checker swatch for a board skin (index 0 = the current mode's board).
+  function boardSwatch(i) {
+    const T = i ? SK.BOARD_THEMES[SK.BOARDS[i]] : S.render.THEMES[st.mode];
+    return 'background:conic-gradient(' + T.a + ' 25%,' + T.b + ' 0 50%,' + T.a + ' 0 75%,' + T.b + ' 0) 0 0/50% 50%;box-shadow:inset 0 0 0 2px ' + T.accent;
+  }
   function rewardPreview(u) {
+    if (u.kind === 'board') return '<i class="rw" style="' + boardSwatch(u.index) + ', 0 0 0 3px var(--c-surface-2), 0 0 0 5px var(--c-bg)"></i>';
     if (u.kind === 'mode') return '<i class="rw rw-mode">' + svg(MODE_ICONS[u.index]) + '</i>';
     if (u.kind === 'color') return '<i class="rw" style="background:' + SK.COLORS[u.index][1] + '"></i>';
     if (u.kind === 'pattern') return '<i class="rw" style="background:' + patternSwatch(u.index) + '"></i>';
@@ -263,6 +276,8 @@
   // Tiny picture at the start of each chip in the Snake tab.
   function chipIcon(kind, i) {
     if (kind === 'pattern') return '<i class="ci" style="background:' + patternSwatch(i) + '"></i>';
+    if (kind === 'board') return '<i class="ci ci-board" style="' + boardSwatch(i) + '"></i>';
+    if (kind === 'trail' || kind === 'food') return '<img class="ci-img" alt="" src="' + S.render.icon(kind, i) + '">';
     if (kind === 'eyes' || kind === 'hat' || kind === 'burst') return '<img class="ci-img" alt="" src="' + S.render.icon(kind, i, SK.COLORS[st.color][1]) + '">';
     if (kind === 'shape') return '<i class="ci ci-tail' + (i ? ' tapered' : '') + '"></i>';
     return '';
@@ -274,6 +289,9 @@
     best: '<path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/>',
     length: '<path d="M3 16h10a4 4 0 0 0 0-8H9" stroke="#4cc35b" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="19" cy="16" r="3" fill="#4cc35b"/>',
     walls: MODE_ICONS.walls, portal: MODE_ICONS.portal, poison: MODE_ICONS.poison, borderless: MODE_ICONS.borderless,
+    classic: MODE_ICONS.classic, peaceful: MODE_ICONS.peaceful, turbo: MODE_ICONS.turbo, mirror: MODE_ICONS.mirror,
+    dark: MODE_ICONS.dark, gold: MODE_ICONS.gold, hunger: MODE_ICONS.hunger, runaway: MODE_ICONS.runaway,
+    level: '<path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 16.9 6.1 20l1.2-6.5L2.5 8.9 9.1 8z" fill="#ffc83d"/>',
     time: '<circle cx="12" cy="12" r="9" fill="none" stroke="#7cc8ff" stroke-width="2.2"/><path d="M12 7v5l3.5 2" stroke="#7cc8ff" stroke-width="2.2" fill="none" stroke-linecap="round"/>',
     rewards: '<path d="M4 10h16v10H4z" fill="#c77dff"/><path d="M3 7h18v4H3z" fill="#e2b8ff"/><path d="M11 7h2v13h-2z" fill="#ffc83d"/><path d="M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1z" fill="none" stroke="#ffc83d" stroke-width="1.6"/>'
   };
@@ -329,7 +347,7 @@
           '<span class="mark">' + (done ? CHECK : LOCK) + '</span><span class="goal">' + s.goal + '</span></button>';
       });
       html += '</div></div><p class="next" data-note>' + (next
-        ? '<b>Next:</b> ' + SK.itemName(next) + ' at ' + next.goal + ' ' + t.unit + ' <small>(' + Math.max(0, next.goal - v) + ' to go)</small>'
+        ? '<b>Next:</b> ' + SK.itemName(next) + ' at ' + (t.id === 'level' ? 'level ' + next.goal : next.goal + ' ' + t.unit) + ' <small>(' + Math.max(0, next.goal - v) + ' to go)</small>'
         : '<b class="ok">All rewards on this path unlocked!</b>') + '</p></article>';
     }
     box.innerHTML = html;
@@ -371,7 +389,7 @@
 
   // Re-render everything that depends on settings or saved data.
   ui.refresh = function () {
-    renderModes(); renderSkins();
+    renderModes(); renderSkins(); ui.renderLevel();
     if (ui.tab === 'stats') renderStats();
     const m = S.MODE[st.mode];
     const line = m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
@@ -396,6 +414,20 @@
     const b = $('tabs').querySelector('[aria-selected="true"]'), ink = $('tabInk');
     if (!b || !b.offsetWidth) return;
     ink.style.width = b.offsetWidth + 'px'; ink.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+  };
+
+  // Player level + XP bar in the menu header.
+  ui.renderLevel = function () {
+    const xp = store.data.stats.xp, L = SK.levelOf(xp), a = SK.xpForLevel(L), b = SK.xpForLevel(L + 1);
+    const pct = L >= 100 ? 100 : Math.min(100, (xp - a) / (b - a) * 100);
+    $('lvl').innerHTML = '<span class="lv-n">' + L + '</span><span class="lv-t"><b>' + SK.titleOf(L) + '</b><small>' +
+      (L >= 100 ? 'Max level!' : (b - xp) + ' XP to level ' + (L + 1)) + '</small></span><i class="lv-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i>';
+  };
+  ui.toastLevel = function (L, title) {
+    const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">' + L + '</i><span><small>Level up!</small><b>' + title + '</b></span>');
+    $('toasts').appendChild(t);
+    setTimeout(() => t.classList.add('out'), 2800); setTimeout(() => t.remove(), 3300);
+    return t.getBoundingClientRect();
   };
 
   // In-game "Unlocked!" toast. Returns its position so confetti can burst from it.

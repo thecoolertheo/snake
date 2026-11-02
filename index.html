@@ -54,6 +54,10 @@
             </div>
             <button class="lvl" id="lvl" type="button" data-go="unlocks" title="Player level"></button>
             <p class="badge" id="badge" hidden></p>
+            <div class="missed" id="missed" hidden>
+              <div class="ms-h"><b>What you missed</b><small>Unlocked this game. Tap one to use it.</small><button type="button" class="ms-x" id="missedClose" aria-label="Close">×</button></div>
+              <div class="ms-list" id="missedList"></div>
+            </div>
             <p class="next-goal" id="nextGoal" hidden></p>
             <canvas id="pv" aria-hidden="true"></canvas>
             <p class="mode-line" id="modeLine"></p>
@@ -135,6 +139,9 @@
                   <input type="range" id="volume" min="0" max="100" step="5" value="80"></label>
                 <button class="switch-row" type="button" role="switch" id="swSfx" aria-checked="true"><span><b>Sound effects</b><small>Eating, turning, crashing</small></span><i class="switch"></i></button>
                 <button class="switch-row" type="button" role="switch" id="swMusic" aria-checked="false"><span><b>Background music</b><small>A soft loop while you play</small></span><i class="switch"></i></button>
+              </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM10 19a2 2 0 0 0 4 0z"/></svg><span>Notifications</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swToasts" aria-checked="true"><span><b>Unlock pop-ups during games</b><small>When off, you'll see everything you unlocked after the game, in “What you missed”</small></span><i class="switch"></i></button>
               </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10a5 5 0 0 1 5 5v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a5 5 0 0 1 5-5z"/><path d="M7 10v4M5 12h4" stroke="#16201b" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.5" cy="11" r="1.1" fill="#16201b"/><circle cx="18.5" cy="13" r="1.1" fill="#16201b"/></svg><span>Controls</span></h3>
                 <button class="switch-row" type="button" role="switch" id="swDpad" aria-checked="false"><span><b>On-screen D-pad</b><small>Buttons under the board for touch screens</small></span><i class="switch"></i></button>

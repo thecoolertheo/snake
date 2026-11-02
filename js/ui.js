@@ -44,6 +44,8 @@
 
     // Tabs
     ui.el.panels.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) { ui.setTab(b.dataset.go); h.click(); } });
+    $('missedList').addEventListener('click', useMissed);
+    $('missedClose').addEventListener('click', () => { $('missed').hidden = true; h.click(); });
     $('lvl').addEventListener('click', () => { ui.setTab('unlocks'); h.click(); });
     $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { ui.setTab(b.dataset.tab); h.click(); } });
 
@@ -80,6 +82,7 @@
     vol.value = Math.round(st.volume * 100); volOut.textContent = vol.value + '%'; vol.style.setProperty('--fill', vol.value + '%');
     vol.addEventListener('input', () => { st.volume = vol.value / 100; volOut.textContent = vol.value + '%'; vol.style.setProperty('--fill', vol.value + '%'); h.settingsChanged('volume'); });
     vol.addEventListener('change', () => h.click());
+    toggle('swToasts', 'unlockToasts');
     toggle('swSfx', 'sfx'); toggle('swMusic', 'music'); toggle('swDpad', 'dpad'); toggle('swVibrate', 'vibrate');
     if (!navigator.vibrate) $('vibNote').textContent = 'Not supported on this device (iPhone and iPad can’t vibrate from a web page)';
 
@@ -455,6 +458,28 @@
     return t.getBoundingClientRect();
   };
 
+  // "What you missed": the rewards (and level-up) you earned while pop-ups were off.
+  function renderMissed(m) {
+    const box = $('missed'), list = $('missedList');
+    box.hidden = !m; if (!m) return;
+    let html = '';
+    if (m.level) html += '<div class="ms-item ms-lvl"><i class="rw rw-lvl">' + m.level + '</i><span><b>Level ' + m.level + '</b><small>' + SK.titleOf(m.level) + '</small></span></div>';
+    for (const u of m.items) {
+      html += '<button type="button" class="ms-item" data-id="' + u.id + '">' + rewardPreview(u) + '<span><b>' + SK.itemName(u).replace(/ (colour|pattern|eyes|hat|eat effect|trail|food|board|mode)$/, '') +
+        '</b><small>' + SK.itemName(u).match(/ (colour|pattern|eyes|hat|eat effect|trail|food|board|mode)$/)[1] + '</small></span></button>';
+    }
+    list.innerHTML = html;
+  }
+  function useMissed(e) {
+    const b = e.target.closest('.ms-item[data-id]'); if (!b) return;
+    const u = SK.UNLOCKS.find(x => x.id === b.dataset.id);
+    if (u.kind === 'color' && u.index === SK.CUSTOM && !st.customColor) { ui.setTab('snake'); $('customPick').hidden = false; h.click(); return; }
+    st[SK.settingKey(u.kind)] = u.index; h.click();
+    if (u.kind === 'mode') h.gameChanged(); else h.settingsChanged(u.kind);
+    ui.refresh(); ui.bump(ui.el.pv);
+    for (const x of $('missedList').querySelectorAll('.ms-item')) x.classList.toggle('using', x === b);
+  }
+
   // In-game "Unlocked!" toast. Returns its position so confetti can burst from it.
   ui.toast = function (u) {
     const box = $('toasts');
@@ -482,6 +507,7 @@
     const E = ui.el;
     E.title.textContent = o.title; E.mScore.textContent = o.score; E.mBest.textContent = o.best; E.play.textContent = o.btn;
     E.badge.hidden = !o.badge; if (o.badge) E.badge.textContent = o.badge;
+    renderMissed(o.missed);
     E.nextGoal.hidden = !o.next; if (o.next) E.nextGoal.textContent = o.next;
     E.overlay.hidden = false;
     requestAnimationFrame(ui.moveInk);

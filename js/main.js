@@ -54,6 +54,7 @@
   const confetti = new R.Confetti($('confetti'));
   const ambient = new R.Ambient();
   const liveUnlocked = [];   // rewards unlocked during the current game
+  let liveLevel = 0;         // level reached during the current game (0 = no level-up)
   let liveCheckT = 0;
 
   // The menu's accent colour follows your snake: its colour, or the main colour of its pattern.
@@ -118,7 +119,7 @@
     lastDir = game.dir; pendingNew = false;
     bestBefore = currentBest(); passedBest = false;
     ui.setScore(0); ui.setBest(bestBefore);
-    liveUnlocked.length = 0;
+    liveUnlocked.length = 0; liveLevel = 0;
     applyTheme(); fit();
   }
 
@@ -225,11 +226,14 @@
     if (!game || state !== 'play') return;
     const b = store.progress(), mode = settings.mode;
     const liveXp = data.stats.xp + game.eaten * XP_APPLE, level = SK.levelOf(liveXp);
+    const pops = settings.unlockToasts !== false;   // off: stay quiet, show it all after the game instead
     if (level > shownLevel) {   // level up mid-game
-      shownLevel = level;
-      const r = ui.toastLevel(level, SK.titleOf(level));
-      A.sfx.newBest(); vibrate([15, 40, 15]);
-      if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 50);
+      shownLevel = level; liveLevel = level;
+      if (pops) {
+        const r = ui.toastLevel(level, SK.titleOf(level));
+        A.sfx.newBest(); vibrate([15, 40, 15]);
+        if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 50);
+      }
     }
     const p = { level, collected: b.collected, games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
       bestAny: Math.max(b.bestAny, game.score), bestMode: m => Math.max(b.bestMode(m), m === mode ? game.score : 0) };
@@ -237,6 +241,7 @@
     for (const u of SK.UNLOCKS) {
       if (store.isUnlocked(u.id) || u.value(p) < u.goal) continue;
       data.unlocked.push(u.id); liveUnlocked.push(u); changed = true; if (u.id !== 'c-custom') p.collected++;
+      if (!pops) continue;
       const r = ui.toast(u);
       A.sfx.unlock(); vibrate([15, 40, 15]);
       if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 40);
@@ -250,10 +255,16 @@
     let badge = '';
     if (r.isBest) badge = 'New best!';
     const lvl = SK.levelOf(data.stats.xp);
-    if (lvl > shownLevel) { shownLevel = lvl; badge = (badge ? badge + ' · ' : '') + 'Level ' + lvl + '!'; A.sfx.newBest(); }
+    let lvlUp = 0;
+    if (lvl > shownLevel) { shownLevel = lvl; lvlUp = lvl; badge = (badge ? badge + ' · ' : '') + 'Level ' + lvl + '!'; A.sfx.newBest(); }
     if (r.unlocked.length) badge = (badge ? badge + ' · ' : '') + (r.unlocked.length > 2 ? 'Unlocked ' + r.unlocked.length + ' rewards' : 'Unlocked ' + r.unlocked.map(SK.itemName).join(', '));
     ui.setBest(currentBest());
-    showMenu(title, 'Play again', { badge, next: ui.nextGoal() });
+    // Pop-ups off: everything you unlocked (and any level-up) waits for you here.
+    const quiet = settings.unlockToasts === false;
+    const missed = quiet && (r.unlocked.length || liveLevel || lvlUp) ? { items: r.unlocked, level: Math.max(liveLevel, lvlUp) } : null;
+    if (missed) badge = r.isBest ? 'New best!' : '';   // the card already lists unlocks and level-ups
+    showMenu(title, 'Play again', { badge, next: ui.nextGoal(), missed });
+    if (missed) { A.sfx.unlock(); const box = document.getElementById('missed').getBoundingClientRect(); confetti.pop(box.left + box.width / 2, box.top + 20, 36); }
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
     if (r.unlocked.length > liveUnlocked.length) A.sfx.unlock();   // end-of-game unlocks (e.g. games played)
   }

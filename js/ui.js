@@ -136,10 +136,27 @@
       b.addEventListener('click', () => {
         const u = lockedItem('color', i);
         if (u) { showLock(u); return; }
-        st.color = i; hideLock(); h.settingsChanged('color'); h.click(); renderSkins();
+        hideLock(); h.click();
+        if (i !== SK.CUSTOM) $('customPick').hidden = true;
+        if (i === SK.CUSTOM) { $('customPick').hidden = false; if (!st.customColor) { $('customInput').focus(); return; } }
+        st.color = i; h.settingsChanged('color'); renderSkins();
       });
       colorBox.appendChild(b);
     });
+    // Custom colour: any colour, as long as it's clearly different from every built-in one.
+    const inp = $('customInput'), status = $('customStatus');
+    const check = (save) => {
+      const hex = inp.value, near = SK.nearestColor(hex), ok = near.dist >= SK.CUSTOM_MIN;
+      const chip = '<i class="cp-dot" style="background:' + near.hex + '"></i>';
+      status.innerHTML = ok ? '<span class="ok">Unique!</span> Closest built-in colour: ' + chip + near.name
+        : '<span class="bad">Too close to</span> ' + chip + '<b>' + near.name + '</b>. Try something more different.';
+      $('customPick').classList.toggle('invalid', !ok);
+      if (ok && save) { st.customColor = hex; st.color = SK.CUSTOM; h.settingsChanged('color'); renderSkins(); }
+    };
+    inp.addEventListener('input', () => check(true));
+    inp.addEventListener('change', () => { check(true); h.click(); });
+    ui.customCheck = check;
+
     const chips = (id, key, items, kind) => {
       const box = $(id);
       items.forEach((n, i) => {
@@ -168,6 +185,13 @@
 
   function renderSkins() {
     const colorBox = $('optColor');
+    const custom = colorBox.children[SK.CUSTOM];
+    custom.style.background = st.customColor
+      ? 'radial-gradient(circle, ' + st.customColor + ' 52%, transparent 54%), conic-gradient(#ff5a4e, #ffc83d, #4cc35b, #27c2b0, #5b8cff, #9b6bff, #ff5a4e)'
+      : 'conic-gradient(#ff5a4e, #ffc83d, #4cc35b, #27c2b0, #5b8cff, #9b6bff, #ff5a4e)';
+    const customOpen = !lockedItem('color', SK.CUSTOM) && st.color === SK.CUSTOM;
+    if (customOpen) $('customPick').hidden = false;
+    if (st.customColor) $('customInput').value = st.customColor;
     [...colorBox.children].forEach((b, i) => {
       const u = lockedItem('color', i);
       b.classList.toggle('locked', !!u); b.innerHTML = u ? LOCK : '';
@@ -269,7 +293,7 @@
   function rewardPreview(u) {
     if (u.kind === 'board') return '<i class="rw" style="' + boardSwatch(u.index) + ', 0 0 0 3px var(--c-surface-2), 0 0 0 5px var(--c-bg)"></i>';
     if (u.kind === 'mode') return '<i class="rw rw-mode">' + svg(MODE_ICONS[u.index]) + '</i>';
-    if (u.kind === 'color') return '<i class="rw" style="background:' + SK.COLORS[u.index][1] + '"></i>';
+    if (u.kind === 'color') return '<i class="rw" style="background:' + (u.index === SK.CUSTOM ? 'conic-gradient(#ff5a4e,#ffc83d,#4cc35b,#27c2b0,#5b8cff,#9b6bff,#ff5a4e)' : SK.COLORS[u.index][1]) + '"></i>';
     if (u.kind === 'pattern') return '<i class="rw" style="background:' + patternSwatch(u.index) + '"></i>';
     return '<i class="rw rw-img"><img alt="" src="' + S.render.icon(u.kind, u.index) + '"></i>';
   }
@@ -278,7 +302,7 @@
     if (kind === 'pattern') return '<i class="ci" style="background:' + patternSwatch(i) + '"></i>';
     if (kind === 'board') return '<i class="ci ci-board" style="' + boardSwatch(i) + '"></i>';
     if (kind === 'trail' || kind === 'food') return '<img class="ci-img" alt="" src="' + S.render.icon(kind, i) + '">';
-    if (kind === 'eyes' || kind === 'hat' || kind === 'burst') return '<img class="ci-img" alt="" src="' + S.render.icon(kind, i, SK.COLORS[st.color][1]) + '">';
+    if (kind === 'eyes' || kind === 'hat' || kind === 'burst') return '<img class="ci-img" alt="" src="' + S.render.icon(kind, i, SK.colorHex(st)) + '">';
     if (kind === 'shape') return '<i class="ci ci-tail' + (i ? ' tapered' : '') + '"></i>';
     return '';
   }
@@ -291,6 +315,7 @@
     walls: MODE_ICONS.walls, portal: MODE_ICONS.portal, poison: MODE_ICONS.poison, borderless: MODE_ICONS.borderless,
     classic: MODE_ICONS.classic, peaceful: MODE_ICONS.peaceful, turbo: MODE_ICONS.turbo, mirror: MODE_ICONS.mirror,
     dark: MODE_ICONS.dark, gold: MODE_ICONS.gold, hunger: MODE_ICONS.hunger, runaway: MODE_ICONS.runaway,
+    collector: '<path d="M4 10h16v10H4z" fill="#c77dff"/><path d="M3 7h18v4H3z" fill="#e2b8ff"/><path d="M11 7h2v13h-2z" fill="#ffc83d"/><path d="M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1z" fill="none" stroke="#ffc83d" stroke-width="1.6"/>',
     level: '<path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 16.9 6.1 20l1.2-6.5L2.5 8.9 9.1 8z" fill="#ffc83d"/>',
     time: '<circle cx="12" cy="12" r="9" fill="none" stroke="#7cc8ff" stroke-width="2.2"/><path d="M12 7v5l3.5 2" stroke="#7cc8ff" stroke-width="2.2" fill="none" stroke-linecap="round"/>',
     rewards: '<path d="M4 10h16v10H4z" fill="#c77dff"/><path d="M3 7h18v4H3z" fill="#e2b8ff"/><path d="M11 7h2v13h-2z" fill="#ffc83d"/><path d="M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1z" fill="none" stroke="#ffc83d" stroke-width="1.6"/>'

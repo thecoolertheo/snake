@@ -36,6 +36,10 @@
       case 'leaf': g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, r * 1.5, r * 0.7, 0, 0, TAU); g.fill(); g.restore(); break;
       case 'coin': dot(g, x, y, r * 1.2); g.fillStyle = 'rgba(120,80,0,0.45)'; dot(g, x, y, r * 0.7); break;
       case 'gem': g.beginPath(); g.moveTo(x, y - r * 1.4); g.lineTo(x + r, y); g.lineTo(x, y + r * 1.4); g.lineTo(x - r, y); g.closePath(); g.fill(); break;
+      case 'bolt': g.save(); g.translate(x, y); g.rotate(a * 0.3); g.beginPath();
+        g.moveTo(-r * 0.2, -r * 1.5); g.lineTo(r * 0.7, -r * 0.2); g.lineTo(0, -r * 0.1); g.lineTo(r * 0.3, r * 1.5); g.lineTo(-r * 0.7, r * 0.1); g.lineTo(0, 0); g.closePath(); g.fill(); g.restore(); break;
+      case 'flower': { const c0 = g.fillStyle; for (let j = 0; j < 5; j++) { const q = a + j * TAU / 5; dot(g, x + Math.cos(q) * r * 0.75, y + Math.sin(q) * r * 0.75, r * 0.55); }
+        g.fillStyle = '#ffe36b'; dot(g, x, y, r * 0.45); g.fillStyle = c0; break; }
       case 'puff': { const ga = g.globalAlpha; g.globalAlpha = ga * 0.45; dot(g, x, y, r * (2.4 - (f == null ? 1 : f))); g.globalAlpha = ga; break; }
       default: dot(g, x, y, r);
     }
@@ -113,10 +117,10 @@
 
     // Colour strings are cached by key = patternKey*17 + greyLevel, so a frame creates no new strings.
     _palette(skin, flash) {
-      const sig = skin.color + '|' + skin.pattern + '|' + flash;
+      const sig = SK.colorHex(skin) + '|' + skin.pattern + '|' + flash;
       if (sig === this.sig) return;
       this.sig = sig; this.body.length = 0; this.shade.length = 0;
-      const base = U.hexRgb((SK.COLORS[skin.color] || SK.COLORS[0])[1]);
+      const base = U.hexRgb(SK.colorHex(skin));
       this.base = base;
       this.dark = U.mix(base, [0, 0, 0], 0.3);
       this.light = U.mix(base, [255, 255, 255], 0.38);
@@ -265,13 +269,18 @@
       g.fillStyle = 'rgba(255,255,255,.55)';
       for (let s = -1; s <= 1; s += 2) g.fillRect(6.5 * k, s * 8 * k - 4 * k, 1.6 * k, 3 * k);
     } else {
-      const big = style === 'Big' || style === 'Sparkly' || style === 'Cute', one = style === 'Cyclops';
+      const big = style === 'Big' || style === 'Sparkly' || style === 'Cute' || style === 'Owl', one = style === 'Cyclops';
       for (let s = one ? 0 : -1; s <= (one ? 0 : 1); s += 2) {
         const ex = (big ? 3 : one ? 3 : 4) * k, ey = s * (big ? 9.5 : 8) * k, rr = (big ? 7.5 : one ? 8.5 : 5.5) * k;
         if (dead) {
           g.fillStyle = '#fff'; dot(g, ex, ey, rr);
           g.strokeStyle = ink; g.lineWidth = 1.8 * k; g.lineCap = 'round'; const q = rr * 0.5;
           g.beginPath(); g.moveTo(ex - q, ey - q); g.lineTo(ex + q, ey + q); g.moveTo(ex + q, ey - q); g.lineTo(ex - q, ey + q); g.stroke();
+          continue;
+        }
+        if (style === 'Happy') {   // both eyes shut in happy curves
+          g.strokeStyle = ink; g.lineWidth = 1.9 * k; g.lineCap = 'round';
+          g.beginPath(); g.arc(ex - 1.5 * k, ey, rr * 0.85, -Math.PI / 2.3, Math.PI / 2.3); g.stroke();
           continue;
         }
         if (style === 'Wink' && s === 1) {   // one eye shut in a happy curve
@@ -285,6 +294,14 @@
         g.fillStyle = '#fff'; dot(g, 0, 0, rr);
         if (style === 'Star') { g.fillStyle = '#f0a500'; star(g, 2 * k, 0, 3.6 * k); }
         else if (style === 'Heart') { g.fillStyle = '#ff4d7a'; heart(g, 2 * k, 0, 3.4 * k); }
+        else if (style === 'Owl') {
+          g.fillStyle = '#ff9838'; dot(g, 1.6 * k, 0, 4.4 * k); g.fillStyle = ink; dot(g, 1.9 * k, 0, 2.6 * k);
+          g.fillStyle = '#fff'; dot(g, 2.8 * k, -1.2 * k, 0.9 * k);
+        }
+        else if (style === 'Cat') {
+          g.fillStyle = '#b5e550'; dot(g, 1.6 * k, 0, 4.2 * k); g.fillStyle = ink;
+          g.beginPath(); g.ellipse(2 * k, 0, 0.9 * k, 3.6 * k, 0, 0, TAU); g.fill();
+        }
         else if (style === 'Laser') {
           g.fillStyle = 'rgba(255,40,40,0.35)'; dot(g, 2.2 * k, 0, 4.4 * k);
           g.fillStyle = '#ff2a2a'; dot(g, 2.2 * k, 0, 2.6 * k); g.fillStyle = '#ffd0d0'; dot(g, 2.8 * k, -0.6 * k, 0.9 * k);
@@ -427,6 +444,24 @@
           g.beginPath(); g.ellipse(lx, ly - r * 0.15, r * 0.22, r * 0.1, sx * (0.9 - j * 0.35), 0, TAU); g.fill();
         }
         g.fillStyle = '#fff3b0'; dot(g, 0, -r * 0.55, r * 0.1);
+        break;
+      case 'Headphones':
+        g.strokeStyle = '#2b2b2b'; g.lineWidth = r * 0.16; g.beginPath(); g.arc(0, r * 0.35, r * 0.8, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+        g.fillStyle = '#ff5a4e'; roundRect(g, -r * 0.98, -r * 0.05, r * 0.36, r * 0.62, r * 0.14); g.fill(); roundRect(g, r * 0.62, -r * 0.05, r * 0.36, r * 0.62, r * 0.14); g.fill();
+        break;
+      case 'Graduation':
+        g.fillStyle = '#1d1d1d'; g.fillRect(-r * 0.45, -r * 0.35, r * 0.9, r * 0.35);
+        g.beginPath(); g.moveTo(0, -r * 0.95); g.lineTo(r * 1.0, -r * 0.6); g.lineTo(0, -r * 0.25); g.lineTo(-r * 1.0, -r * 0.6); g.closePath(); g.fill();
+        g.strokeStyle = '#ffc83d'; g.lineWidth = r * 0.07; g.beginPath(); g.moveTo(0, -r * 0.6); g.lineTo(r * 0.75, -r * 0.45); g.lineTo(r * 0.75, -r * 0.05); g.stroke();
+        g.fillStyle = '#ffc83d'; dot(g, r * 0.75, -r * 0.02, r * 0.09);
+        break;
+      case 'Bunny ears':
+        for (const sx of [-1, 1]) {
+          g.save(); g.translate(sx * r * 0.32, r * 0.1); g.rotate(sx * 0.18);
+          g.fillStyle = '#f5f5f5'; g.beginPath(); g.ellipse(0, -r * 0.8, r * 0.22, r * 0.75, 0, 0, TAU); g.fill();
+          g.fillStyle = '#ffb3c8'; g.beginPath(); g.ellipse(0, -r * 0.78, r * 0.1, r * 0.55, 0, 0, TAU); g.fill();
+          g.restore();
+        }
         break;
       case 'Flower':
         g.translate(-r * 0.45, r * 0.05);
@@ -621,6 +656,22 @@
         g.fillStyle = '#f5ead6'; roundRect(g, -0.32, -0.1, 0.64, 1.0, 0.2); g.fill();
         g.fillStyle = '#e5383b'; g.beginPath(); g.arc(0, 0.05, 1.0, Math.PI, 0); g.closePath(); g.fill();
         g.fillStyle = '#fff'; dot(g, -0.45, -0.35, 0.16); dot(g, 0.15, -0.65, 0.14); dot(g, 0.55, -0.25, 0.12);
+        break;
+      case 'Pizza':
+        g.fillStyle = '#e8b04a'; g.beginPath(); g.moveTo(0, 1.05); g.lineTo(-0.95, -0.7); g.quadraticCurveTo(0, -1.15, 0.95, -0.7); g.closePath(); g.fill();
+        g.fillStyle = '#ffd86b'; g.beginPath(); g.moveTo(0, 0.85); g.lineTo(-0.75, -0.5); g.quadraticCurveTo(0, -0.85, 0.75, -0.5); g.closePath(); g.fill();
+        g.fillStyle = '#d6402f'; dot(g, -0.25, -0.35, 0.16); dot(g, 0.3, -0.4, 0.15); dot(g, 0.02, 0.2, 0.15);
+        break;
+      case 'Watermelon':
+        g.fillStyle = '#3f9a3a'; g.beginPath(); g.arc(0, -0.25, 1.05, 0, Math.PI); g.closePath(); g.fill();
+        g.fillStyle = '#d9f5c9'; g.beginPath(); g.arc(0, -0.25, 0.9, 0, Math.PI); g.closePath(); g.fill();
+        g.fillStyle = '#ff4d6d'; g.beginPath(); g.arc(0, -0.25, 0.78, 0, Math.PI); g.closePath(); g.fill();
+        g.fillStyle = '#1b1b1b'; for (const [x, y] of [[-0.4, 0], [0, 0.2], [0.4, 0], [-0.15, -0.1], [0.2, -0.1]]) { g.beginPath(); g.ellipse(x, y, 0.05, 0.09, 0, 0, TAU); g.fill(); }
+        break;
+      case 'Blueberry':
+        g.fillStyle = '#3b4fc4'; dot(g, 0, 0.05, 0.95); g.fillStyle = '#2a3796'; g.beginPath();
+        for (let j = 0; j < 5; j++) { const a = -Math.PI / 2 + j * TAU / 5; g.lineTo(Math.cos(a) * 0.32, -0.55 + Math.sin(a) * 0.32); } g.closePath(); g.fill();
+        shine(-0.4, -0.15, 0.22, 0.12);
         break;
       case 'Cookie':
         g.fillStyle = '#d9a066'; dot(g, 0, 0, 1); g.fillStyle = '#b97f45'; dot(g, 0.3, 0.3, 0.6);
@@ -952,7 +1003,7 @@
       pts.forEach(([x, y, r], j) => {
         const col = B.colors[j % B.colors.length]; g.fillStyle = col; g.strokeStyle = col;
         switch (B.shape) {
-          case 'leaf': case 'coin': case 'gem': shape(g, B.shape, x, y, r, j, 1); break;
+          case 'leaf': case 'coin': case 'gem': case 'bolt': case 'flower': shape(g, B.shape, x, y, r, j, 1); break;
           case 'rect': g.save(); g.translate(x, y); g.rotate(j); g.fillRect(-r, -r * 0.5, r * 2, r); g.restore(); break;
           case 'square': g.fillRect(x - r, y - r, r * 1.7, r * 1.7); break;
           case 'ring': g.lineWidth = 1.4; g.beginPath(); g.arc(x, y, r * 1.1, 0, TAU); g.stroke(); break;

@@ -59,7 +59,7 @@
   // The menu's accent colour follows your snake: its colour, or the main colour of its pattern.
   function applyAccent() {
     const pat = SK.PATTERNS[settings.pattern];
-    let c = U.hexRgb((SK.COLORS[settings.color] || SK.COLORS[0])[1]);
+    let c = U.hexRgb(SK.colorHex(settings));
     if (SK.GRADIENTS[pat]) c = SK.GRADIENTS[pat][1];
     else if (SK.FIXED_BANDS[pat]) c = SK.FIXED_BANDS[pat][0];
     const lum = (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255, st = document.documentElement.style;
@@ -207,8 +207,11 @@
 
   // Unlocks anything whose milestone has been reached. Returns the newly unlocked rewards.
   function checkUnlocks() {
-    const p = store.progress(), out = [];
-    for (const u of SK.UNLOCKS) if (!store.isUnlocked(u.id) && u.value(p) >= u.goal) { data.unlocked.push(u.id); out.push(u); }
+    const out = [];
+    for (let more = true; more;) {   // repeat: unlocking things moves the Collector path forward too
+      more = false; const p = store.progress();
+      for (const u of SK.UNLOCKS) if (!store.isUnlocked(u.id) && u.value(p) >= u.goal) { data.unlocked.push(u.id); out.push(u); more = true; }
+    }
     return out;
   }
   // XP arrived in a later version: give existing players credit for what they've already done.
@@ -228,12 +231,12 @@
       A.sfx.newBest(); vibrate([15, 40, 15]);
       if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 50);
     }
-    const p = { level, games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
+    const p = { level, collected: b.collected, games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
       bestAny: Math.max(b.bestAny, game.score), bestMode: m => Math.max(b.bestMode(m), m === mode ? game.score : 0) };
     let changed = false;
     for (const u of SK.UNLOCKS) {
       if (store.isUnlocked(u.id) || u.value(p) < u.goal) continue;
-      data.unlocked.push(u.id); liveUnlocked.push(u); changed = true;
+      data.unlocked.push(u.id); liveUnlocked.push(u); changed = true; if (u.id !== 'c-custom') p.collected++;
       const r = ui.toast(u);
       A.sfx.unlock(); vibrate([15, 40, 15]);
       if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 40);

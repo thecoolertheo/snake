@@ -86,6 +86,29 @@
     toggle('swSfx', 'sfx'); toggle('swMusic', 'music'); toggle('swDpad', 'dpad'); toggle('swVibrate', 'vibrate');
     if (!navigator.vibrate) $('vibNote').textContent = 'Not supported on this device (iPhone and iPad can’t vibrate from a web page)';
 
+    // Sync
+    const SY = () => S.sync;
+    $('syncNew').addEventListener('click', async () => { h.click(); await SY().create(); });
+    $('syncHave').addEventListener('click', () => { h.click(); const f = $('syncJoin'); f.hidden = !f.hidden; if (!f.hidden) $('syncInput').focus(); });
+    $('syncInput').addEventListener('input', e => {
+      const c = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 8);
+      e.target.value = c.length > 4 ? c.slice(0, 4) + '-' + c.slice(4) : c;
+    });
+    $('syncJoin').addEventListener('submit', async e => {
+      e.preventDefault(); h.click();
+      if (await SY().join($('syncInput').value)) { $('syncInput').value = ''; $('syncJoin').hidden = true; }
+    });
+    $('syncCopy').addEventListener('click', () => {
+      h.click();
+      const done = () => { $('syncCopy').textContent = 'Copied'; setTimeout(() => { $('syncCopy').textContent = 'Copy'; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(SY().show()).then(done, () => {});
+    });
+    $('syncNow').addEventListener('click', () => { h.click(); SY().now(); });
+    $('syncLeave').addEventListener('click', () => {
+      h.click();
+      if (confirm('Stop syncing on this device? Your progress stays here, and the code keeps working on your other devices.')) SY().leave();
+    });
+
     // Compact pause card
     $('resumeBtn').addEventListener('click', h.play);
     $('restartBtn').addEventListener('click', h.restart);
@@ -415,6 +438,23 @@
     tr.querySelector('[data-note]').innerHTML = '<b>' + SK.itemName(u) + ':</b> ' + u.text + ' <small>(' + Math.min(u.value(store.progress()), u.goal) + '/' + u.goal + ')</small>';
   };
 
+  // Sync card in Settings.
+  ui.renderSync = function () {
+    const y = S.sync; if (!y || !y.code) return;
+    const on = !!y.code(), stEl = $('syncState'), msg = $('syncMsg');
+    $('syncOff').hidden = on; $('syncOn').hidden = !on;
+    if (on) $('syncCode').textContent = y.show();
+    let s = '';
+    if (y.state === 'syncing') s = 'Syncing…';
+    else if (on && y.state === 'ok') {
+      const m = Math.floor((Date.now() - y.at) / 60000);
+      s = (y.at ? (m < 1 ? 'Synced just now' : m < 60 ? 'Synced ' + m + ' min ago' : 'Synced ' + Math.floor(m / 60) + ' h ago') : 'On') + (y.devices > 1 ? ' · ' + y.devices + ' devices' : '');
+    } else if (on && y.state === 'error') s = 'Not synced';
+    stEl.textContent = s; stEl.className = on && y.state === 'ok' ? 'ok' : '';
+    msg.hidden = !(y.state === 'error' && y.msg); msg.textContent = y.msg;
+  };
+  ui.renderRoadmap = () => renderRoadmap();
+
   // Re-render everything that depends on settings or saved data.
   ui.refresh = function () {
     renderModes(); renderSkins(); ui.renderLevel();
@@ -433,6 +473,7 @@
     hideLock();
     if (name === 'stats') renderStats();
     if (name === 'unlocks') renderRoadmap();
+    if (name === 'settings') ui.renderSync();
     ui.el.panels.scrollTop = 0;
     if (scrollToBest) { const hd = $('bestHeading'); ui.el.panels.scrollTop = hd.offsetTop - ui.el.panels.offsetTop - 8; }
   };

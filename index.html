@@ -134,6 +134,19 @@
             </section>
 
             <section class="panel" role="tabpanel" data-panel="settings" hidden>
+              <div class="card" id="syncCard"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 0 1-.6-9.96A6.5 6.5 0 0 1 19 9.5a4.25 4.25 0 0 1-.5 8.5z"/><path d="M9.5 13.2a2.7 2.7 0 0 1 4.6-1.6M14.5 14.3a2.7 2.7 0 0 1-4.6 1.6" stroke="#16201b" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M14.6 10.4v1.8h-1.8M9.4 17.1v-1.8h1.8" stroke="#16201b" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Sync</span><small id="syncState"></small></h3>
+                <div id="syncOff">
+                  <p class="sync-p">Play on your phone, iPad and computer with the same progress, best scores, unlocks and look.</p>
+                  <div class="sync-btns"><button class="pbtn" type="button" id="syncNew">Turn on sync</button><button class="pbtn" type="button" id="syncHave">I have a code</button></div>
+                  <form class="sync-join" id="syncJoin" hidden><input id="syncInput" type="text" placeholder="XXXX-XXXX" aria-label="Sync code" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="12" size="9"><button class="play" type="submit" id="syncJoinBtn">Join</button></form>
+                </div>
+                <div id="syncOn" hidden>
+                  <div class="sync-code"><span>Your sync code</span><b id="syncCode"></b><button class="pbtn" type="button" id="syncCopy">Copy</button></div>
+                  <p class="sync-p">On another device, open <b>Settings → Sync → I have a code</b> and type it in. Keep it private: anyone with the code can use this save.</p>
+                  <div class="sync-btns"><button class="pbtn" type="button" id="syncNow">Sync now</button><button class="pbtn" type="button" id="syncLeave">Stop syncing here</button></div>
+                </div>
+                <p class="sync-msg" id="syncMsg" hidden></p>
+              </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span>Sound</span></h3>
                 <label class="field"><span class="label">Volume <output id="volOut">80%</output></span>
                   <input type="range" id="volume" min="0" max="100" step="5" value="80"></label>
@@ -189,6 +202,8 @@
 <script src="js/render.js"></script>
 <script src="js/input.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/sync-core.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/main.js"></script>
 <script>
   // Offline support + Home Screen install. Both need http(s), so skip them when opened as a file.

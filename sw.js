@@ -1,9 +1,9 @@
 // Offline support. Network first (so you always get the latest version when online),
 // falling back to the cached copy when offline. Fonts are cached on first use.
-const CACHE = 'snake-v13';
+const CACHE = 'snake-v14';
 const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
-  'js/util.js', 'js/game.js', 'js/store.js', 'js/skins.js', 'js/audio.js', 'js/render.js', 'js/input.js', 'js/ui.js', 'js/main.js',
+  'js/util.js', 'js/game.js', 'js/store.js', 'js/skins.js', 'js/audio.js', 'js/render.js', 'js/input.js', 'js/ui.js', 'js/sync-core.js', 'js/sync.js', 'js/main.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
 ];
 
@@ -23,7 +23,7 @@ self.addEventListener('fetch', e => {
     })));
     return;
   }
-  if (url.origin !== location.origin) return;
+  if (url.origin !== location.origin || url.pathname.indexOf('/api/') === 0) return;
   e.respondWith(fetch(req).then(res => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
     return res;

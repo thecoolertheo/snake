@@ -504,6 +504,20 @@
       showMenu(GAME_NAME, 'Play');
     }
   });
+  // Live sync across devices (Settings → Sync). Never swaps data mid-game.
+  S.sync.init(store, {
+    canSync: () => state === 'menu' || state === 'over' || state === 'paused',
+    status: ui.renderSync,
+    remote: ch => {
+      shownLevel = Math.max(shownLevel, SK.levelOf(data.stats.xp));   // levels earned elsewhere don't pop up here
+      if (checkUnlocks().length) store.save();                         // combined totals can reach new goals
+      if (ch.look) { applyAccent(); applyTheme(); }
+      if (state === 'paused') bestBefore = Math.max(bestBefore, currentBest());
+      ui.refresh(); ui.el.mBest.textContent = currentBest(); ui.setBest(state === 'paused' ? Math.max(bestBefore, game.score) : currentBest());
+      if (ui.tab === 'unlocks' && ui.menuOpen()) ui.renderRoadmap();
+    }
+  });
+  setInterval(() => { if (ui.tab === 'settings' && ui.menuOpen()) ui.renderSync(); }, 15000);   // keeps "Synced 2 min ago" fresh
   S.input.init({
     dir: turn,
     togglePause: () => { if (state === 'play' || state === 'countdown') pause(); else if (state === 'paused') start(); },

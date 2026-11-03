@@ -282,6 +282,39 @@
     eq(moved > 5, true, 'hopped in some games (' + moved + '/20)');
   });
 
+  // ---------- sync merge rules (js/sync-core.js) ----------
+  const C = S.syncCore;
+  if (C) {
+    const dev = (games, xp, longest) => ({ games, apples: games * 3, timeMs: games * 1000, xp, longest, at: 1 });
+    test('sync: codes are cleaned and validated', () => {
+      eq(C.cleanCode(' k7qm-3xrp '), 'K7QM3XRP'); eq(C.cleanCode('K7QM3XR'), '', 'too short'); eq(C.cleanCode('K7QM3XR0'), '', '0 is not used');
+      eq(C.cleanCode(C.newCode()).length, 8, 'new code is valid'); eq(C.showCode('K7QM3XRP'), 'K7QM-3XRP');
+    });
+    test('sync: counters add up across devices, never double count', () => {
+      const a = { devices: { A: dev(5, 100, 9) } }, b = { devices: { B: dev(2, 40, 14) } };
+      const m = C.mergeDocs(a, b);
+      eq(C.totals(m), { games: 7, apples: 21, timeMs: 7000, xp: 140, longest: 14 });
+      eq(C.totals(C.mergeDocs(m, b)).games, 7, 'merging the same device again');
+      eq(C.totals(C.mergeDocs(m, { devices: { A: dev(6, 120, 9) } })).games, 8, 'device A played one more');
+      eq(C.totals(C.mergeDocs(m, { devices: { A: dev(1, 10, 1) } })).games, 7, 'an older copy never lowers totals');
+      eq(C.totals(m, 'A').games, 2, 'totals without one device');
+    });
+    test('sync: bests take the higher score, unlocks combine', () => {
+      const m = C.mergeDocs({ best: { 'classic|m|1': 20, 'walls|s|1': 4 }, unlocked: ['a', 'b'] }, { best: { 'classic|m|1': 15, 'poison|l|3': 9 }, unlocked: ['b', 'c'] });
+      eq(m.best, { 'classic|m|1': 20, 'walls|s|1': 4, 'poison|l|3': 9 }); eq(m.unlocked, ['a', 'b', 'c']);
+    });
+    test('sync: the newest look wins', () => {
+      const old = { settings: { color: 3, hat: 1 }, settingsAt: 100 }, nu = { settings: { color: 7, hat: 0 }, settingsAt: 200 };
+      eq(C.mergeDocs(old, nu).settings, { color: 7, hat: 0 });
+      const t = Date.now(); eq(C.mergeDocs({ settings: { color: 1 }, settingsAt: t }, { settings: { color: 2 }, settingsAt: t + 1 }).settings.color, 2, 'real timestamps'); eq(C.mergeDocs(nu, old).settings, { color: 7, hat: 0 }); eq(C.mergeDocs(nu, old).settingsAt, 200);
+    });
+    test('sync: bad data is dropped', () => {
+      const m = C.sanitize({ devices: { A: { games: -5, xp: 'lots', apples: 1 / 0 }, '': { games: 3 } }, best: { k: -1, j: 'x', ok: 4 }, unlocked: [1, 'a', 'a', null],
+        settings: { color: 2, mode: 'turbo', customColor: 'red', hat: 1e9 }, settingsAt: -1 });
+      eq(m.devices, { A: { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0, at: 0 } }); eq(m.best, { ok: 4 }); eq(m.unlocked, ['a']); eq(m.settings, { color: 2 }); eq(m.settingsAt, 0);
+    });
+  }
+
   S.testResults = results;
   if (typeof module !== 'undefined' && !root.document) {
     let fail = 0;

@@ -30,25 +30,26 @@
         }
       });
 
-      // Swipe anywhere on the screen, not just the board. A new turn fires every 20px of travel,
-      // so you can swipe an L in one motion.
-      let sx = 0, sy = 0, tracking = false;
+      // Swipe anywhere on the screen, not just the board. One swipe = one turn: the turn fires as
+      // soon as the finger has moved 20px, then nothing more until the finger lifts.
+      let sx = 0, sy = 0, tracking = false, used = false;
       document.addEventListener('touchstart', e => {
         h.anyInput();
         tracking = !(e.target.closest && e.target.closest(INTERACTIVE));
         if (!tracking) return;
-        const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+        const t = e.touches[0]; sx = t.clientX; sy = t.clientY; used = false;
       }, { passive: true });
       document.addEventListener('touchmove', e => {
         if (!tracking) return;
         e.preventDefault();   // stops page scroll / pull-to-refresh while steering
-        if (h.menuOpen()) return;
+        if (h.menuOpen() || used) return;
         const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
         if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
         if (Math.abs(dx) > Math.abs(dy)) h.dir(Math.sign(dx), 0); else h.dir(0, Math.sign(dy));
-        sx = t.clientX; sy = t.clientY;
+        used = true;
       }, { passive: false });
       document.addEventListener('touchend', () => { tracking = false; h.anyInput(); }, { passive: true });
+      document.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
 
       // On-screen D-pad: react on press, not release, so it feels instant.
       const dpad = document.getElementById('dpad');

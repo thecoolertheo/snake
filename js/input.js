@@ -32,13 +32,13 @@
 
       // Swipe anywhere on the screen, not just the board. You can keep your finger down and drag an
       // L or a zigzag: each real change of direction is one turn. To stay accurate:
-      //  - the first turn fires after 20px, along whichever axis the finger moved most;
+      //  - the first turn fires after 34px, along whichever axis the finger moved most;
       //  - after that, the anchor follows the finger while it keeps going the same way, so sideways
       //    wobble or a diagonal drag never adds up to a turn;
-      //  - a new turn needs 24px of travel mostly across the current direction (a real corner);
+      //  - a new turn needs 40px of travel mostly across the current direction (a real corner);
       //  - the same direction is never sent twice, so no-op turns can't fill the turn buffer.
       let sx = 0, sy = 0, tracking = false, gx = 0, gy = 0;
-      const FIRST = 20, NEXT = 24;
+      const FIRST = 34, NEXT = 40;
       document.addEventListener('touchstart', e => {
         h.anyInput();
         tracking = !(e.target.closest && e.target.closest(INTERACTIVE));

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Source for the app icons. A close-up of the snake's head, facing up and looking up. -->
+  <defs>
+    <radialGradient id="light" cx="50%" cy="30%" r="75%"><stop offset="0" stop-color="#2c4a3a"/><stop offset="1" stop-color="#101814"/></radialGradient>
+    <radialGradient id="head" cx="50%" cy="22%" r="85%"><stop offset="0" stop-color="#7ba4ff"/><stop offset=".5" stop-color="#5b8cff"/><stop offset="1" stop-color="#3159c8"/></radialGradient>
+    <radialGradient id="eye" cx="50%" cy="38%" r="65%"><stop offset=".72" stop-color="#fff"/><stop offset="1" stop-color="#d5def2"/></radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+  </defs>
+  <rect width="1024" height="1024" fill="#1c2a22"/>
+  <g fill="#141e18"><rect x="170" y="0" width="171" height="171"/><rect x="512" y="0" width="171" height="171"/><rect x="853" y="0" width="171" height="171"/><rect x="0" y="170" width="171" height="171"/><rect x="341" y="170" width="171" height="171"/><rect x="682" y="170" width="171" height="171"/><rect x="170" y="341" width="171" height="171"/><rect x="512" y="341" width="171" height="171"/><rect x="853" y="341" width="171" height="171"/><rect x="0" y="512" width="171" height="171"/><rect x="341" y="512" width="171" height="171"/><rect x="682" y="512" width="171" height="171"/><rect x="170" y="682" width="171" height="171"/><rect x="512" y="682" width="171" height="171"/><rect x="853" y="682" width="171" height="171"/><rect x="0" y="853" width="171" height="171"/><rect x="341" y="853" width="171" height="171"/><rect x="682" y="853" width="171" height="171"/></g>
+  <rect width="1024" height="1024" fill="url(#light)" opacity=".62"/>
+  <!-- head -->
+  <path d="M-120 1100 L-120 700 C-120 300 180 84 512 84 C844 84 1144 300 1144 700 L1144 1100 Z" fill="#000" opacity=".42" filter="url(#soft)" transform="translate(0 -6)"/>
+  <path d="M-120 1100 L-120 700 C-120 300 180 84 512 84 C844 84 1144 300 1144 700 L1144 1100 Z" fill="url(#head)"/>
+  <path d="M250 262 C330 200 420 172 512 172 C604 172 694 200 774 262" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="52" stroke-linecap="round"/>
+  <!-- eyes -->
+  <g fill="#1a2f7a" opacity=".5" filter="url(#soft)"><circle cx="278" cy="472" r="190"/><circle cx="746" cy="472" r="190"/></g>
+  <circle cx="278" cy="444" r="186" fill="url(#eye)"/><circle cx="746" cy="444" r="186" fill="url(#eye)"/>
+  <circle cx="296" cy="366" r="106" fill="#0f1512"/><circle cx="728" cy="366" r="106" fill="#0f1512"/>
+  <circle cx="256" cy="322" r="35" fill="#fff"/><circle cx="688" cy="322" r="35" fill="#fff"/>
+  <circle cx="332" cy="406" r="14" fill="#fff" opacity=".85"/><circle cx="764" cy="406" r="14" fill="#fff" opacity=".85"/>
+  <!-- nostrils -->
+  <ellipse cx="466" cy="646" rx="17" ry="24" fill="#2a489f" transform="rotate(16 466 646)"/>
+  <ellipse cx="558" cy="646" rx="17" ry="24" fill="#2a489f" transform="rotate(-16 558 646)"/>
+  <!-- tongue, under the smile -->
+  <path d="M512 800 L512 838" stroke="#ff4d67" stroke-width="34" stroke-linecap="butt" fill="none"/>
+  <path d="M512 830 L472 884 M512 830 L552 884" stroke="#ff4d67" stroke-width="26" stroke-linecap="round" fill="none"/>
+  <path d="M286 696 C360 776 440 790 512 790 C584 790 664 776 738 696" fill="none" stroke="#1e3a8f" stroke-width="24" stroke-linecap="round"/>
+</svg>

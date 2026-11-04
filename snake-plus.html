@@ -3923,13 +3923,16 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     return before !== state() ? { look: lookChanged } : null;
   }
 
-  async function post(body, keepalive) {
+  async function post(body, keepalive, retried) {
     // A request stuck on a bad connection must not hold up every sync after it.
     const stop = new AbortController(), timer = setTimeout(() => stop.abort(), 10000);
     try {
       const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: !!keepalive, cache: 'no-store', signal: stop.signal });
       let j = null; try { j = await r.json(); } catch (e) {}
       return { status: r.status, body: j };
+    } catch (e) {
+      if (e.name !== 'AbortError' || retried || keepalive) throw e;
+      return post(body, keepalive, true);   // stalls are rare and brief, so one more try usually gets through
     } finally { clearTimeout(timer); }
   }
 

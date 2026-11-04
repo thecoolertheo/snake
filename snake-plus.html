@@ -567,11 +567,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .htile b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .htile small { font-size: var(--fs-xs); color: var(--c-muted); }
 
-.panel[data-panel="modes"] > .pv-slot { grid-column: 1 / -1; position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); }
+.panel[data-panel="modes"] > .pv-slot { grid-column: 1 / -1; position: sticky; top: 0; z-index: 3; padding: 0 0 var(--sp-2); background: linear-gradient(to bottom, transparent 20px, var(--c-bg) 20px); }
 
 /* Customize: an icon kit. Preview and what you're wearing up top, a dark panel of big tiles below. */
 .panel-snake { gap: var(--sp-3); }
-.ward-stage { display: grid; gap: var(--sp-2); position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); min-width: 0; }
+.ward-stage { display: grid; gap: var(--sp-2); position: sticky; top: 0; z-index: 3; padding: 0 0 var(--sp-2); background: linear-gradient(to bottom, transparent 20px, var(--c-bg) 20px); min-width: 0; }
 .cat-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--sp-4) * -1); padding: 2px var(--sp-4); }
 .cat-tabs::-webkit-scrollbar { display: none; }
 .cat-tab { flex: none; width: 66px; display: grid; justify-items: center; gap: 2px; padding: 6px 2px 5px; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: var(--c-muted); font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; cursor: pointer; transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast); }
@@ -1923,7 +1923,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
     // Smooth path from tail to head with rounded corners.
     // m = distance from the tail along the path, so patterns stay stuck to the body.
-    build(cells, prevTail, p, cell) {
+    // trim = how much to cut off the tail end, in pixels, so a tail can retract smoothly (0 for normal play).
+    build(cells, prevTail, p, cell, trim) {
       const v = this.verts, out = this.path, h = cell / 2, n = cells.length;
       v.n = 0; out.n = 0;
       let brk = false;
@@ -1978,6 +1979,18 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         }
         line(Vx, Vy);
       }
+      if (trim > 0) this._trim(trim);
+    }
+
+    // Removes the first d pixels of the path, ending on an exact point between two path points.
+    _trim(d) {
+      const P = this.path, n = P.n;
+      let s = 0;
+      while (s < n - 2 && P.m[s + 1] <= d) s++;
+      const f = P.b[s + 1] || P.m[s + 1] <= P.m[s] ? 0 : U.clamp((d - P.m[s]) / (P.m[s + 1] - P.m[s]), 0, 1);
+      const x = P.x[s] + (P.x[s + 1] - P.x[s]) * f, y = P.y[s] + (P.y[s + 1] - P.y[s]) * f;
+      for (let i = s; i < n; i++) { const j = i - s; P.x[j] = P.x[i]; P.y[j] = P.y[i]; P.m[j] = Math.max(0, P.m[i] - d); P.b[j] = P.b[i]; }
+      P.n = n - s; P.x[0] = x; P.y[0] = y; P.m[0] = 0; P.b[0] = 1;
     }
 
     // Colour strings are cached by key = patternKey*17 + greyLevel, so a frame creates no new strings.
@@ -2028,7 +2041,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
     // fx: {dead, flash, grey, bulges, nBulges, mouth, blink 0..1, squash 0..1}
     draw(g, cells, prevTail, p, cell, headAng, skin, fx) {
-      this.build(cells, prevTail, p, cell);
+      this.build(cells, prevTail, p, cell, fx.trim || 0);
       const P = this.path, n = P.n;
       const M = P.m[n - 1] || 1, k = cell / 40, W = cell * 0.72;
       this._palette(skin, fx.flash || 0);
@@ -4424,7 +4437,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   // It heads for apples (avoiding moves that would trap it), wanders a bit, grows,
   // and once it fills ~40% of the mini board it shrinks back to 3 and starts over.
   const PV_MAX = Math.round(PV_COLS * PV_ROWS * 0.4);
-  let pvGame = null, pvAcc = 0, pvShrinking = false;
+  let pvGame = null, pvAcc = 0, pvShrinking = false, pvTrim = 0, pvShrinkT = 0;
   const pvEats = [], pvBulges = new Float32Array(16), pvTime = { t: 0 };
   const pvFx = { mouth: 0, blink: 0, bulges: pvBulges, nBulges: 0, squash: 0 };
   const DIRS4 = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
@@ -4433,8 +4446,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const pvModeId = () => pvTry || settings.mode;
   function pvTheme() { pvAmbient.reset(pvView.setTheme(pvModeId(), settings.boardSkin).amb, PV_COLS, PV_ROWS); }
   function pvNew() {
-    pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: 1, mode: pvModeId(), grace: false });
-    pvShrinking = false; pvEats.length = 0; pvHint = null; R.resetWalls(); pvHunger.reset(); pvGild(pvGame);
+    pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), grace: false });
+    pvShrinking = false; pvTrim = 0; pvEats.length = 0; pvHint = null; R.resetWalls(); pvHunger.reset(); pvGild(pvGame);
   }
   // Gold Rush: golden apples are rare in a real game, so show them often here.
   function pvGild(g) {
@@ -4541,16 +4554,29 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     g.events.length = 0;
     pvGild(g);
     if (g.wallCount >= 7) { pvNew(); return; }   // the mini board fills up fast: clear it and go again
-    if (g.cells.length >= PV_MAX) pvShrinking = true;
-    if (pvShrinking && (!g.trimTail() || g.cells.length <= 3)) { pvShrinking = false; g.score = 0; }
+    if (g.cells.length >= PV_MAX && !pvShrinking) { pvShrinking = true; pvShrinkT = 0; }
+  }
+  // Too long for the mini board: the tail reels in smoothly, quick at first and easing off as it gets short.
+  function pvShrink(g, dt) {
+    pvShrinkT += dt;
+    pvTrim += dt / 1000 * (3 + (g.cells.length - 3) * 0.75) * Math.min(1, pvShrinkT / 350);
+    for (;;) {
+      // Going off one edge and back on the other adds a cell's length of path, so that stretch counts double.
+      const next = g.cells[g.cells.length - 2], size = next.ja && (next.jb.x !== next.x || next.jb.y !== next.y) ? 2 : 1;
+      if (pvTrim < size) break;
+      pvTrim -= size;
+      if (!g.trimTail() || g.cells.length <= 3) { pvShrinking = false; pvTrim = 0; g.score = 0; break; }
+    }
   }
   const pvStepMs = g => baseMs() * (g.rules.turbo ? Math.max(0.35, 0.7 * Math.pow(0.92, g.score)) : 1);
   function drawPreview(t, dt) {
-    if (!pvGame || pvGame.mode !== pvModeId()) pvNew();
+    if (!pvGame || pvGame.mode !== pvModeId() || pvGame.appleCount !== settings.apples) pvNew();
     pvAcc += dt; pvTime.t += dt;
     let ms = pvStepMs(pvGame);
     while (pvAcc >= ms) { pvAcc -= ms; pvStep(); ms = pvStepMs(pvGame); }
     const g = pvGame, p = Math.min(1, pvAcc / ms);
+    if (pvShrinking) pvShrink(g, dt);
+    pvFx.trim = pvTrim * CELL;
     let w = 0;
     for (let i = 0; i < pvEats.length; i++) {
       const d = (pvTime.t - pvEats[i]) / ms * CELL * 1.6;
@@ -4739,7 +4765,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // Handy for debugging and automated checks.
-  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get preview() { return pvGame; } };
+  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get preview() { return pvGame; }, get previewPath() { return pvSnake.path; } };
 })(window);
 </script>
 </body>

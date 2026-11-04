@@ -295,7 +295,7 @@
   // It heads for apples (avoiding moves that would trap it), wanders a bit, grows,
   // and once it fills ~40% of the mini board it shrinks back to 3 and starts over.
   const PV_MAX = Math.round(PV_COLS * PV_ROWS * 0.4);
-  let pvGame = null, pvAcc = 0, pvShrinking = false;
+  let pvGame = null, pvAcc = 0, pvShrinking = false, pvTrim = 0, pvShrinkT = 0;
   const pvEats = [], pvBulges = new Float32Array(16), pvTime = { t: 0 };
   const pvFx = { mouth: 0, blink: 0, bulges: pvBulges, nBulges: 0, squash: 0 };
   const DIRS4 = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
@@ -304,8 +304,8 @@
   const pvModeId = () => pvTry || settings.mode;
   function pvTheme() { pvAmbient.reset(pvView.setTheme(pvModeId(), settings.boardSkin).amb, PV_COLS, PV_ROWS); }
   function pvNew() {
-    pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: 1, mode: pvModeId(), grace: false });
-    pvShrinking = false; pvEats.length = 0; pvHint = null; R.resetWalls(); pvHunger.reset(); pvGild(pvGame);
+    pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), grace: false });
+    pvShrinking = false; pvTrim = 0; pvEats.length = 0; pvHint = null; R.resetWalls(); pvHunger.reset(); pvGild(pvGame);
   }
   // Gold Rush: golden apples are rare in a real game, so show them often here.
   function pvGild(g) {
@@ -412,16 +412,29 @@
     g.events.length = 0;
     pvGild(g);
     if (g.wallCount >= 7) { pvNew(); return; }   // the mini board fills up fast: clear it and go again
-    if (g.cells.length >= PV_MAX) pvShrinking = true;
-    if (pvShrinking && (!g.trimTail() || g.cells.length <= 3)) { pvShrinking = false; g.score = 0; }
+    if (g.cells.length >= PV_MAX && !pvShrinking) { pvShrinking = true; pvShrinkT = 0; }
+  }
+  // Too long for the mini board: the tail reels in smoothly, quick at first and easing off as it gets short.
+  function pvShrink(g, dt) {
+    pvShrinkT += dt;
+    pvTrim += dt / 1000 * (3 + (g.cells.length - 3) * 0.75) * Math.min(1, pvShrinkT / 350);
+    for (;;) {
+      // Going off one edge and back on the other adds a cell's length of path, so that stretch counts double.
+      const next = g.cells[g.cells.length - 2], size = next.ja && (next.jb.x !== next.x || next.jb.y !== next.y) ? 2 : 1;
+      if (pvTrim < size) break;
+      pvTrim -= size;
+      if (!g.trimTail() || g.cells.length <= 3) { pvShrinking = false; pvTrim = 0; g.score = 0; break; }
+    }
   }
   const pvStepMs = g => baseMs() * (g.rules.turbo ? Math.max(0.35, 0.7 * Math.pow(0.92, g.score)) : 1);
   function drawPreview(t, dt) {
-    if (!pvGame || pvGame.mode !== pvModeId()) pvNew();
+    if (!pvGame || pvGame.mode !== pvModeId() || pvGame.appleCount !== settings.apples) pvNew();
     pvAcc += dt; pvTime.t += dt;
     let ms = pvStepMs(pvGame);
     while (pvAcc >= ms) { pvAcc -= ms; pvStep(); ms = pvStepMs(pvGame); }
     const g = pvGame, p = Math.min(1, pvAcc / ms);
+    if (pvShrinking) pvShrink(g, dt);
+    pvFx.trim = pvTrim * CELL;
     let w = 0;
     for (let i = 0; i < pvEats.length; i++) {
       const d = (pvTime.t - pvEats[i]) / ms * CELL * 1.6;
@@ -610,5 +623,5 @@
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // Handy for debugging and automated checks.
-  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get preview() { return pvGame; } };
+  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get preview() { return pvGame; }, get previewPath() { return pvSnake.path; } };
 })(window);

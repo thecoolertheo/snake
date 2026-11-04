@@ -58,7 +58,8 @@
 
     // Smooth path from tail to head with rounded corners.
     // m = distance from the tail along the path, so patterns stay stuck to the body.
-    build(cells, prevTail, p, cell) {
+    // trim = how much to cut off the tail end, in pixels, so a tail can retract smoothly (0 for normal play).
+    build(cells, prevTail, p, cell, trim) {
       const v = this.verts, out = this.path, h = cell / 2, n = cells.length;
       v.n = 0; out.n = 0;
       let brk = false;
@@ -113,6 +114,18 @@
         }
         line(Vx, Vy);
       }
+      if (trim > 0) this._trim(trim);
+    }
+
+    // Removes the first d pixels of the path, ending on an exact point between two path points.
+    _trim(d) {
+      const P = this.path, n = P.n;
+      let s = 0;
+      while (s < n - 2 && P.m[s + 1] <= d) s++;
+      const f = P.b[s + 1] || P.m[s + 1] <= P.m[s] ? 0 : U.clamp((d - P.m[s]) / (P.m[s + 1] - P.m[s]), 0, 1);
+      const x = P.x[s] + (P.x[s + 1] - P.x[s]) * f, y = P.y[s] + (P.y[s + 1] - P.y[s]) * f;
+      for (let i = s; i < n; i++) { const j = i - s; P.x[j] = P.x[i]; P.y[j] = P.y[i]; P.m[j] = Math.max(0, P.m[i] - d); P.b[j] = P.b[i]; }
+      P.n = n - s; P.x[0] = x; P.y[0] = y; P.m[0] = 0; P.b[0] = 1;
     }
 
     // Colour strings are cached by key = patternKey*17 + greyLevel, so a frame creates no new strings.
@@ -163,7 +176,7 @@
 
     // fx: {dead, flash, grey, bulges, nBulges, mouth, blink 0..1, squash 0..1}
     draw(g, cells, prevTail, p, cell, headAng, skin, fx) {
-      this.build(cells, prevTail, p, cell);
+      this.build(cells, prevTail, p, cell, fx.trim || 0);
       const P = this.path, n = P.n;
       const M = P.m[n - 1] || 1, k = cell / 40, W = cell * 0.72;
       this._palette(skin, fx.flash || 0);

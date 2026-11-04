@@ -546,11 +546,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .htile b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .htile small { font-size: var(--fs-xs); color: var(--c-muted); }
 
-.panel[data-panel="modes"] > .pv-slot { grid-column: 1 / -1; position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); }
+.panel[data-panel="modes"] > .pv-slot { grid-column: 1 / -1; position: sticky; top: 0; z-index: 3; padding: 0 0 var(--sp-2); background: linear-gradient(to bottom, transparent 20px, var(--c-bg) 20px); }
 
 /* Customize: an icon kit. Preview and what you're wearing up top, a dark panel of big tiles below. */
 .panel-snake { gap: var(--sp-3); }
-.ward-stage { display: grid; gap: var(--sp-2); position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); min-width: 0; }
+.ward-stage { display: grid; gap: var(--sp-2); position: sticky; top: 0; z-index: 3; padding: 0 0 var(--sp-2); background: linear-gradient(to bottom, transparent 20px, var(--c-bg) 20px); min-width: 0; }
 .cat-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--sp-4) * -1); padding: 2px var(--sp-4); }
 .cat-tabs::-webkit-scrollbar { display: none; }
 .cat-tab { flex: none; width: 66px; display: grid; justify-items: center; gap: 2px; padding: 6px 2px 5px; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: var(--c-muted); font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; cursor: pointer; transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast); }

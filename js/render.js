@@ -129,6 +129,19 @@
       P.n = n - s; P.x[0] = x; P.y[0] = y; P.m[0] = 0; P.b[0] = 1;
     }
 
+    // Pushes the head forward by (dx, dy), stretching the neck behind it, so it can press up against
+    // whatever it's about to hit and spring back again without a jump.
+    _reach(dx, dy, span) {
+      const P = this.path, end = P.m[P.n - 1];
+      for (let i = P.n - 1; i >= 0; i--) {
+        const w = 1 - (end - P.m[i]) / span;
+        if (w <= 0) break;
+        const k = w * w * (3 - 2 * w);
+        P.x[i] += dx * k; P.y[i] += dy * k;
+        if (P.b[i]) break;
+      }
+    }
+
     // Colour strings are cached by key = patternKey*17 + greyLevel, so a frame creates no new strings.
     _palette(skin, flash) {
       const sig = SK.colorHex(skin) + '|' + skin.pattern + '|' + flash + '|' + (skin.pattern === SK.GRAD ? skin.customGrad : '');
@@ -185,6 +198,7 @@
     // fx: {dead, flash, grey, bulges, nBulges, mouth, blink 0..1, squash 0..1}
     draw(g, cells, prevTail, p, cell, headAng, skin, fx) {
       this.build(cells, prevTail, p, cell, fx.trim || 0);
+      if (fx.reachX || fx.reachY) this._reach(fx.reachX, fx.reachY, cell * 2);
       const P = this.path, n = P.n;
       const M = P.m[n - 1] || 1, k = cell / 40, W = cell * 0.72;
       this._palette(skin, fx.flash || 0);

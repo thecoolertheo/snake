@@ -40,6 +40,8 @@
   let state = 'menu';
   let game = null, pendingNew = false;
   let acc = 0, last = 0, deathT = 0, gameTime = 0, mouth = 0;
+  // The head runs on into whatever it hit, and the crash only happens when it gets there.
+  let reach = 0, reachTo = 0, reachX = 0, reachY = 0, crashing = false;
   let countT = 0, countN = -1;
   let bestBefore = 0, passedBest = false;
   let squashT = -1e9, lastDir = null, blinkT = -1e9, nextBlink = 2000;
@@ -119,7 +121,7 @@
     const [cols, rows] = board();
     game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, grace: settings.grace });
     if (view.cols !== cols || view.rows !== rows) { view.setBoard(cols, rows); fit(); }
-    acc = 0; deathT = 0; mouth = 0; gameTime = 0; eats.length = 0; view.fx.clear(); R.resetWalls(); hunger.reset();
+    acc = 0; deathT = 0; mouth = 0; gameTime = 0; reach = reachTo = 0; crashing = false; fx.reachX = fx.reachY = 0; eats.length = 0; view.fx.clear(); R.resetWalls(); hunger.reset();
     lastDir = game.dir; pendingNew = false;
     bestBefore = currentBest(); passedBest = false;
     ui.setScore(0); ui.setBest(bestBefore);
@@ -170,6 +172,23 @@
     handleEvents();
   }
 
+  // How far the head has to travel from the middle of its cell to touch what's in cell (x, y), in board units.
+  function gapTo(x, y) {
+    const head = game.cells[0];
+    if (x === head.x && y === head.y) return 0;   // starved: nothing to run into
+    const r = CELL * 0.382;                       // the head's radius
+    if (!game.inBounds(x, y)) return CELL / 2 - r + 3;                    // the edge of the board, pressed in a little
+    return (game.wall[game.idx(x, y)] === 2 ? CELL * 0.575 : CELL * 0.64) - r + 2;   // a wall block, or the snake's own body
+  }
+  function aimReach(x, y) {
+    if (reachX !== game.dir.x || reachY !== game.dir.y) reach = 0;   // turned on the way in: start again from there
+    reachTo = gapTo(x, y); reachX = game.dir.x; reachY = game.dir.y;
+  }
+  function crash(now) {
+    crashing = false; deathT = now; squashT = now; A.sfx.die(); vibrate([40, 40, 90]);
+    setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, settings.autoRestart ? AUTO_DEATH_MS : 1100);
+  }
+
   function handleEvents() {
     if (game.dir !== lastDir) { lastDir = game.dir; squashT = performance.now(); }
     const evs = game.events, now = performance.now();
@@ -199,11 +218,10 @@
         case 'poison': view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); vibrate([10, 40, 10]); break;
         case 'shrink': view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); hunger.hit(now); break;
         case 'wall': A.sfx.wall(); break;
-        case 'grace': squashT = now; A.sfx.grace(); vibrate(8); break;
+        case 'grace': squashT = now; aimReach(e.x, e.y); A.sfx.grace(); vibrate(8); break;
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
-          state = 'dying'; deathT = now; A.sfx.die(); vibrate([40, 40, 90]);
-          setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, settings.autoRestart ? AUTO_DEATH_MS : 1100);
+          state = 'dying'; crashing = true; aimReach(e.x, e.y);
           break;
         case 'win': state = 'over'; finish('You win!'); break;
       }
@@ -515,6 +533,14 @@
     const ms = stepMs();
     // During the grace beat the head holds still at the edge instead of sliding.
     const p = state === 'play' && !game.inGrace ? Math.min(acc / ms, 1) : 1;
+
+    // Heading into something: keep moving at snake speed until the head touches it. A last-second
+    // turn out of the grace beat lets it spring back.
+    const reachGoal = game.inGrace || (!game.alive && !game.won) ? reachTo : 0;
+    if (reach < reachGoal) reach = Math.min(reachGoal, reach + dt * CELL / ms);
+    else if (reach > reachGoal) reach = Math.max(reachGoal, reach - dt * CELL / ms * 0.5);
+    fx.reachX = reachX * reach; fx.reachY = reachY * reach;
+    if (crashing && reach >= reachGoal) crash(performance.now());
 
     // Mouth opens as the head approaches an apple.
     let target = 0;

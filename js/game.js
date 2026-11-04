@@ -175,6 +175,7 @@
         this.events.push({ type: 'grace', x, y });
         return;
       }
+      this.dir = nd;   // it dies heading the way it was going, even if that turn is what killed it
       this._die(x, y);
     }
 

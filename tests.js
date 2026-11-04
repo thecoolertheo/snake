@@ -339,6 +339,17 @@
     });
   }
 
+  test('a crash leaves the snake facing what it hit, even if turning is what killed it', () => {
+    const g = new S.Game({ cols: 8, rows: 8, apples: 1, mode: 'classic', grace: false });
+    g.apples.length = 0;
+    const h = g.cells[0];
+    g.cells[0].y = 0; g.dir = { x: 1, y: 0 }; g.queue.push({ x: 0, y: -1 });
+    g.step();
+    eq(g.alive, false); eq(g.dir, { x: 0, y: -1 });
+    const die = g.events.find(e => e.type === 'die');
+    eq([die.x, die.y], [h.x, -1], 'the event says where it hit');
+  });
+
   // Rewards and your own gradient
   if (typeof module !== 'undefined' && !root.document && !S.skins) require('./js/skins.js');
   if (S.skins) {

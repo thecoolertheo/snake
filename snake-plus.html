@@ -828,7 +828,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .shell[data-page="home"] .panel-home[data-fit="3"] .home-hero, .shell[data-page="home"] .panel-home[data-fit="3"] .home-side { gap: 6px; }
 .shell[data-page="home"] .panel-home[data-fit="2"] .logo-hero { width: min(100%, 230px); }
 .shell[data-page="home"] .panel-home[data-fit="3"] .logo-hero { width: min(100%, 170px); }
-.shell[data-page="home"] .panel-home[data-fit="3"] .pv-slot { width: 78%; }
+@media (max-height: 620px) { .shell[data-page="home"] .panel-home[data-fit="3"] .pv-slot { width: 78%; } }
 .shell[data-page="home"] .panel-home[data-fit="2"] .setup, .shell[data-page="home"] .panel-home[data-fit="3"] .setup { padding: 0; font-size: var(--fs-xs); }
 .shell[data-page="home"] .panel-home[data-fit="2"] .mode-line, .shell[data-page="home"] .panel-home[data-fit="3"] .mode-line { font-size: var(--fs-xs); }
 .shell[data-page="home"] .panel-home[data-fit="2"] .play-hero, .shell[data-page="home"] .panel-home[data-fit="3"] .play-hero { padding: 8px var(--sp-5); font-size: var(--fs-md); }
@@ -930,18 +930,31 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .home-events { container-type: inline-size; }
 @container (max-width: 310px) { .hev { grid-template-columns: minmax(0, 1fr); } .hev-ic { display: none; } }
 @media (max-width: 360px) { .tabs button { font-size: 9px; letter-spacing: -.2px; } }
-/* Home fills the page. One column on anything taller than it is wide, two side by side otherwise. */
-.panel-home { grid-template-rows: auto minmax(0, 1fr); }
-.home-side { grid-template-rows: auto auto auto minmax(0, 1fr); }
-.home-side .home-next { align-content: center; height: 100%; }
-.panel-home.measuring .home-next { height: auto; }
-.home-events .hev { align-content: center; }
+/* Home fills the page. Spare height is shared out: Play gets the biggest slice, then the cards, so no
+   one thing swallows it. One column on anything taller than it is wide, two side by side otherwise. */
+.panel-home { grid-template-rows: auto auto; }
+.home-hero, .home-side { display: flex; flex-direction: column; min-height: 0; }
+.home-hero .logo-hero { align-self: center; }
+.home-hero .pv-slot { align-self: center; }
+.home-side > .home-events { flex: 1 1 auto; grid-auto-rows: minmax(0, 1fr); }
+.home-side > .lvl { flex: .6 1 auto; align-items: center; align-content: center; }
+.home-side > .home-tiles { flex: 1 1 auto; grid-auto-rows: minmax(0, 1fr); }
+.home-side > .home-next { flex: 1.3 1 auto; align-content: center; }
+.home-events .hev, .home-tiles .htile { align-content: center; }
+/* Play: the biggest thing on the page */
+.home-hero > .play-hero { flex: 2 1 auto; min-height: calc(64px * var(--hk, 1)); max-height: calc(100px * var(--hk, 1)); padding-block: 18px;
+  font-size: calc(var(--fs-xl) * 1.2); font-weight: 700; letter-spacing: .04em; border-radius: var(--r-lg);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mode-accent) 82%, #fff), var(--mode-accent) 55%, color-mix(in srgb, var(--mode-accent) 82%, #000));
+  box-shadow: 0 10px 30px -8px var(--mode-accent), 0 0 44px -14px var(--mode-accent), inset 0 1px 0 rgba(255, 255, 255, .35); }
+.shell[data-page="home"] .panel-home[data-fit="1"] .home-hero > .play-hero { min-height: 58px; padding-block: 14px; font-size: var(--fs-xl); }
+.shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .home-hero > .play-hero { min-height: 58px; padding-block: 8px; font-size: var(--fs-xl); }
+@media (max-height: 620px) { .shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .home-hero > .play-hero { min-height: 40px; padding-block: 6px; font-size: var(--fs-lg); } }
 @media (min-width: 560px) and (min-aspect-ratio: 5/4) {
   .panel-home { grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--sp-5); }
-  .panel-home .home-hero { align-content: center; }
+  .panel-home .home-hero { justify-content: center; }
 }
 @media (min-width: 1000px) and (min-height: 560px) {
-  .panel-home { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: var(--sp-3); }
+  .panel-home { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; align-content: stretch; gap: var(--sp-3); }
   .shell[data-page="home"] .panel[data-panel="modes"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .shell[data-page="home"] .panel[data-panel="modes"].measuring { grid-template-rows: auto auto; }
   .shell[data-page="home"] .panel[data-panel="modes"] > .pv-slot + .card { height: 100%; grid-template-rows: auto auto auto minmax(0, 1fr); }

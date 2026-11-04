@@ -357,9 +357,9 @@
   function showModeLock(u) {
     ui.modeLockFocus = u;
     ui.modeLock.querySelector('span').textContent = 'Locked: ' + SK.itemName(u) + '. ' + S.MODE[u.index].desc + ' To unlock: ' + lockText(u).split('. ').slice(1).join('. ') + ' ';
-    ui.modeLock.hidden = false; h.tryMode(u.index); h.click();   // try it out in the preview
+    ui.modeLock.hidden = false; ui.fitHome(); h.tryMode(u.index); h.click();   // try it out in the preview
   }
-  function hideModeLock() { if (ui.modeLock) ui.modeLock.hidden = true; h.tryMode(null); }
+  function hideModeLock() { if (ui.modeLock && !ui.modeLock.hidden) { ui.modeLock.hidden = true; ui.fitHome(); } h.tryMode(null); }
 
   function renderModes() {
     const cards = $('modeGrid').children;
@@ -585,6 +585,7 @@
     $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
     $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
     renderNext($('homeNext'), 3);
+    ui.fitHome();
   }
 
   // The rewards you're closest to, at most one per path.
@@ -652,6 +653,25 @@
     $('tabs').querySelector('[data-tab="unlocks"] span').textContent = WIDE.matches ? 'Progress' : 'Unlocks';
     ui.setTab(ui.tab);
   }
+  // Home never scrolls. Each column steps through tighter layouts until it fits the space there is,
+  // and if the tightest one is still too tall (a tiny window) the column is scaled down to fit.
+  const FIT_TIERS = 3;
+  function fitPanel(panel, room) {
+    panel.style.transform = ''; panel.style.alignSelf = ''; panel.style.marginBottom = '';
+    let h = 0;
+    for (let tier = 0; tier <= FIT_TIERS; tier++) {
+      panel.dataset.fit = tier; h = panel.offsetHeight;
+      if (h <= room) return;
+    }
+    panel.style.alignSelf = 'start'; panel.style.transformOrigin = 'top center'; panel.style.transform = 'scale(' + (room / h).toFixed(4) + ')';
+    panel.style.marginBottom = (room - h) + 'px';   // the page takes up only its scaled size
+  }
+  ui.fitHome = function () {
+    if (ui.tab !== 'home' || !ui.pageOpen()) return;
+    const box = ui.el.panels, cs = getComputedStyle(box), room = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    for (const p of box.children) if (!p.hidden) fitPanel(p, room);
+  };
+
   // Opens a page from the game (the card underneath stays for when you come back to it).
   ui.openPage = function (name) { ui.el.shell.hidden = false; ui.setTab(name, name === 'stats'); };
 

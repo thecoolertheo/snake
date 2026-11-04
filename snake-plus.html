@@ -458,7 +458,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .toast-lvl { border-color: #ffc83d; box-shadow: 0 10px 30px rgba(0, 0, 0, .45), 0 0 24px -6px #ffc83d; }
 .toast-lvl small { color: #ffc83d; }
 @media (max-height: 700px) { .lvl { padding: 4px 10px 6px 4px; } .lv-n { width: 30px; height: 30px; font-size: var(--fs-md); } }
-@media (max-height: 400px) { .lvl { display: none; } }
+@media (max-height: 400px) { .menu .lvl { display: none; } }
 
 /* Custom colour picker */
 .custom-pick { padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); background: rgba(0, 0, 0, .22); border: 1px solid var(--c-line); }
@@ -650,9 +650,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .shell[data-page="home"] .page-head { display: none; }
   .panel-home { max-width: none; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 1fr); align-items: center; gap: var(--sp-4); }
   .play-hero { padding: 10px var(--sp-5); font-size: var(--fs-lg); }
-  .home-next .nx-more { display: none; }
 }
-.shell[data-page="home"] .panels { display: grid; align-content: start; align-content: safe center; }
 
 /* Short landscape screens: preview beside the kit, categories in one scrolling row */
 @media (max-height: 520px) and (min-width: 560px) {
@@ -747,9 +745,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .shell[data-page="home"] .page-head { display: none; }
 .shell[data-page="home"] .panels { padding-top: max(var(--sp-4), env(safe-area-inset-top)); }
 @media (min-width: 1000px) and (min-height: 560px) { .logo-hero { width: min(100%, 520px); } }
-@media (max-height: 700px) { .logo-hero { width: min(100%, 300px); } }
-@media (max-height: 520px) and (min-width: 560px) { .logo-hero { width: min(100%, 220px); } .home-hero { gap: var(--sp-2); } }
-@media (max-height: 400px) { .logo-hero { width: min(100%, 170px); } }
 
 /* Saved looks */
 .ct-save { width: 22px; height: 22px; fill: currentColor; }
@@ -801,6 +796,60 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .nx-mini b { font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nx-mini small { font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; }
 .menu .home-next { width: min(100%, 300px); }
+
+/* =====================================================================
+   Home never scrolls. ui.fitHome() picks the first tier that fits.
+   ===================================================================== */
+#pv { width: 100% !important; height: auto !important; }
+.shell[data-page="home"] .panels { display: grid; align-content: start; align-content: safe center; align-items: start; align-items: safe center; overflow: hidden; }
+.shell[data-page="home"] .panel { height: auto; overflow: visible; padding-right: 0; }
+.panel-home .pv-slot { width: 100%; margin: 0 auto; }
+.panel-home, .panel-home .home-hero, .panel-home .home-side { transition: none; }
+
+.shell[data-page="home"] .panel-home[data-fit="1"] { gap: var(--sp-2); }
+.shell[data-page="home"] .panel-home[data-fit="1"] .home-hero, .shell[data-page="home"] .panel-home[data-fit="1"] .home-side { gap: var(--sp-2); }
+.shell[data-page="home"] .panel-home[data-fit="1"] .logo-hero { width: min(100%, 320px); }
+.shell[data-page="home"] .panel-home[data-fit="1"] .play-hero { padding: 12px var(--sp-5); font-size: var(--fs-lg); }
+.shell[data-page="home"] .panel-home[data-fit="1"] .setup { padding: 2px; }
+
+.shell[data-page="home"] .panel-home[data-fit="2"], .shell[data-page="home"] .panel-home[data-fit="3"] { gap: 6px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .home-hero, .shell[data-page="home"] .panel-home[data-fit="2"] .home-side,
+.shell[data-page="home"] .panel-home[data-fit="3"] .home-hero, .shell[data-page="home"] .panel-home[data-fit="3"] .home-side { gap: 6px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .logo-hero { width: min(100%, 230px); }
+.shell[data-page="home"] .panel-home[data-fit="2"] .pv-slot { width: 74%; }
+.shell[data-page="home"] .panel-home[data-fit="3"] .logo-hero { width: min(100%, 170px); }
+.shell[data-page="home"] .panel-home[data-fit="3"] .pv-slot { width: 52%; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .setup, .shell[data-page="home"] .panel-home[data-fit="3"] .setup { padding: 0; font-size: var(--fs-xs); }
+.shell[data-page="home"] .panel-home[data-fit="2"] .mode-line, .shell[data-page="home"] .panel-home[data-fit="3"] .mode-line { font-size: var(--fs-xs); }
+.shell[data-page="home"] .panel-home[data-fit="2"] .play-hero, .shell[data-page="home"] .panel-home[data-fit="3"] .play-hero { padding: 8px var(--sp-5); font-size: var(--fs-md); }
+.shell[data-page="home"] .panel-home[data-fit="2"] .lvl, .shell[data-page="home"] .panel-home[data-fit="3"] .lvl { padding: 3px 10px 5px 4px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .htile, .shell[data-page="home"] .panel-home[data-fit="3"] .htile { padding: 5px var(--sp-2); }
+.shell[data-page="home"] .panel-home[data-fit="2"] .htile b, .shell[data-page="home"] .panel-home[data-fit="3"] .htile b { font-size: var(--fs-md); }
+.shell[data-page="home"] .panel-home[data-fit="2"] .htile svg, .shell[data-page="home"] .panel-home[data-fit="3"] .htile svg { width: 20px; height: 20px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .home-next, .shell[data-page="home"] .panel-home[data-fit="3"] .home-next { padding: 6px var(--sp-2); gap: 4px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-main, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-main { gap: var(--sp-2); }
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-main .nx-ring, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-main .nx-ring { width: 46px; height: 46px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-main .rw, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-main .rw,
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-main .rw img, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-main .rw img { width: 37px; height: 37px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-more, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-more { padding-top: 4px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-mini .nx-ring, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-mini .nx-ring { width: 26px; height: 26px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-mini .rw, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-mini .rw,
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-mini .rw img, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-mini .rw img { width: 20px; height: 20px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-bar, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-bar { height: 7px; }
+
+/* The Modes column beside Home on big screens */
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="1"] .mode-card { min-height: 0; padding-block: var(--sp-2); }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="1"], [data-fit="2"], [data-fit="3"]) .mode-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="2"] { gap: var(--sp-2); }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="2"] .card, .shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .card { gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="2"] .mode-card, .shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .mode-card { min-height: 0; padding-block: 4px; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] { gap: 6px; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .card { gap: 4px; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .mc-ic { transform: scale(.8); margin-block: -4px; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .switch-row { padding-block: 0; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .mode-desc { padding-block: 3px; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .field { gap: 2px; }
+.shell[data-page="home"] .panel[data-panel="modes"] > .pv-slot { display: none; }
 </style>
 </head>
 <body>
@@ -3360,9 +3409,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   function showModeLock(u) {
     ui.modeLockFocus = u;
     ui.modeLock.querySelector('span').textContent = 'Locked: ' + SK.itemName(u) + '. ' + S.MODE[u.index].desc + ' To unlock: ' + lockText(u).split('. ').slice(1).join('. ') + ' ';
-    ui.modeLock.hidden = false; h.tryMode(u.index); h.click();   // try it out in the preview
+    ui.modeLock.hidden = false; ui.fitHome(); h.tryMode(u.index); h.click();   // try it out in the preview
   }
-  function hideModeLock() { if (ui.modeLock) ui.modeLock.hidden = true; h.tryMode(null); }
+  function hideModeLock() { if (ui.modeLock && !ui.modeLock.hidden) { ui.modeLock.hidden = true; ui.fitHome(); } h.tryMode(null); }
 
   function renderModes() {
     const cards = $('modeGrid').children;
@@ -3588,6 +3637,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
     $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
     renderNext($('homeNext'), 3);
+    ui.fitHome();
   }
 
   // The rewards you're closest to, at most one per path.
@@ -3655,6 +3705,25 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     $('tabs').querySelector('[data-tab="unlocks"] span').textContent = WIDE.matches ? 'Progress' : 'Unlocks';
     ui.setTab(ui.tab);
   }
+  // Home never scrolls. Each column steps through tighter layouts until it fits the space there is,
+  // and if the tightest one is still too tall (a tiny window) the column is scaled down to fit.
+  const FIT_TIERS = 3;
+  function fitPanel(panel, room) {
+    panel.style.transform = ''; panel.style.alignSelf = ''; panel.style.marginBottom = '';
+    let h = 0;
+    for (let tier = 0; tier <= FIT_TIERS; tier++) {
+      panel.dataset.fit = tier; h = panel.offsetHeight;
+      if (h <= room) return;
+    }
+    panel.style.alignSelf = 'start'; panel.style.transformOrigin = 'top center'; panel.style.transform = 'scale(' + (room / h).toFixed(4) + ')';
+    panel.style.marginBottom = (room - h) + 'px';   // the page takes up only its scaled size
+  }
+  ui.fitHome = function () {
+    if (ui.tab !== 'home' || !ui.pageOpen()) return;
+    const box = ui.el.panels, cs = getComputedStyle(box), room = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    for (const p of box.children) if (!p.hidden) fitPanel(p, room);
+  };
+
   // Opens a page from the game (the card underneath stays for when you come back to it).
   ui.openPage = function (name) { ui.el.shell.hidden = false; ui.setTab(name, name === 'stats'); };
 
@@ -4345,6 +4414,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const w = Math.floor(cell * view.cols), h = Math.floor(cell * view.rows);
     E.wrap.style.width = w + 'px';
     view.resize(w, h);
+    ui.fitHome();
     if (ui.menuOpen() && E.pv.offsetParent) { const pw = E.pv.parentElement.clientWidth || 200; pvView.resize(pw, Math.round(pw * PV_ROWS / PV_COLS)); }
     if (confetti.active) confetti.resize();
   }

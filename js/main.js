@@ -285,6 +285,7 @@
     const w = Math.floor(cell * view.cols), h = Math.floor(cell * view.rows);
     E.wrap.style.width = w + 'px';
     view.resize(w, h);
+    ui.fitHome();
     if (ui.menuOpen() && E.pv.offsetParent) { const pw = E.pv.parentElement.clientWidth || 200; pvView.resize(pw, Math.round(pw * PV_ROWS / PV_COLS)); }
     if (confetti.active) confetti.resize();
   }

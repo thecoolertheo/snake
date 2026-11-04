@@ -37,6 +37,11 @@
       this.rules = MODE[this.mode];
       this.rng = opts.rng || Math.random;
       this.useGrace = opts.grace !== false;   // Google-style beat of grace before a crash
+      this.seed = opts.seed;                  // Daily Challenge: apples land in the same order for everyone
+      this.blocks = opts.blocks || [];        // walls already on the board at the start
+      this.start = opts.start;                // { x, y, dx }: where the snake begins, if not the usual spot
+      this.share = opts.share;                // two-player: share this game's board, so the snakes can hit each other
+      this.waitApples = !!opts.waitApples;    // two-player: apples go down once both snakes are on the board
       this.reset();
     }
 
@@ -44,20 +49,22 @@
     inBounds(x, y) { return x >= 0 && y >= 0 && x < this.cols && y < this.rows; }
 
     reset() {
-      const y = Math.floor(this.rows / 2), hx = Math.max(2, Math.floor(this.cols / 4));
-      const size = this.cols * this.rows;
-      this.occ = new Uint16Array(size);    // how many body cells sit on each tile (Peaceful lets them overlap)
-      this.wall = new Uint8Array(size);    // 0 none, 1 waiting for the tail to leave, 2 solid
+      const o = this.start, s = this.share, size = this.cols * this.rows;
+      const y = o ? o.y : Math.floor(this.rows / 2), hx = o ? o.x : Math.max(2, Math.floor(this.cols / 4)), dx = o ? o.dx : 1;
+      this.occ = s ? s.occ : new Uint16Array(size);    // how many body cells sit on each tile (Peaceful lets them overlap)
+      this.wall = s ? s.wall : new Uint8Array(size);   // 0 none, 1 waiting for the tail to leave, 2 solid
       this.pendingWalls = [];
       this.wallCount = 0;
+      this.spawned = 0;
+      for (const [bx, by] of this.blocks) { this.wall[this.idx(bx, by)] = 2; this.wallCount++; }
       this.cells = [];
-      for (let i = 0; i < 3; i++) this._addCell(hx - i, y, false);
+      for (let i = 0; i < 3; i++) this._addCell(hx - i * dx, y, false);
       const t = this.cells[2];
       this.prevTail = { x: t.x, y: t.y };
-      this.dir = { x: 1, y: 0 };
-      this.prevDir = { x: 1, y: 0 };
+      this.dir = { x: dx, y: 0 };
+      this.prevDir = { x: dx, y: 0 };
       this.queue = [];
-      this.apples = [];
+      this.apples = s ? s.apples : [];
       this.pairSeq = 0;
       this.score = 0;
       this.eaten = 0;      // apples eaten (a golden apple scores 3 but is still one apple)
@@ -70,7 +77,7 @@
       this.won = false;
       this.undo = null;
       this.events = [];
-      this.fillApples();
+      if (!this.waitApples) this.fillApples();
     }
 
     _addCell(x, y, front) {
@@ -94,6 +101,15 @@
 
     // Picks a random free tile without building a list of every free tile.
     randomFree() {
+      // Seeded: apple number n is worked out from n alone, so where your snake happens to be doesn't change
+      // the order. If that exact tile is taken it tries the next one in the same fixed list.
+      if (this.seed !== undefined) {
+        this.rng = S.util.rng(this.seed + ++this.spawned * 7919);
+        for (let i = 0; i < 200; i++) {
+          const x = Math.floor(this.rng() * this.cols), y = Math.floor(this.rng() * this.rows);
+          if (this.isFree(x, y)) return { x, y };
+        }
+      }
       let free = 0;
       for (let y = 0; y < this.rows; y++) for (let x = 0; x < this.cols; x++) if (this.isFree(x, y)) free++;
       if (!free) return null;
@@ -179,10 +195,24 @@
       this._die(x, y);
     }
 
-    _die(x, y) {
+    _die(x, y, meet) {
       this.inGrace = false;
       this.alive = false; this.queue.length = 0; this.undo = null; this.prevDir = this.dir;
-      this.events.push({ type: 'die', x, y });
+      this.events.push({ type: 'die', x, y, meet: !!meet });
+    }
+
+    // Where the head goes next, without moving it.
+    peek() {
+      const d = this.queue.length ? this.queue[0] : this.dir, h = this.cells[0];
+      let x = h.x + d.x, y = h.y + d.y;
+      if (!this.inBounds(x, y) && this.rules.wrap) { x = (x + this.cols) % this.cols; y = (y + this.rows) % this.rows; }
+      return { x, y };
+    }
+
+    // Two-player: this snake and the other one collided, so it dies on this step. meet = they met in an empty tile.
+    clash(x, y, meet) {
+      if (this.queue.length) this.dir = this.queue.shift();
+      this._die(x, y, meet);
     }
 
     step() {
@@ -290,6 +320,19 @@
       }
     }
   }
+
+  // Two-player: one step for both snakes, played so that neither gets an advantage from moving first.
+  // Both step even if the first one dies, so a shared death is a draw.
+  S.duelStep = function (a, b) {
+    const ta = a.peek(), tb = b.peek(), ha = a.cells[0], hb = b.cells[0];
+    const at = (p, c) => p.x === c.x && p.y === c.y;
+    const tailA = a.cells[a.cells.length - 1], tailB = b.cells[b.cells.length - 1];
+    const aOnTail = at(ta, tailB), bOnTail = at(tb, tailA);
+    if (at(ta, tb)) { a.clash(ta.x, ta.y, true); b.clash(tb.x, tb.y, true); return; }   // both went for the same tile
+    if ((at(ta, hb) && at(tb, ha)) || (aOnTail && bOnTail)) { a.clash(ta.x, ta.y); b.clash(tb.x, tb.y); return; }   // head to head, or chasing each other's tails
+    // Whoever is following the other's tail moves second, so that tail has already moved out of the way.
+    if (aOnTail) { b.step(); a.step(); } else { a.step(); b.step(); }
+  };
 
   // 0..1: how close a Hunger snake is to its next shrink (0 = just ate).
   // p = how far through the current step we are, so the meter can fill smoothly between steps.

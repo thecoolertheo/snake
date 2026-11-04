@@ -1,13 +1,14 @@
 // App glue: state machine, fixed-timestep loop, and wiring between game, renderer, UI, input and audio.
 (function (root) {
   'use strict';
-  const S = root.Snake, U = S.util, R = S.render, SK = S.skins, A = S.audio, ui = S.ui, store = S.store;
+  const S = root.Snake, U = S.util, R = S.render, SK = S.skins, A = S.audio, ui = S.ui, store = S.store, D = S.daily;
   const CELL = R.CELL;
   const BOARDS = { s: [10, 9], m: [17, 15], l: [24, 21] };   // 'f' (fill screen) is worked out from the screen
   const GAME_NAME = 'Snake Plus';
   const COUNT_MS = 420;
   const AUTO_DEATH_MS = 650;   // how long a crash plays out when a new game starts by itself
   const XP_APPLE = 10, XP_GAME = 15, XP_BEST = 50;
+  const ROUNDS_TO_WIN = 3;       // two-player: first to this many rounds takes the match
   // Trails: a couple of particles from the tail end on every step.
   function emitTrail(v, g) {
     const name = SK.TRAILS[settings.trail]; if (!name || name === 'None') return;
@@ -39,15 +40,21 @@
   // menu → countdown → play ⇄ paused, play → dying → over → countdown …
   let state = 'menu';
   let game = null, pendingNew = false;
-  let acc = 0, last = 0, deathT = 0, gameTime = 0, mouth = 0;
-  // The head runs on into whatever it hit, and the crash only happens when it gets there.
-  let reach = 0, reachTo = 0, reachX = 0, reachY = 0, crashing = false;
+  let acc = 0, last = 0, deathT = 0, gameTime = 0;
+  let crashing = false;
   let countT = 0, countN = -1;
   let bestBefore = 0, passedBest = false;
-  let squashT = -1e9, lastDir = null, blinkT = -1e9, nextBlink = 2000;
-  const eats = [];                          // gameTime of each recent eat, for the lump
-  const bulges = new Float32Array(64);
-  const fx = { dead: false, flash: 0, grey: 0, mouth: 0, bulges, nBulges: 0, blink: 0, squash: 0 };
+  let blinkT = -1e9, nextBlink = 2000;
+  // What kind of game this is. solo: your own setup. daily: today's challenge. duel: two players, one screen.
+  let pick = 'solo', run = { kind: 'solo' }, match = null, foe = null;
+  // Everything needed to animate one snake. The head runs on into whatever it hit (reach), and
+  // the crash only happens when it gets there. eats = gameTime of recent apples, for the lump.
+  const newPlayer = () => {
+    const bulges = new Float32Array(64);
+    return { g: null, skin: settings, eats: [], reach: 0, reachTo: 0, reachX: 0, reachY: 0, mouth: 0, squashT: -1e9, lastDir: null,
+      fx: { dead: false, flash: 0, grey: 0, mouth: 0, bulges, nBulges: 0, blink: 0, squash: 0, reachX: 0, reachY: 0 } };
+  };
+  const me = newPlayer(), fx = me.fx, players = [me];
 
   const cv = $('c');
   const view = new R.View(cv, 17, 15, true);
@@ -58,17 +65,19 @@
   const hunger = new R.HungerBar(), pvHunger = new R.HungerBar();
   const confetti = new R.Confetti($('confetti'));
   const ambient = new R.Ambient();
+  me.drawer = view.snake;
+  const rival = newPlayer(); rival.drawer = new R.SnakeDrawer();
   const liveUnlocked = [];   // rewards unlocked during the current game
   let liveLevel = 0;         // level reached during the current game (0 = no level-up)
   let liveCheckT = 0;
 
   // The menu's accent colour follows your snake: its colour, or the main colour of its pattern.
+  function lookRgb() {
+    const pat = SK.PATTERNS[settings.pattern], stops = SK.stopsFor(settings);
+    return stops ? stops[1] : SK.FIXED_BANDS[pat] ? SK.FIXED_BANDS[pat][0] : U.hexRgb(SK.colorHex(settings));
+  }
   function applyAccent() {
-    const pat = SK.PATTERNS[settings.pattern];
-    let c = U.hexRgb(SK.colorHex(settings));
-    const stops = SK.stopsFor(settings);
-    if (stops) c = stops[1];
-    else if (SK.FIXED_BANDS[pat]) c = SK.FIXED_BANDS[pat][0];
+    const c = lookRgb();
     const lum = (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255, st = document.documentElement.style;
     st.setProperty('--mode-accent', U.rgb(c));
     st.setProperty('--accent-glow', 'rgba(' + c.join(',') + ',.16)');
@@ -78,24 +87,25 @@
   // Each mode has its own look: board colours + ambient effect, and an accent for the menu.
   function applyTheme() {
     const st = document.documentElement.style;
-    const T = view.setTheme(settings.mode, settings.boardSkin); pvTheme();
+    const T = view.setTheme(game ? game.mode : settings.mode, settings.boardSkin); pvTheme();
     st.setProperty('--mode-glow', T.glow);
     if (game) ambient.reset(T.amb, game.cols, game.rows);
   }
 
   const baseMs = () => SK.SPEED_MS[settings.speed];
+  const gameMs = () => SK.SPEED_MS[run.spec ? run.spec.speed : settings.speed];   // the Daily Challenge sets its own speed
   // Optional ramp: 1.5% faster per apple, never faster than 60% of the base interval.
   // Turbo mode: 3% faster per point, down to 45% of the base interval.
   const stepMs = () => {
     if (!game) return baseMs();
-    if (game.rules.turbo) return baseMs() * Math.max(0.45, Math.pow(0.97, game.score));
-    return baseMs() * (settings.ramp ? Math.max(0.6, Math.pow(0.985, game.score)) : 1);
+    if (game.rules.turbo) return gameMs() * Math.max(0.45, Math.pow(0.97, game.score));
+    return gameMs() * ((run.spec ? run.spec.ramp : settings.ramp) ? Math.max(0.6, Math.pow(0.985, game.score)) : 1);
   };
   // Space the board can use, in CSS pixels (after the bar, padding and D-pad).
   function available() {
     const E = ui.el, cs = getComputedStyle(document.body);
-    document.documentElement.classList.toggle('full', settings.board === 'f');
-    const showPad = !!settings.dpad;
+    document.documentElement.classList.toggle('full', settings.board === 'f' && !run.fixed);
+    const showPad = !!settings.dpad && !foe;   // one D-pad can't steer two snakes: both players swipe
     E.dpad.hidden = !showPad;
     const side = showPad && root.innerWidth > root.innerHeight * 1.15;
     E.app.classList.toggle('side', side);
@@ -110,28 +120,76 @@
     const a = available(), target = U.clamp(Math.min(a.w, a.h) / 12, 28, 46);
     return [Math.max(8, Math.floor(a.w / target)), Math.max(8, Math.floor(a.h / target))];
   }
-  const currentBest = () => store.getBest(settings.mode, settings.board, settings.apples);
+  const currentBest = () => {
+    if (run.kind === 'duel') return match.wins[1];
+    if (run.kind === 'daily') return data.daily.days[run.spec.key] || 0;
+    return store.getBest(settings.mode, settings.board, settings.apples);
+  };
   // Only after the player has interacted (browsers block it otherwise and log a warning).
   const vibrate = p => {
     const ua = navigator.userActivation;
     if (settings.vibrate && navigator.vibrate && (!ua || ua.hasBeenActive)) try { navigator.vibrate(p); } catch (e) {}
   };
 
+  // Player 2 wears a plain colour as far from player 1's look as possible, so you can always tell them apart.
+  function rivalLook() {
+    const mine = lookRgb(), far = c => { const o = U.hexRgb(c[1]); return (o[0] - mine[0]) ** 2 + (o[1] - mine[1]) ** 2 + (o[2] - mine[2]) ** 2; };
+    const best = ['Orange', 'Blue', 'Pink', 'Yellow', 'Teal'].map(n => SK.COLORS.find(c => c[0] === n)).sort((a, b) => far(b) - far(a))[0];
+    return Object.assign({}, settings, { color: SK.COLORS.indexOf(best), pattern: 0, customColor: null, customGrad: null, trail: 0, hat: 0 });
+  }
+  function resetPlayer(q, g) {
+    q.g = g; q.lastDir = g.dir; q.reach = q.reachTo = 0; q.mouth = 0; q.eats.length = 0; q.fx.reachX = q.fx.reachY = 0;
+  }
   function newGame() {
-    const [cols, rows] = board();
-    game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, grace: settings.grace });
+    foe = null;
+    let cols, rows;
+    if (pick === 'daily') {
+      const spec = D.challenge(D.dayKey());
+      run = { kind: 'daily', spec, fixed: true, scored: !(spec.key in data.daily.days) };
+      cols = spec.cols; rows = spec.rows;
+      game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks });   // edge grace is always on, so scores compare
+    } else if (pick === 'duel') {
+      if (match.wins.some(n => n >= ROUNDS_TO_WIN)) match.wins = [0, 0];
+      run = { kind: 'duel', fixed: true };
+      [cols, rows] = settings.board === 'l' ? BOARDS.l : BOARDS.m;
+      const apples = Math.max(3, settings.apples), o = { cols, rows, apples, mode: match.mode, grace: false, waitApples: true };
+      const edge = Math.floor(cols / 4), top = Math.floor(rows / 3), bottom = rows - 1 - top;
+      game = new S.Game(Object.assign({ start: { x: edge, y: top, dx: 1 } }, o));
+      const g2 = new S.Game(Object.assign({ start: { x: cols - 1 - edge, y: bottom, dx: -1 }, share: game }, o));
+      game.fillApples();
+      foe = rival; rival.skin = rivalLook(); resetPlayer(rival, g2);
+      const css = document.documentElement.style;
+      css.setProperty('--p1', U.rgb(lookRgb())); css.setProperty('--p2', SK.colorHex(rival.skin));
+    } else {
+      run = { kind: 'solo' };
+      [cols, rows] = board();
+      game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, grace: settings.grace });
+    }
+    players.length = 0; players.push(me); if (foe) players.push(foe);
+    resetPlayer(me, game);
     if (view.cols !== cols || view.rows !== rows) { view.setBoard(cols, rows); fit(); }
-    acc = 0; deathT = 0; mouth = 0; gameTime = 0; reach = reachTo = 0; crashing = false; fx.reachX = fx.reachY = 0; eats.length = 0; view.fx.clear(); R.resetWalls(); hunger.reset();
-    lastDir = game.dir; pendingNew = false;
+    acc = 0; deathT = 0; gameTime = 0; crashing = false; view.fx.clear(); R.resetWalls(); hunger.reset();
+    pendingNew = false;
     bestBefore = currentBest(); passedBest = false;
-    ui.setScore(0); ui.setBest(bestBefore);
+    ui.setDuel(!!foe);
+    ui.setScore(foe ? match.wins[0] : 0); ui.setBest(bestBefore);
+    ui.setRunTag(run.kind === 'daily' ? (run.scored ? 'Daily' : 'Daily practice') : foe ? S.MODE[match.mode].name : '');
     liveUnlocked.length = 0; liveLevel = 0;
     applyTheme(); fit();
   }
 
+  // Starts a Daily Challenge or a two-player game from the menu.
+  function launch(kind) {
+    if (state === 'dying' || state === 'play' || state === 'countdown') return;
+    if (state === 'paused' && game.steps > 0) endGame();
+    A.unlock(); applyAudio();
+    pick = kind; newGame(); state = 'menu'; ui.closeCard(); start();
+  }
+
   function showMenu(title, btn, extra) {
     A.set({ duck: true }); keepAwake(false);
-    ui.showMenu(Object.assign({ title, score: game.score, best: currentBest(), btn }, extra || {}));
+    const labels = foe ? ['Player 1', 'Player 2'] : run.kind === 'daily' ? ['Score', 'Today'] : null;
+    ui.showMenu(Object.assign({ title, score: foe ? match.wins[0] : game.score, best: currentBest(), btn, labels }, extra || {}));
     fit();
   }
 
@@ -159,38 +217,42 @@
     heldMissed = null;
   }
 
-  function turn(nx, ny) {
+  function turn(nx, ny, who) {
     if (state === 'dying') return;
     if (ui.pageOpen() && ui.tab !== 'home') return;   // arrow keys don't start a game from Modes, Settings, ...
+    const steer = () => (foe && who ? foe.g : game);    // start() can make a new game, so look it up each time
     if (state === 'menu' || state === 'over' || state === 'paused') {
       start();   // a direction from the menu starts the countdown and sets your first move
-      if (state === 'countdown' && game.turn(nx, ny, 1)) A.sfx.turn();
+      if (state === 'countdown' && steer().turn(nx, ny, 1)) A.sfx.turn();
       return;
     }
-    if (state === 'countdown') { if (game.turn(nx, ny, 1)) A.sfx.turn(); return; }
+    if (state === 'countdown' || foe) { if (steer().turn(nx, ny, 1)) A.sfx.turn(); return; }   // two-player never redoes a move: both snakes step together
     if (game.turn(nx, ny, acc / stepMs())) A.sfx.turn();
     handleEvents();
   }
 
   // How far the head has to travel from the middle of its cell to touch what's in cell (x, y), in board units.
-  function gapTo(x, y) {
-    const head = game.cells[0];
+  function gapTo(g, x, y, meet) {
+    const head = g.cells[0];
     if (x === head.x && y === head.y) return 0;   // starved: nothing to run into
     const r = CELL * 0.382;                       // the head's radius
-    if (!game.inBounds(x, y)) return CELL / 2 - r + 3;                    // the edge of the board, pressed in a little
-    return (game.wall[game.idx(x, y)] === 2 ? CELL * 0.575 : CELL * 0.64) - r + 2;   // a wall block, or the snake's own body
+    if (meet) return CELL - r + 2;                // two heads meeting in the tile between them
+    if (!g.inBounds(x, y)) return CELL / 2 - r + 3;                    // the edge of the board, pressed in a little
+    return (g.wall[g.idx(x, y)] === 2 ? CELL * 0.575 : CELL * 0.64) - r + 2;   // a wall block, or a snake's body
   }
-  function aimReach(x, y) {
-    if (reachX !== game.dir.x || reachY !== game.dir.y) reach = 0;   // turned on the way in: start again from there
-    reachTo = gapTo(x, y); reachX = game.dir.x; reachY = game.dir.y;
+  function aimReach(q, x, y, meet) {
+    if (q.reachX !== q.g.dir.x || q.reachY !== q.g.dir.y) q.reach = 0;   // turned on the way in: start again from there
+    q.reachTo = gapTo(q.g, x, y, meet); q.reachX = q.g.dir.x; q.reachY = q.g.dir.y;
   }
+  const reachGoal = q => (q.g.inGrace || (!q.g.alive && !q.g.won) ? q.reachTo : 0);
+  const autoNext = () => settings.autoRestart && run.kind === 'solo';   // a Daily or a two-player round always ends on its card
   function crash(now) {
-    crashing = false; deathT = now; squashT = now; A.sfx.die(); vibrate([40, 40, 90]);
-    setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, settings.autoRestart ? AUTO_DEATH_MS : 1100);
+    crashing = false; deathT = now; for (const q of players) q.squashT = now; A.sfx.die(); vibrate([40, 40, 90]);
+    setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, autoNext() ? AUTO_DEATH_MS : 1100);
   }
 
   function handleEvents() {
-    if (game.dir !== lastDir) { lastDir = game.dir; squashT = performance.now(); }
+    if (game.dir !== me.lastDir) { me.lastDir = game.dir; me.squashT = performance.now(); }
     const evs = game.events, now = performance.now();
     for (let i = 0; i < evs.length; i++) {
       const e = evs[i], cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
@@ -202,8 +264,8 @@
             const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
             view.fx.burst(cx, cy, now, B.colors, B.count || (B.shape === 'dot' ? 14 : 16), B.shape);
           }
-          for (let k = 0; k < (e.worth || 1); k++) eats.push(gameTime - k * stepMs() * 0.6);
-          mouth = 0; A.sfx.eat(); vibrate(e.kind === 'gold' ? [12, 30, 12] : 12);
+          for (let k = 0; k < (e.worth || 1); k++) me.eats.push(gameTime - k * stepMs() * 0.6);
+          me.mouth = 0; A.sfx.eat(); vibrate(e.kind === 'gold' ? [12, 30, 12] : 12);
           if (!passedBest && bestBefore > 0 && game.score > bestBefore) { passedBest = true; A.sfx.passBest(); ui.bump(ui.el.best, true); }
           ui.setBest(Math.max(bestBefore, game.score), passedBest);
           liveCheck();
@@ -218,10 +280,10 @@
         case 'poison': view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); vibrate([10, 40, 10]); break;
         case 'shrink': view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); hunger.hit(now); break;
         case 'wall': A.sfx.wall(); break;
-        case 'grace': squashT = now; aimReach(e.x, e.y); A.sfx.grace(); vibrate(8); break;
+        case 'grace': me.squashT = now; aimReach(me, e.x, e.y); A.sfx.grace(); vibrate(8); break;
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
-          state = 'dying'; crashing = true; aimReach(e.x, e.y);
+          state = 'dying'; crashing = true; aimReach(me, e.x, e.y);
           break;
         case 'win': state = 'over'; finish('You win!'); break;
       }
@@ -229,15 +291,56 @@
     evs.length = 0;
   }
 
+  // One step for both snakes in a two-player game, and everything that came out of it.
+  function duelTick() {
+    S.duelStep(game, foe.g);
+    const now = performance.now();
+    for (const q of players) {
+      emitTrail(view, q.g);
+      if (q.g.dir !== q.lastDir) { q.lastDir = q.g.dir; q.squashT = now; }
+      for (const e of q.g.events) {
+        const cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
+        if (e.type === 'eat') {
+          const B = SK.BURST_STYLES[SK.BURSTS[q.skin.burst]] || SK.BURST_STYLES.Classic;
+          view.fx.burst(cx, cy, now, B.colors, B.count || (B.shape === 'dot' ? 14 : 16), B.shape);
+          q.eats.push(gameTime); q.mouth = 0; A.sfx.eat(); vibrate(12);
+        } else if (e.type === 'poison') { view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); }
+        else if (e.type === 'shrink') view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5);
+        else if (e.type === 'wall') A.sfx.wall();
+        else if (e.type === 'die') aimReach(q, e.x, e.y, e.meet);
+      }
+      q.g.events.length = 0;
+    }
+    if (!game.alive || !foe.g.alive) { state = 'dying'; crashing = true; }
+  }
+
+  function finishRound() {
+    const out = q => !q.g.alive && !q.g.won, a = out(me), b = out(foe), w = a === b ? -1 : a ? 1 : 0;
+    if (w >= 0) match.wins[w]++;
+    const done = match.wins.some(n => n >= ROUNDS_TO_WIN), who = 'Player ' + (w + 1);
+    ui.setScore(match.wins[0]); ui.setBest(match.wins[1]);
+    showMenu(done ? who + ' wins!' : w < 0 ? 'Draw' : who + ' takes the round', done ? 'Rematch' : 'Next round',
+      { over: true, badge: done ? '' : 'First to ' + ROUNDS_TO_WIN + ' rounds wins' });
+    if (done) { confetti.fire(); A.sfx.newBest(); }
+  }
+
   // Records the finished game: stats, best score, unlocks. Returns what changed.
+  // Two-player games stay out of it: only one of the two would be you.
   function endGame() {
-    const s = data.stats;
+    if (foe) return { isBest: false, celebrate: false, unlocked: [], missions: [], dailyXp: 0 };
+    const s = data.stats, daily = run.kind === 'daily';
     s.games++; s.apples += game.eaten; s.longest = Math.max(s.longest, game.maxLen);
-    const isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
-    s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0);
+    let isBest = false, dailyXp = 0;
+    const scored = daily && run.scored;
+    if (scored) {   // the first go of the day is the one that counts; replays are practice
+      data.daily.days[run.spec.key] = game.score; run.scored = false;
+      dailyXp = D.dailyXp(D.streak(data.daily.days, run.spec.key));
+    } else if (!daily) isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
+    const missions = D.record(data, { mode: game.mode, apples: game.eaten, ms: gameTime, score: game.score, length: game.maxLen, daily: scored });
+    s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0) + dailyXp + missions.reduce((n, m) => n + m.xp, 0);
     const unlocked = checkUnlocks();
     store.save();
-    return { isBest: isBest && game.score > 0, celebrate: isBest && (bestBefore > 0 || game.score >= 10), unlocked };
+    return { isBest: isBest && game.score > 0, celebrate: isBest && (bestBefore > 0 || game.score >= 10), unlocked, missions, dailyXp };
   }
 
   // Unlocks anything whose milestone has been reached. Returns the newly unlocked rewards.
@@ -253,12 +356,13 @@
   if (!data.stats.xpInit) { data.stats.xp = Math.max(data.stats.xp, data.stats.apples * XP_APPLE + data.stats.games * XP_GAME); data.stats.xpInit = true; store.save(); }
   let shownLevel = SK.levelOf(data.stats.xp);
   if (checkUnlocks().length) store.save();   // goals can change between versions
+  D.ensureWeek(data);
   if (!S.MODE[settings.mode] || !modeOpen(settings.mode)) settings.mode = 'classic';
 
   // Unlock rewards the moment you reach them mid-game (toast + a burst of confetti).
   function liveCheck() {
-    if (!game || state !== 'play') return;
-    const b = store.progress(), mode = settings.mode;
+    if (!game || state !== 'play' || foe) return;
+    const b = store.progress(), solo = run.kind === 'solo', mode = solo ? settings.mode : null, score = solo ? game.score : 0;   // a Daily score isn't a best in that mode
     const liveXp = data.stats.xp + game.eaten * XP_APPLE, level = SK.levelOf(liveXp);
     const pops = settings.unlockToasts !== false;   // off: stay quiet, show it all after the game instead
     if (level > shownLevel) {   // level up mid-game
@@ -270,7 +374,7 @@
       }
     }
     const p = { level, collected: b.collected, games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
-      bestAny: Math.max(b.bestAny, game.score), bestMode: m => Math.max(b.bestMode(m), m === mode ? game.score : 0) };
+      bestAny: Math.max(b.bestAny, score), bestMode: m => Math.max(b.bestMode(m), m === mode ? score : 0) };
     let changed = false;
     for (const u of SK.UNLOCKS) {
       if (store.isUnlocked(u.id) || u.value(p) < u.goal) continue;
@@ -300,15 +404,19 @@
       for (const u of lateUnlocks) { const b = ui.toast(u); A.sfx.unlock(); if (b) confetti.pop(b.left + b.width / 2, b.top + b.height / 2, 40); }
     }
     if (r.isBest) ui.toastBest(score);
+    if (!quiet) for (const m of r.missions) ui.toastMission(m);
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
     newGame(); state = 'menu'; start();
   }
   function finish(title) {
+    if (foe) return finishRound();
     const r = endGame(), lateUnlocks = r.unlocked;
     r.unlocked = liveUnlocked.concat(r.unlocked);
-    if (settings.autoRestart) return keepGoing(r, lateUnlocks);
+    if (autoNext()) return keepGoing(r, lateUnlocks);
     let badge = '';
     if (r.isBest) badge = 'New best!';
+    if (r.dailyXp) { const n = D.streak(data.daily.days, run.spec.key); badge = 'Daily done · ' + n + ' day streak · +' + r.dailyXp + ' XP'; title = 'Daily done'; }
+    for (const m of r.missions) { badge = (badge ? badge + ' · ' : '') + 'Mission done +' + m.xp + ' XP'; ui.renderDaily(); }
     const lvl = SK.levelOf(data.stats.xp);
     let lvlUp = 0;
     if (lvl > shownLevel) { shownLevel = lvl; lvlUp = lvl; badge = (badge ? badge + ' · ' : '') + 'Level ' + lvl + '!'; A.sfx.newBest(); }
@@ -318,7 +426,7 @@
     const quiet = settings.unlockToasts === false;
     const missed = quiet && (r.unlocked.length || liveLevel || lvlUp) ? { items: r.unlocked, level: Math.max(liveLevel, lvlUp) } : null;
     if (missed) badge = r.isBest ? 'New best!' : '';   // the card already lists unlocks and level-ups
-    showMenu(title, 'Play again', { over: true, badge, next: ui.nextGoal(), missed });
+    showMenu(title, run.kind === 'daily' ? 'Practice' : 'Play again', { over: true, badge, next: ui.nextGoal(), missed });
     if (missed) { A.sfx.unlock(); const box = document.getElementById('missed').getBoundingClientRect(); confetti.pop(box.left + box.width / 2, box.top + 20, 36); }
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
     if (r.unlocked.length > liveUnlocked.length) A.sfx.unlock();   // end-of-game unlocks (e.g. games played)
@@ -329,7 +437,7 @@
     const E = ui.el, a = available(), availW = a.w, availH = a.h;
     // A fill-screen board that no longer matches the screen (rotation, resize) is rebuilt,
     // but only between games.
-    if (settings.board === 'f' && game && (state === 'menu' || state === 'over')) {
+    if (settings.board === 'f' && !run.fixed && game && (state === 'menu' || state === 'over')) {
       const [c, r] = board();
       if (c !== game.cols || r !== game.rows) { newGame(); return; }
     }
@@ -523,12 +631,16 @@
     }
     // Fixed timestep: the game advances in whole steps; rendering interpolates between them.
     if (state === 'play') {
-      acc += dt; gameTime += dt; data.stats.timeMs += dt;
+      acc += dt; gameTime += dt; if (!foe) data.stats.timeMs += dt;
       if ((liveCheckT += dt) > 1000) { liveCheckT = 0; liveCheck(); }   // time-based milestones
       // The grace beat before a crash only lasts half a step, so it saves a quick turn but isn't a free pause.
       const due = () => stepMs() * (game.inGrace ? GRACE_FRACTION : 1);
       let ms = due();
-      while (acc >= ms && state === 'play') { acc -= ms; game.step(); emitTrail(view, game); handleEvents(); ms = due(); }
+      while (acc >= ms && state === 'play') {
+        acc -= ms;
+        if (foe) duelTick(); else { game.step(); emitTrail(view, game); handleEvents(); }
+        ms = due();
+      }
     }
     const ms = stepMs();
     // During the grace beat the head holds still at the edge instead of sliding.
@@ -536,56 +648,61 @@
 
     // Heading into something: keep moving at snake speed until the head touches it. A last-second
     // turn out of the grace beat lets it spring back.
-    const reachGoal = game.inGrace || (!game.alive && !game.won) ? reachTo : 0;
-    if (reach < reachGoal) reach = Math.min(reachGoal, reach + dt * CELL / ms);
-    else if (reach > reachGoal) reach = Math.max(reachGoal, reach - dt * CELL / ms * 0.5);
-    fx.reachX = reachX * reach; fx.reachY = reachY * reach;
-    if (crashing && reach >= reachGoal) crash(performance.now());
-
-    // Mouth opens as the head approaches an apple.
-    let target = 0;
-    if (state === 'play') {
-      const c0 = game.cells[0], c1 = game.cells[1], d = game.dir;
-      const hx = c1.x + (c0.x - c1.x) * p, hy = c1.y + (c0.y - c1.y) * p;
-      for (const ap of game.apples) {
-        const ax = ap.x - hx, ay = ap.y - hy, ahead = ax * d.x + ay * d.y, side = Math.abs(ax * d.y - ay * d.x);
-        if (ahead > 0 && ahead < 2.2 && side < 0.6) target = Math.max(target, Math.min(1, (2.2 - ahead) / 1.6));
-      }
+    for (const q of players) {
+      const goal = reachGoal(q);
+      if (q.reach < goal) q.reach = Math.min(goal, q.reach + dt * CELL / ms);
+      else if (q.reach > goal) q.reach = Math.max(goal, q.reach - dt * CELL / ms * 0.5);
+      q.fx.reachX = q.reachX * q.reach; q.fx.reachY = q.reachY * q.reach;
     }
-    const fdt = Math.min(50, dt);
-    mouth += (target - mouth) * Math.min(1, fdt / 60);
+    if (crashing && players.every(q => q.reach >= reachGoal(q))) crash(performance.now());
 
-    // Idle blink every few seconds, and a small squash when the head turns.
+    // Idle blink every few seconds.
     if (t > nextBlink) { blinkT = t; nextBlink = t + 2200 + Math.random() * 3800; }
-    const be = t - blinkT;
-    fx.blink = be < 160 ? Math.sin(Math.PI * be / 160) : 0;
-    const se = t - squashT;
-    fx.squash = !R.reduced && se < 180 ? 1 - U.ease(se / 180) : 0;
-
-    // Death: shake, flash, then the body greys out from head to tail.
-    const dead = deathT > 0 && !game.won, e = t - deathT;
-    fx.dead = dead;
-    fx.flash = dead && e < 600 && ((e / 100 | 0) % 2 === 0) ? 0.75 : 0;
-    fx.grey = dead && e > 600 ? Math.min(1, (e - 600) / 450) : 0;
-    fx.mouth = mouth;
-    const shake = !R.reduced && settings.shake && dead && e < 350 ? (1 - e / 350) * 7 : 0;
-
-    // The lump travels down the body after each apple.
-    let w = 0;
-    const lenPx = game.cells.length * CELL + CELL;
-    for (let i = 0; i < eats.length; i++) {
-      const d = (gameTime - eats[i]) / ms * CELL * 1.6;
-      if (d < lenPx && w < bulges.length) { eats[w] = eats[i]; bulges[w++] = d; }
+    const be = t - blinkT, blink = be < 160 ? Math.sin(Math.PI * be / 160) : 0;
+    const e = t - deathT, fdt = Math.min(50, dt);
+    let shake = 0;
+    for (const q of players) {
+      const f = q.fx, g = q.g;
+      // Mouth opens as the head approaches an apple.
+      let target = 0;
+      if (state === 'play') {
+        const c0 = g.cells[0], c1 = g.cells[1], d = g.dir;
+        const hx = c1.x + (c0.x - c1.x) * p, hy = c1.y + (c0.y - c1.y) * p;
+        for (const ap of g.apples) {
+          const ax = ap.x - hx, ay = ap.y - hy, ahead = ax * d.x + ay * d.y, side = Math.abs(ax * d.y - ay * d.x);
+          if (ahead > 0 && ahead < 2.2 && side < 0.6) target = Math.max(target, Math.min(1, (2.2 - ahead) / 1.6));
+        }
+      }
+      q.mouth += (target - q.mouth) * Math.min(1, fdt / 60);
+      f.mouth = q.mouth; f.blink = blink;
+      // A small squash when the head turns.
+      const se = t - q.squashT;
+      f.squash = !R.reduced && se < 180 ? 1 - U.ease(se / 180) : 0;
+      // Death: shake, flash, then the body greys out from head to tail. The winner of a two-player round is left alone.
+      const dead = deathT > 0 && !g.alive && !g.won;
+      f.dead = dead;
+      f.flash = dead && e < 600 && ((e / 100 | 0) % 2 === 0) ? 0.75 : 0;
+      f.grey = dead && e > 600 ? Math.min(1, (e - 600) / 450) : 0;
+      if (dead && !R.reduced && settings.shake && e < 350) shake = (1 - e / 350) * 7;
+      // The lump travels down the body after each apple.
+      let w = 0;
+      const lenPx = g.cells.length * CELL + CELL;
+      for (let i = 0; i < q.eats.length; i++) {
+        const d = (gameTime - q.eats[i]) / ms * CELL * 1.6;
+        if (d < lenPx && w < f.bulges.length) { q.eats[w] = q.eats[i]; f.bulges[w++] = d; }
+      }
+      q.eats.length = w; f.nBulges = w;
     }
-    eats.length = w; fx.nBulges = w;
 
     if (!ui.pageOpen()) {   // a full page covers the board, so there's no need to draw it
     const g = view.begin(shake ? (Math.random() * 2 - 1) * shake : 0, shake ? (Math.random() * 2 - 1) * shake : 0);
     ambient.draw(g, t, fdt);
     R.drawWalls(g, game, t);
     for (const ap of game.apples) R.drawApple(g, ap, t, game, p);
-    const a = U.lerpAng(U.angOf(game.prevDir.x, game.prevDir.y), U.angOf(game.dir.x, game.dir.y), U.ease(Math.min(1, p / 0.7)));
-    view.snake.draw(g, game.cells, game.prevTail, p, CELL, a, settings, fx);
+    for (const q of players) {
+      const n = q.g, a = U.lerpAng(U.angOf(n.prevDir.x, n.prevDir.y), U.angOf(n.dir.x, n.dir.y), U.ease(Math.min(1, p / 0.7)));
+      q.drawer.draw(g, n.cells, n.prevTail, p, CELL, a, q.skin, q.fx);
+    }
     if (game.rules.hunger && state !== 'menu') hunger.draw(g, game.cols, game.rows, game.hungerLevel(state === 'play' ? p : 0), t, fdt);
     view.fx.draw(g, t, fdt);
     if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }   // over the effects, so they stay hidden in the dark too
@@ -609,17 +726,24 @@
     play: () => { A.unlock(); applyAudio(); start(); },
     pause: () => { A.unlock(); pause(); },
     openBest: () => {
-      if (state === 'dying') return;
+      if (state === 'dying' || foe) return;
       if (state === 'play' || state === 'countdown') pause();
       ui.openPage('stats');
     },
     gameChanged: () => {
       store.save();
+      pick = 'solo';
       if (state === 'paused') { pendingNew = true; ui.setPlayLabel('New game'); }
       else if (state === 'menu' || state === 'over') { newGame(); state = 'menu'; ui.closeCard(); ui.setPlayLabel('Play'); }
       ui.el.mBest.textContent = currentBest();
       ui.refresh();
       pvTheme(); fit();
+    },
+    daily: () => launch('daily'),
+    duel: mode => {
+      match = { mode, wins: [0, 0] };
+      launch('duel');
+      if (foe) ui.note('Player 1: WASD, or swipe ' + ui.sideNames()[0], 'Player 2: arrow keys, or swipe ' + ui.sideNames()[1]);
     },
     tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
@@ -643,7 +767,7 @@
       if (state !== 'paused' && state !== 'over') return;
       A.sfx.click();
       if (state === 'paused' && game.steps > 0) endGame();
-      newGame(); state = 'menu';
+      pick = 'solo'; newGame(); state = 'menu';
       showMenu(GAME_NAME, 'Play');
     }
   });
@@ -652,11 +776,12 @@
     canSync: () => state === 'menu' || state === 'over' || state === 'paused',
     status: ui.renderSync,
     remote: ch => {
+      data.stats.xp += D.claim(data).reduce((n, m) => n + m.xp, 0);    // your devices together finished a mission
       shownLevel = Math.max(shownLevel, SK.levelOf(data.stats.xp));   // levels earned elsewhere don't pop up here
       if (checkUnlocks().length) store.save();                         // combined totals can reach new goals
       if (ch.look) { applyAccent(); applyTheme(); }
       if (state === 'paused') bestBefore = Math.max(bestBefore, currentBest());
-      ui.refresh(); ui.el.mBest.textContent = currentBest(); ui.setBest(state === 'paused' ? Math.max(bestBefore, game.score) : currentBest());
+      ui.refresh(); ui.el.mBest.textContent = currentBest(); if (!foe) ui.setBest(state === 'paused' ? Math.max(bestBefore, game.score) : currentBest());
       if (ui.shows('unlocks') && ui.menuOpen()) ui.renderRoadmap();
     }
   });
@@ -667,7 +792,9 @@
     confirm: start,
     anyInput: () => { A.unlock(); },
     swipeScale: () => [1.45, 1, 0.68][settings.swipe] || 1,
-    menuOpen: ui.menuOpen
+    menuOpen: ui.menuOpen,
+    // Two-player: each person gets half of the screen, across the longer side.
+    side: (x, y) => (foe ? (root.innerWidth >= root.innerHeight ? x > root.innerWidth / 2 : y > root.innerHeight / 2) ? 1 : 0 : 0)
   });
 
   // Pause when the tab is hidden; reset the clock when it comes back so there's no time jump.
@@ -686,5 +813,5 @@
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // Handy for debugging and automated checks.
-  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get preview() { return pvGame; }, get previewPath() { return pvSnake.path; } };
+  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get foe() { return foe && foe.g; }, get run() { return run; }, get match() { return match; }, get preview() { return pvGame; }, get previewPath() { return pvSnake.path; } };
 })(window);

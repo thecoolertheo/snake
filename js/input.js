@@ -1,12 +1,14 @@
 // Turns keyboard, touch, D-pad and gamepad input into a few high-level actions.
-// h = { dir(dx,dy), togglePause(), confirm(), anyInput(), menuOpen() }
+// h = { dir(dx,dy,who), togglePause(), confirm(), anyInput(), menuOpen(), side(x,y) }
+// who = which player the input came from, which only matters in two-player games:
+// WASD, the first half of the screen and even-numbered gamepads are player 1; the rest are player 2.
 (function (root) {
   'use strict';
   const S = root.Snake;
 
   const KEYS = {
-    ArrowUp: [0, -1], w: [0, -1], W: [0, -1], ArrowDown: [0, 1], s: [0, 1], S: [0, 1],
-    ArrowLeft: [-1, 0], a: [-1, 0], A: [-1, 0], ArrowRight: [1, 0], d: [1, 0], D: [1, 0]
+    ArrowUp: [0, -1, 1], w: [0, -1, 0], W: [0, -1, 0], ArrowDown: [0, 1, 1], s: [0, 1, 0], S: [0, 1, 0],
+    ArrowLeft: [-1, 0, 1], a: [-1, 0, 0], A: [-1, 0, 0], ArrowRight: [1, 0, 1], d: [1, 0, 0], D: [1, 0, 0]
   };
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   // Touches that start on these are left alone (buttons, menu, sliders).
@@ -23,7 +25,7 @@
         const tag = e.target && e.target.tagName;
         if (tag === 'SELECT' || tag === 'INPUT') return;
         const k = KEYS[e.key];
-        if (k) { e.preventDefault(); if (!e.repeat) h.dir(k[0], k[1]); return; }
+        if (k) { e.preventDefault(); if (!e.repeat) h.dir(k[0], k[1], k[2]); return; }
         if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { h.togglePause(); return; }
         if ((e.key === ' ' || e.key === 'Enter') && h.menuOpen() && !(e.target instanceof HTMLButtonElement)) {
           e.preventDefault(); h.confirm();
@@ -37,44 +39,52 @@
       //    wobble or a diagonal drag never adds up to a turn;
       //  - a new turn needs 40px of travel mostly across the current direction (a real corner);
       //  - the same direction is never sent twice, so no-op turns can't fill the turn buffer.
-      let sx = 0, sy = 0, tracking = false, gx = 0, gy = 0;
+      // Each player gets one finger of their own, so two people can swipe at the same time.
       const FIRST = 34, NEXT = 40;   // pixels at Normal; the Swipe sensitivity setting scales these
+      const swipes = new Map();      // touch id -> { who, sx, sy, gx, gy }
       document.addEventListener('touchstart', e => {
         h.anyInput();
-        tracking = !(e.target.closest && e.target.closest(INTERACTIVE));
-        if (!tracking) return;
-        const t = e.touches[0]; sx = t.clientX; sy = t.clientY; gx = gy = 0;
+        for (const t of e.changedTouches) {
+          if (e.target.closest && e.target.closest(INTERACTIVE)) continue;
+          const who = h.side(t.clientX, t.clientY);
+          if ([...swipes.values()].some(o => o.who === who)) continue;   // that player already has a finger down
+          swipes.set(t.identifier, { who, sx: t.clientX, sy: t.clientY, gx: 0, gy: 0 });
+        }
       }, { passive: true });
       document.addEventListener('touchmove', e => {
-        if (!tracking) return;
+        if (!swipes.size) return;
         e.preventDefault();   // stops page scroll / pull-to-refresh while steering
         if (h.menuOpen()) return;
-        const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy, scale = h.swipeScale();
-        let nx = 0, ny = 0;
-        if (!gx && !gy) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) < FIRST * scale) return;
-          if (Math.abs(dx) > Math.abs(dy)) nx = Math.sign(dx); else ny = Math.sign(dy);
-        } else {
-          const along = dx * gx + dy * gy;            // progress in the current swipe direction
-          const across = gx ? dy : dx;                // sideways travel
-          if (along >= Math.abs(across)) { sx = t.clientX; sy = t.clientY; return; }   // still going the same way
-          if (Math.abs(across) >= NEXT * scale && Math.abs(across) > Math.abs(along)) {
-            if (gx) ny = Math.sign(across); else nx = Math.sign(across);
-          } else if (-along >= NEXT * scale) { nx = -gx; ny = -gy; }   // doubled back
-          else return;
+        for (const t of e.changedTouches) {
+          const o = swipes.get(t.identifier); if (!o) continue;
+          const dx = t.clientX - o.sx, dy = t.clientY - o.sy, scale = h.swipeScale();
+          let nx = 0, ny = 0;
+          if (!o.gx && !o.gy) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) < FIRST * scale) continue;
+            if (Math.abs(dx) > Math.abs(dy)) nx = Math.sign(dx); else ny = Math.sign(dy);
+          } else {
+            const along = dx * o.gx + dy * o.gy;          // progress in the current swipe direction
+            const across = o.gx ? dy : dx;                // sideways travel
+            if (along >= Math.abs(across)) { o.sx = t.clientX; o.sy = t.clientY; continue; }   // still going the same way
+            if (Math.abs(across) >= NEXT * scale && Math.abs(across) > Math.abs(along)) {
+              if (o.gx) ny = Math.sign(across); else nx = Math.sign(across);
+            } else if (-along >= NEXT * scale) { nx = -o.gx; ny = -o.gy; }   // doubled back
+            else continue;
+          }
+          h.dir(nx, ny, o.who);
+          o.gx = nx; o.gy = ny; o.sx = t.clientX; o.sy = t.clientY;
         }
-        h.dir(nx, ny);
-        gx = nx; gy = ny; sx = t.clientX; sy = t.clientY;
       }, { passive: false });
-      document.addEventListener('touchend', () => { tracking = false; h.anyInput(); }, { passive: true });
-      document.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+      const lift = e => { for (const t of e.changedTouches) swipes.delete(t.identifier); };
+      document.addEventListener('touchend', e => { lift(e); h.anyInput(); }, { passive: true });
+      document.addEventListener('touchcancel', lift, { passive: true });
 
       // On-screen D-pad: react on press, not release, so it feels instant.
       const dpad = document.getElementById('dpad');
       if (dpad) dpad.addEventListener('pointerdown', e => {
         const b = e.target.closest('[data-dir]'); if (!b) return;
         e.preventDefault(); h.anyInput();
-        const d = DIRS[b.dataset.dir]; h.dir(d[0], d[1]);
+        const d = DIRS[b.dataset.dir]; h.dir(d[0], d[1], 0);
         b.classList.add('down'); setTimeout(() => b.classList.remove('down'), 120);
       });
     },
@@ -91,7 +101,7 @@
         let dir = '';
         if (btn(12)) dir = 'up'; else if (btn(13)) dir = 'down'; else if (btn(14)) dir = 'left'; else if (btn(15)) dir = 'right';
         else if (Math.max(Math.abs(ax), Math.abs(ay)) > 0.55) dir = Math.abs(ax) > Math.abs(ay) ? (ax > 0 ? 'right' : 'left') : (ay > 0 ? 'down' : 'up');
-        if (dir && dir !== prev.dir) { H.anyInput(); const d = DIRS[dir]; H.dir(d[0], d[1]); }
+        if (dir && dir !== prev.dir) { H.anyInput(); const d = DIRS[dir]; H.dir(d[0], d[1], i % 2); }
         prev.dir = dir;
         const start = btn(9), a = btn(0);
         if (start && !prev.start) H.togglePause();

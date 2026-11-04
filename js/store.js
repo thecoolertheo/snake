@@ -23,6 +23,8 @@
       best: {},        // "mode|board|apples" -> best score
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, xpInit: false },
       unlocked: [],
+      daily: { days: {} },   // "2026-11-04" -> that day's Daily Challenge score (see daily.js)
+      weekly: { week: '', mine: [0, 0, 0], seen: {}, claimed: [false, false, false] },
       // Live sync (js/sync.js): code in use, this device's id, and what the other devices have added.
       sync: { code: '', last: '', device: '', others: { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 }, settingsAt: 0, comboAt: [0, 0, 0, 0, 0], at: 0 }
     };

@@ -352,6 +352,7 @@
 
   // Rewards and your own gradient
   if (typeof module !== 'undefined' && !root.document && !S.skins) require('./js/skins.js');
+  if (typeof module !== 'undefined' && !root.document && !S.daily) require('./js/daily.js');
   if (S.skins) {
     const SK = S.skins, hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
     test('rewards: exactly 500, all different, every path long enough', () => {
@@ -404,6 +405,186 @@
       eq(C.sanitize({ settings: { customGrad: null } }).settings.customGrad, null);
       eq('customGrad' in C.sanitize({ settings: { customGrad: 'javascript:1' } }).settings, false);
       eq('customGrad' in C.sanitize({ settings: { customGrad: '#ff5a1f,#2bd4ff,8' } }).settings, false);
+    });
+  }
+
+  // ---------- two-player ----------
+  // Player 1 at (3,2) heading right, player 2 at (6,6) heading left, on the same board.
+  function duel(mode) {
+    const o = { cols: 10, rows: 9, apples: 1, grace: false, waitApples: true, mode: mode || 'classic' };
+    const a = new S.Game(Object.assign({ start: { x: 3, y: 2, dx: 1 } }, o));
+    const b = new S.Game(Object.assign({ start: { x: 6, y: 6, dx: -1 }, share: a }, o));
+    a.apples.push({ x: 9, y: 0, kind: 'apple' });
+    return [a, b];
+  }
+  // Puts a snake exactly on the tiles listed, head first.
+  function place(g, cells, dir) {
+    for (const c of g.cells.slice()) g.occ[g.idx(c.x, c.y)]--;
+    g.cells = cells.map(([x, y]) => ({ x, y }));
+    for (const c of g.cells) g.occ[g.idx(c.x, c.y)]++;
+    g.dir = { x: dir[0], y: dir[1] }; g.prevDir = g.dir;
+  }
+  test('two-player: both snakes share one board and start apart', () => {
+    const [a, b] = duel();
+    eq(a.occ === b.occ, true, 'occ'); eq(a.wall === b.wall, true, 'wall'); eq(a.apples === b.apples, true, 'apples');
+    eq(head(b), { x: 6, y: 6 }); eq(b.dir, { x: -1, y: 0 }, 'dir'); eq(b.cells[2], { x: 8, y: 6 }, 'tail is behind it');
+  });
+  test('two-player: running into the other snake loses to it', () => {
+    const [a, b] = duel();
+    place(a, [[4, 2], [3, 2], [2, 2]], [1, 0]); place(b, [[5, 5], [5, 4], [5, 3], [5, 2], [5, 1]], [0, 1]);
+    S.duelStep(a, b);
+    eq(a.alive, false, 'player 1'); eq(b.alive, true, 'player 2');
+  });
+  test('two-player: going for the same tile is a draw', () => {
+    const [a, b] = duel();
+    place(a, [[3, 4], [2, 4], [1, 4]], [1, 0]); place(b, [[5, 4], [6, 4], [7, 4]], [-1, 0]);
+    S.duelStep(a, b);
+    eq(a.alive, false, 'player 1'); eq(b.alive, false, 'player 2');
+    eq(a.events.pop().meet, true, 'they meet in the middle');
+  });
+  test('two-player: swapping places head on is a draw, whichever order they are in', () => {
+    for (const flip of [false, true]) {
+      const [a, b] = duel();
+      place(a, [[3, 4], [2, 4], [1, 4]], [1, 0]); place(b, [[4, 4], [5, 4], [6, 4]], [-1, 0]);
+      if (flip) S.duelStep(b, a); else S.duelStep(a, b);
+      eq(a.alive, false, 'player 1'); eq(b.alive, false, 'player 2');
+    }
+  });
+  test('two-player: following the other tail is safe for either player', () => {
+    for (const flip of [false, true]) {
+      const [a, b] = duel();
+      place(a, [[3, 4], [2, 4], [1, 4]], [1, 0]); place(b, [[6, 2], [5, 2], [4, 2], [4, 3], [4, 4]], [1, 0]);
+      if (flip) S.duelStep(b, a); else S.duelStep(a, b);
+      eq(a.alive, true, 'follower'); eq(b.alive, true, 'leader'); eq(head(a), { x: 4, y: 4 });
+    }
+  });
+  test('two-player: if both crash on the same step it is a draw', () => {
+    const [a, b] = duel();
+    place(a, [[9, 2], [8, 2], [7, 2]], [1, 0]); place(b, [[0, 6], [1, 6], [2, 6]], [-1, 0]);
+    S.duelStep(a, b);
+    eq(a.alive, false, 'player 1'); eq(b.alive, false, 'player 2');
+  });
+  test('two-player: an eaten apple is replaced once, and the board stays in step', () => {
+    const [a, b] = duel();
+    a.apples.length = 0; a.apples.push({ x: 4, y: 2, kind: 'apple' });
+    S.duelStep(a, b);
+    eq(a.score, 1, 'score'); eq(a.apples.length, 1, 'apples on the board'); eq(b.apples.length, 1, 'same list');
+    let n = 0; for (const v of a.occ) n += v;
+    eq(n, a.cells.length + b.cells.length, 'occupied tiles');
+  });
+  test('two-player: walls left behind stop both snakes', () => {
+    const [a, b] = duel('walls');
+    a.wall[a.idx(5, 6)] = 2;
+    S.duelStep(a, b);
+    eq(b.alive, false, 'hit the wall');
+  });
+
+  // ---------- Daily Challenge and weekly missions ----------
+  if (S.daily) {
+    const D = S.daily, at = (y, m, d) => new Date(y, m - 1, d, 12);
+    const year = []; for (let i = 0; i < 730; i++) year.push(D.keyOf(D.dayNum('2026-01-01') + i));
+    test('daily: the date alone decides the challenge', () => {
+      eq(D.challenge('2026-11-04'), D.challenge('2026-11-04'));
+      eq(new Set(year.map(k => JSON.stringify(D.challenge(k)))).size, 730, 'different every day');
+    });
+    test('daily: every challenge is a real, playable mode with the start row clear', () => {
+      for (const k of year) {
+        const c = D.challenge(k);
+        eq(!!S.MODE[c.mode], true, k); eq(c.mode !== 'peaceful', true, k);
+        for (const [x, y] of c.blocks) if (y === 7 || x < 0 || y < 0 || x >= c.cols || y >= c.rows) throw new Error(k + ' block at ' + x + ',' + y);
+        const g = new S.Game({ cols: c.cols, rows: c.rows, apples: c.apples, mode: c.mode, seed: c.seed, blocks: c.blocks });
+        if (c.mode !== 'portal') for (let i = 0; i < 12; i++) { g.step(); if (!g.alive) throw new Error(k + ' died going straight'); }   // a portal can drop you anywhere
+      }
+    });
+    test('daily: never the same mode two days running', () => {
+      for (let i = 1; i < year.length; i++) if (D.challenge(year[i]).mode === D.challenge(year[i - 1]).mode) throw new Error(year[i]);
+    });
+    test('daily: apples come in the same order whatever you do', () => {
+      const c = D.challenge('2026-11-04'), order = moves => {
+        const g = new S.Game({ cols: 17, rows: 15, apples: 1, mode: 'classic', seed: c.seed }), out = [];
+        for (let n = 0; n < 6; n++) {
+          const a = g.apples[0]; out.push([a.x, a.y]);
+          g.apples.length = 0; g.steps += moves; g.fillApples();
+        }
+        return out;
+      };
+      eq(order(1), order(7));
+    });
+    test('daily: the same day still differs between seeds', () => {
+      const g = s => new S.Game({ cols: 17, rows: 15, seed: s }).apples[0];
+      if (JSON.stringify(g(1)) === JSON.stringify(g(2)) && JSON.stringify(g(3)) === JSON.stringify(g(4))) throw new Error('seed ignored');
+    });
+    test('daily: streaks count days in a row', () => {
+      const days = { '2026-11-01': 3, '2026-11-02': 0, '2026-11-03': 9 };
+      eq(D.streak(days, '2026-11-03'), 3, 'played today');
+      eq(D.streak(days, '2026-11-04'), 3, 'today still to play');
+      eq(D.streak(days, '2026-11-05'), 0, 'missed a day');
+      eq(D.bestStreak(Object.assign({ '2026-10-20': 1 }, days)), 3, 'best');
+      eq(D.streak({ '2026-12-31': 1, '2027-01-01': 1, '2027-03-01': 1, '2027-02-28': 1 }, '2027-03-01'), 2, 'across a month');
+    });
+    test('daily: XP grows with the streak and stops at day 10', () => {
+      eq(D.dailyXp(1), 110); eq(D.dailyXp(10), 200); eq(D.dailyXp(50), 200);
+    });
+    test('weeks: run Monday to Sunday and sort in order', () => {
+      eq(D.weekKey(at(2026, 11, 2)), '2026-W45', 'Monday'); eq(D.weekKey(at(2026, 11, 8)), '2026-W45', 'Sunday');
+      eq(D.weekKey(at(2026, 11, 9)), '2026-W46', 'next Monday'); eq(D.weekKey(at(2027, 1, 1)), '2026-W53', 'new year in the old week');
+      eq(D.weekKey(at(2027, 1, 4)), '2027-W01'); eq(D.daysLeftInWeek(at(2026, 11, 8)), 1, 'Sunday');
+    });
+    const save = () => ({ weekly: { week: '', mine: [0, 0, 0], seen: {}, claimed: [false, false, false] } });
+    test('missions: every week has three different missions you can actually do', () => {
+      for (let y = 2026; y < 2030; y++) for (let w = 1; w < 54; w++) {
+        const key = y + '-W' + (w < 10 ? '0' : '') + w, list = D.missions(key);
+        eq(new Set(list.map(m => m.id)).size, 3, key);
+        for (const m of list) {
+          const mode = m.id.split(':')[1];
+          if (mode && S.skins && S.skins.unlockFor('mode', mode)) throw new Error(key + ' needs a locked mode');
+        }
+      }
+    });
+    test('missions: add up, pay once and reset the next week', () => {
+      const d = save(), day = at(2026, 11, 4), list = D.missions(D.weekKey(day));
+      const i = list.findIndex(m => m.id === 'games' || m.id === 'apples' || m.id === 'minutes'), m = list[i];
+      const game = { mode: 'classic', apples: 40, ms: 600000, score: 1, length: 3, daily: false };
+      let paid = [];
+      for (let n = 0; n < 12; n++) paid = paid.concat(D.record(d, game, day));
+      eq(paid.filter(x => x.id === m.id).length, 1, 'paid once');
+      eq(d.weekly.claimed[i], true, 'marked done');
+      D.record(d, game, at(2026, 11, 9));
+      eq(d.weekly.week, '2026-W46', 'week'); eq(d.weekly.claimed.filter(Boolean).length <= 1, true, 'fresh start');
+    });
+    test('missions: a score mission takes your best game, not the total', () => {
+      const m = { id: 'score', goal: 15, max: true }, w = { mine: [10, 0, 0], seen: { x: [12, 0, 0] } };
+      eq(D.total(w, 0, m), 12);
+      const n = { id: 'apples', goal: 15 }; eq(D.total(w, 0, n), 22, 'a counter adds devices up');
+    });
+    test('missions: a clock running behind never wipes the week', () => {
+      const d = save(); d.weekly.week = '2026-W46'; d.weekly.mine = [5, 0, 0];
+      D.ensureWeek(d, at(2026, 11, 4)); eq(d.weekly.mine, [5, 0, 0]);
+    });
+  }
+  if (S.syncCore) {
+    const C = S.syncCore;
+    test('sync: daily results merge and a played 0 still counts', () => {
+      const m = C.mergeDocs({ daily: { '2026-11-01': 4, '2026-11-02': 0 } }, { daily: { '2026-11-01': 9, '2026-11-03': 2 } });
+      eq(m.daily, { '2026-11-01': 9, '2026-11-02': 0, '2026-11-03': 2 });
+      eq(Object.keys(C.sanitize({ daily: { nope: 1, '2026-1-1': 2 } }).daily).length, 0, 'bad dates dropped');
+    });
+    test('sync: daily results are capped so a save stays small', () => {
+      const days = {}; for (let i = 0; i < 900; i++) days[new Date(Date.UTC(2020, 0, 1 + i)).toISOString().slice(0, 10)] = 1;
+      const out = Object.keys(C.sanitize({ daily: days }).daily);
+      eq(out.length, 400); eq(out[399], '2022-06-18', 'keeps the newest');
+    });
+    test('sync: weekly missions keep each device separate', () => {
+      const m = C.mergeDocs({ weekly: { week: '2026-W45', devices: { a: [5, 0, 0] }, claimed: [false, true, false] } },
+        { weekly: { week: '2026-W45', devices: { a: [3, 1, 0], b: [7, 0, 0] }, claimed: [true, false, false] } });
+      eq(m.weekly.devices, { a: [5, 1, 0], b: [7, 0, 0] }); eq(m.weekly.claimed, [true, true, false]);
+    });
+    test('sync: a newer week replaces an older one, and old saves still merge', () => {
+      const old = { weekly: { week: '2026-W45', devices: { a: [9, 9, 9] }, claimed: [true, true, true] } }, cur = { weekly: { week: '2026-W46', devices: { b: [1, 0, 0] } } };
+      eq(C.mergeDocs(old, cur).weekly.week, '2026-W46'); eq(C.mergeDocs(cur, old).weekly.devices, { b: [1, 0, 0] });
+      eq(C.mergeDocs({}, old).weekly.week, '2026-W45', 'a doc from before this update');
+      eq(C.sanitize({ weekly: { week: 'bad', devices: { a: [1, 1, 1] } } }).weekly.week, '', 'bad week dropped');
+      const s = JSON.stringify(C.sanitize(old)); eq(JSON.stringify(C.mergeDocs(old, {})).length, s.length, 'nothing new means no change');
     });
   }
 

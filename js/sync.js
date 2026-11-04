@@ -24,13 +24,14 @@
     const d = store.data, s = d.stats, y = sd(), mine = { longest: s.longest, at: Date.now() };
     for (const k of C.COUNTS) mine[k] = Math.max(0, s[k] - (y.others[k] || 0));
     return { devices: { [y.device]: mine }, best: d.best, unlocked: d.unlocked, settings: look(), settingsAt: y.settingsAt,
-      combos: d.settings.combos.map((c, i) => ({ look: c, at: y.comboAt[i] || 0 })) };
+      combos: d.settings.combos.map((c, i) => ({ look: c, at: y.comboAt[i] || 0 })), daily: d.daily.days,
+      weekly: { week: d.weekly.week, devices: { [y.device]: d.weekly.mine }, claimed: d.weekly.claimed } };
   }
 
   // Takes the merged save from the server. Returns what changed, or null.
   function apply(doc) {
     const d = store.data, s = d.stats, y = sd(), me = y.device;
-    const state = () => JSON.stringify([s, d.best, d.unlocked.length, look(), d.settings.combos]);
+    const state = () => JSON.stringify([s, d.best, d.unlocked.length, look(), d.settings.combos, d.daily, d.weekly]);
     const before = state();
     const rec = doc.devices[me] || {}, others = C.totals(doc, me);
     for (const k of C.COUNTS) {
@@ -50,6 +51,14 @@
     doc.combos.forEach((c, i) => {
       if (c.at > (y.comboAt[i] || 0)) { d.settings.combos[i] = c.look; y.comboAt[i] = c.at; lastCombos[i] = JSON.stringify(c.look); }
     });
+    for (const k in doc.daily || {}) d.daily.days[k] = Math.max(d.daily.days[k] || 0, doc.daily[k]);
+    const w = doc.weekly, mine = d.weekly;
+    if (w && w.week >= mine.week) {   // a server from before weekly missions sends no week at all
+      if (w.week > mine.week) { mine.week = w.week; mine.mine = (w.devices[me] || [0, 0, 0]).slice(); mine.claimed = [false, false, false]; }
+      mine.seen = {};
+      for (const id in w.devices) if (id !== me) mine.seen[id] = w.devices[id];
+      mine.claimed = mine.claimed.map((v, i) => v || w.claimed[i]);
+    }
     sync.devices = Object.keys(doc.devices).length;
     return before !== state() ? { look: lookChanged } : null;
   }

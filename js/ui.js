@@ -29,9 +29,12 @@
   const WIDE = root.matchMedia('(min-width: 1000px) and (min-height: 560px)');
   const MERGED = { home: ['home', 'modes'], modes: ['home', 'modes'], unlocks: ['unlocks', 'stats'], stats: ['unlocks', 'stats'] };
   const pagesFor = name => (WIDE.matches && MERGED[name]) || [name];
-  const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
+  const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', daily: 'Daily', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
   let st, h, store;   // settings, handlers, store
 
+  const D = S.daily;
+  const DUEL_MODES = ['classic', 'borderless', 'walls', 'poison'];
+  let duelMode = 'classic';
   const svg = (inner, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true">' + inner + '</svg>';
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const pressed = (box, fn) => [...box.children].forEach((c, i) => c.setAttribute('aria-pressed', fn(c, i)));
@@ -79,6 +82,18 @@
     seg('segApples', [[1, '1'], [3, '3'], [5, '5']], 'apples', true);
     seg('segSpeed', SK.SPEEDS.map((n, i) => [i, n]), 'speed', false);
     toggle('swRamp', 'ramp');
+
+    // Daily Challenge and two-player
+    $('homeDuel').addEventListener('click', () => { h.click(); ui.setTab('daily'); $('duelCard').scrollIntoView({ block: 'start' }); });
+    $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
+    $('duelStart').addEventListener('click', () => { h.click(); h.duel(duelMode); });
+    const duelBox = $('duelModes');
+    for (const id of DUEL_MODES) {
+      const b = el('button', null, S.MODE[id].name); b.type = 'button';
+      b.addEventListener('click', () => { duelMode = id; pressed(duelBox, c => c === b); h.click(); });
+      b.setAttribute('aria-pressed', id === duelMode);
+      duelBox.appendChild(b);
+    }
 
     // Snake
     buildSkinPickers();
@@ -715,14 +730,55 @@
     lastNext = { id: g.u.id, pct };
   }
 
+  // Daily page: today's challenge, your streak, this week's missions.
+  const SPEED_WORD = i => SK.SPEEDS[i];
+  ui.renderDaily = function () {
+    const key = D.dayKey(), spec = D.challenge(key), days = store.data.daily.days, played = key in days, m = S.MODE[spec.mode], now = D.streak(days, key);
+    $('dailyMode').innerHTML = '<span class="mc-ic">' + svg(MODE_ICONS[m.id]) + '</span><span><b>' + m.name + '</b><small>' + m.desc + '</small></span>';
+    $('dailyRules').textContent = [spec.layout, spec.apples + (m.portal ? ' pair' : ' apple') + (spec.apples > 1 ? 's' : ''), SPEED_WORD(spec.speed) + ' speed', spec.ramp ? 'Speeds up' : ''].filter(Boolean).join(' · ');
+    $('dailyPlay').textContent = played ? 'Practice' : 'Play today’s challenge';
+    $('dailyNote').textContent = played ? 'Today’s score: ' + days[key] + '. A new challenge arrives at midnight.' : 'Your first go counts, so make it a good one. Worth +' + D.dailyXp(now + 1) + ' XP.';
+    $('dailyStreak').textContent = now; $('dailyBest').textContent = D.bestStreak(days);
+    const n = D.dayNum(key);
+    let dots = '';
+    for (let i = 6; i >= 0; i--) {
+      const k = D.keyOf(n - i), day = new Date(k + 'T12:00:00Z').toUTCString().slice(0, 1);
+      dots += '<span class="dd' + (k in days ? ' on' : '') + (!i ? ' now' : '') + '" title="' + k + (k in days ? ': ' + days[k] : '') + '"><i></i><small>' + day + '</small></span>';
+    }
+    $('dailyDots').innerHTML = dots;
+    const w = D.ensureWeek(store.data), left = D.daysLeftInWeek();
+    $('weekLeft').textContent = left === 1 ? 'Last day' : left + ' days left';
+    $('weekList').innerHTML = D.missions(w.week).map((x, i) => {
+      const min = x.id === 'minutes', v = Math.min(x.goal, Math.floor(D.total(w, i, x))), pct = v / x.goal * 100, done = w.claimed[i];
+      return '<div class="ms' + (done ? ' done' : '') + '"><div class="ms-t"><b>' + x.text + '</b><em>' + (done ? 'Done' : '+' + x.xp + ' XP') + '</em></div>' +
+        '<i class="nx-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i><small>' + v + ' of ' + x.goal + (min ? ' minutes' : '') + '</small></div>';
+    }).join('');
+    const tab = $('tabs').querySelector('[data-tab="daily"]'); tab.classList.toggle('dot', !played);
+    $('homeDailyNote').textContent = played ? (now + ' day streak') : 'Not played yet';
+    ui.updateFades();
+  };
+  ui.setDuel = on => { ui.el.bar.classList.toggle('duel', on); };
+  ui.setRunTag = t => { ui.runTag = t; ui.el.modeTag.textContent = t || S.MODE[st.mode].name; };
+  ui.sideNames = () => (root.innerWidth >= root.innerHeight ? ['on the left', 'on the right'] : ['on the top half', 'on the bottom half']);
+  ui.toastMission = function (m) {
+    const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">+</i><span><small>Mission done! +' + m.xp + ' XP</small><b>' + m.text + '</b></span>');
+    $('toasts').appendChild(t);
+    setTimeout(() => t.classList.add('out'), 2800); setTimeout(() => t.remove(), 3300);
+  };
+  ui.note = function (a, b) {
+    const t = el('div', 'toast toast-note', '<span><b>' + a + '</b><b>' + b + '</b></span>');
+    $('toasts').appendChild(t);
+    setTimeout(() => t.classList.add('out'), 3400); setTimeout(() => t.remove(), 3900);
+  };
+
   // Re-render everything that depends on settings or saved data.
   ui.refresh = function () {
-    renderModes(); renderSkins(); ui.renderLevel(); renderHome();
+    renderModes(); renderSkins(); ui.renderLevel(); ui.renderDaily(); renderHome();
     if (ui.shows('stats')) renderStats();
     const m = S.MODE[st.mode];
     const line = m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
     ui.el.modeLine.textContent = line;
-    ui.el.modeTag.textContent = m.name;
+    ui.el.modeTag.textContent = ui.runTag || m.name;
   };
 
   // Pages: one full-screen page at a time. The preview canvas moves to whichever page shows it.
@@ -737,6 +793,7 @@
     if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock(); hideModeLock();
     if (main === 'home') renderHome();
+    if (main === 'daily') ui.renderDaily();
     if (ui.shows('stats')) renderStats();
     if (ui.shows('unlocks')) renderRoadmap();
     if (main === 'settings') ui.renderSync();
@@ -844,7 +901,10 @@
   ui.showMenu = o => {
     const E = ui.el, card = !!(o.compact || o.over);
     E.title.textContent = o.title; E.mScore.textContent = o.score; E.mBest.textContent = o.best;
-    ui.setPlayLabel(o.btn);
+    const L = o.labels || ['Score', 'Best'], box = E.mScore.closest('.scores');
+    box.querySelectorAll('small').forEach((n, i) => { n.textContent = L[i]; });
+    box.classList.toggle('duel', L[0] === 'Player 1');
+    ui.setPlayLabel(o.btn); $('againBtn').textContent = o.btn;
     E.badge.hidden = !o.badge; if (o.badge) E.badge.textContent = o.badge;
     renderMissed(o.missed);
     E.overlay.hidden = !card; E.shell.hidden = card;

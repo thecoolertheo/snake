@@ -862,7 +862,7 @@
 
   const wallBorn = new Map();   // tile index -> time it turned solid
   function drawWalls(g, game, t) {
-    if (!game.rules.walls) return;
+    if (!game.rules.walls && !game.wallCount) return;   // the Daily Challenge can start with walls in any mode
     const W = game.wall, cols = game.cols;
     for (let i = 0; i < W.length; i++) {
       if (!W[i]) continue;

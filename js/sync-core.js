@@ -5,6 +5,8 @@
 //   unlocked:   [ reward ids ]
 //   settings:   the look of your snake (SYNCED keys only), with settingsAt = when it last changed
 //   combos:     the 5 saved looks, each { look, at } with its own change time
+//   daily:      { "2026-11-04": score } Daily Challenge results; streaks are worked out from these
+//   weekly:     { week, devices: { deviceId: [n, n, n] }, claimed: [bool, bool, bool] } weekly missions
 // Merging never loses progress: counters are kept per device and only go up (totals are the sum),
 // bests take the higher score, unlocks are combined, the newest look wins, and each saved-look
 // slot is merged by itself, so changing one thing on one device never touches the others.
@@ -45,7 +47,10 @@
   }
 
   function emptyCombos() { return [0, 1, 2, 3, 4].map(() => ({ look: null, at: 0 })); }
-  function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0, combos: emptyCombos() }; }
+  const emptyWeek = () => ({ week: '', devices: {}, claimed: [false, false, false] });
+  function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0, combos: emptyCombos(), daily: {}, weekly: emptyWeek() }; }
+  const DAILY_KEEP = 400;   // days of results to keep, so a save can't outgrow the size limit
+  const sortDays = o => { const out = {}; for (const k of Object.keys(o).sort().slice(-DAILY_KEEP)) out[k] = o[k]; return out; };
 
   // Keeps only well-formed data, so a bad or hostile request can't break anyone's save.
   function sanitize(d) {
@@ -84,6 +89,22 @@
       // Saves from before slots had their own times. An empty slot here means "never used", not "cleared".
       out.combos = d.settings.combos.map(c => { const look = cleanLook(c); return { look, at: look ? out.settingsAt : 0 }; });
     }
+    if (d.daily && typeof d.daily === 'object') {
+      const days = {};
+      for (const k of Object.keys(d.daily).slice(0, 2000)) if (/^\d{4}-\d\d-\d\d$/.test(k)) days[k] = num(d.daily[k]);
+      out.daily = sortDays(days);
+    }
+    const w = d.weekly;
+    if (w && typeof w === 'object' && typeof w.week === 'string' && /^\d{4}-W\d\d$/.test(w.week)) {
+      out.weekly.week = w.week;
+      if (w.devices && typeof w.devices === 'object') {
+        for (const id of Object.keys(w.devices).slice(0, 64)) {
+          const r = w.devices[id];
+          if (okKey(id) && Array.isArray(r) && r.length === 3) out.weekly.devices[id] = r.map(num);
+        }
+      }
+      if (Array.isArray(w.claimed) && w.claimed.length === 3) out.weekly.claimed = w.claimed.map(v => v === true);
+    }
     return out;
   }
 
@@ -101,6 +122,20 @@
     const newer = b.settingsAt > a.settingsAt ? b : a;
     out.settings = Object.assign({}, newer.settings); out.settingsAt = newer.settingsAt;
     out.combos = a.combos.map((x, i) => { const y = b.combos[i]; return y.at > x.at ? y : x; });
+    const days = Object.assign({}, a.daily);
+    for (const k in b.daily) days[k] = Math.max(days[k] || 0, b.daily[k]);
+    out.daily = sortDays(days);
+    // A newer week replaces an older one. In the same week each device's progress is kept separately.
+    if (a.weekly.week !== b.weekly.week) out.weekly = a.weekly.week > b.weekly.week ? a.weekly : b.weekly;
+    else {
+      out.weekly.week = a.weekly.week;
+      out.weekly.claimed = a.weekly.claimed.map((v, i) => v || b.weekly.claimed[i]);
+      out.weekly.devices = Object.assign({}, a.weekly.devices);
+      for (const id in b.weekly.devices) {
+        const x = out.weekly.devices[id], y = b.weekly.devices[id];
+        out.weekly.devices[id] = x ? x.map((v, i) => Math.max(v, y[i])) : y;
+      }
+    }
     return out;
   }
 

@@ -519,7 +519,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 }
 .side-nav { grid-area: nav; min-width: 0; background: var(--c-surface); border-top: 1px solid var(--c-line); }
 .brand { display: none; }
-.tabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: var(--sp-1) max(var(--sp-1), env(safe-area-inset-right)) max(var(--sp-1), env(safe-area-inset-bottom)) max(var(--sp-1), env(safe-area-inset-left)); }
+.tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: var(--sp-1) max(var(--sp-1), env(safe-area-inset-right)) max(var(--sp-1), env(safe-area-inset-bottom)) max(var(--sp-1), env(safe-area-inset-left)); }
 .tabs button { display: grid; justify-items: center; gap: 3px; min-height: 52px; align-content: center; padding: var(--sp-1) 0; border: 0; border-radius: var(--r-md); background: none; color: var(--c-muted); font-size: 10.5px; font-weight: 500; cursor: pointer; transition: color var(--t-fast), background var(--t-fast); }
 .tabs button svg { width: 22px; height: 22px; fill: currentColor; }
 .tabs button[aria-selected="true"] { color: var(--c-fg); }
@@ -850,3 +850,50 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .shell[data-page="settings"] .panels { display: block; overflow-y: auto; }
   .panel[data-panel="settings"] { height: auto; overflow: visible; padding-right: 0; }
 }
+
+/* Daily page */
+.tabs button { position: relative; }
+.tabs button.dot::after { content: ''; position: absolute; top: 7px; left: calc(50% + 9px); width: 8px; height: 8px; border-radius: 50%; background: var(--c-danger); box-shadow: 0 0 0 2px var(--c-surface); }
+.home-quick { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.home-quick button { display: grid; gap: 1px; padding: 7px var(--sp-2); text-align: center; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: inherit; cursor: pointer; transition: background var(--t-fast); }
+.home-quick button:hover { background: var(--c-surface-2); }
+.home-quick b { font-size: var(--fs-sm); font-weight: 500; }
+.home-quick small { font-size: var(--fs-xs); color: var(--c-muted); }
+.shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .home-quick button { padding: 3px var(--sp-2); }
+.shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .home-quick small { display: none; }
+.daily-mode { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); align-items: center; }
+.daily-mode .mc-ic svg { width: 40px; height: 40px; display: block; }
+.daily-mode span:last-child { display: grid; gap: 2px; }
+.daily-mode b { font-size: var(--fs-lg); }
+.daily-mode small { color: var(--c-muted); font-size: var(--fs-sm); }
+.panel-daily .play { width: 100%; }
+.streak { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; padding-top: var(--sp-2); border-top: 1px solid var(--c-line); }
+.streak > div:not(.dots) { display: grid; }
+.streak b { font-size: var(--fs-xl); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.streak small { font-size: var(--fs-xs); color: var(--c-muted); }
+.dots { display: flex; gap: 6px; margin-left: auto; }
+.dd { display: grid; justify-items: center; gap: 3px; }
+.dd i { width: 16px; height: 16px; border-radius: 50%; background: rgba(255, 255, 255, .08); }
+.dd.on i { background: var(--mode-accent); }
+.dd.now i { box-shadow: 0 0 0 2px var(--c-surface), 0 0 0 3px var(--c-muted); }
+.week { display: grid; gap: var(--sp-3); }
+.ms { display: grid; gap: 4px; }
+.ms-t { display: flex; justify-content: space-between; gap: var(--sp-2); }
+.ms-t b { font-size: var(--fs-sm); font-weight: 500; }
+.ms-t em { flex: none; font-style: normal; font-size: var(--fs-sm); font-weight: 700; color: var(--mode-accent); }
+.ms > small { font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.ms.done { opacity: .7; }
+/* Two-player: the score bar and game over card show rounds won, in each snake's colour */
+.bar.duel .hud svg, .scores.duel .big-stat svg { display: none; }
+.bar.duel #score, .scores.duel #mScore { color: var(--p1); }
+.bar.duel #best, .scores.duel #mBest { color: var(--p2); }
+.bar.duel #bestBtn, .scores.duel .big-stat-btn { pointer-events: none; }
+.toast-note { padding: 8px 18px; border-radius: var(--r-lg); }
+.toast-note b { font-size: var(--fs-sm); font-weight: 500; }
+.ms .nx-bar > i { min-width: 0; }
+@media (min-width: 820px) { .tabs button.dot::after { top: 8px; left: 28px; } }
+@media (min-width: 1000px) and (min-height: 560px) {
+  .panel-daily { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); align-items: start; }
+  .panel-daily #duelCard { grid-column: 2; grid-row: 1 / span 2; }
+}
+@media (max-width: 360px) { .tabs button { font-size: 9px; letter-spacing: -.2px; } }

@@ -395,6 +395,48 @@
     ['Gallery', '#241e2a', '#c77dff', 'sparkle']
   ]) SK.BOARD_THEMES[name] = boardTheme(a, accent, amb);
 
+  // Exclusive rewards: these only come from streaks, weekly missions and perfect weeks.
+  // Added at the end of each list, because saved looks store positions in these lists.
+  SK.COLORS.push(['Kindling', '#ffa26b'], ['Wildfire', '#f2541b'], ['Cadet', '#4a6fa5'], ['Compass', '#b08d57'], ['Flawless', '#e8fff4'], ['Platinum', '#b4bdd6']);
+  SK.PATTERNS.push('Hot Streak', 'Phoenix', 'Eternal Flame', 'Service Ribbon', 'Merit', 'Veteran', 'Seven Days', 'Trophy', 'Legend');
+  SK.BURSTS.push('Flare', 'Stamps', 'Aligned', 'Ovation');
+  SK.TRAILS.push('Cinders', 'Afterglow', 'Waypoints', 'Trailblazer', 'Laurel Dust');
+  SK.BOARDS.push('Hearth', 'Inferno', 'Campground', 'Summit', 'Podium', 'Hall of Fame');
+  Object.assign(SK.GRADIENTS, {
+    'Phoenix': [[255, 236, 120], [255, 96, 32], [150, 16, 60]],
+    'Eternal Flame': [[255, 244, 214], [255, 160, 50], [214, 36, 96]],
+    'Merit': [[28, 58, 120], [90, 150, 230], [250, 214, 110]],
+    'Veteran': [[50, 66, 44], [150, 140, 90], [240, 200, 90]],
+    'Trophy': [[120, 72, 8], [240, 186, 52], [255, 248, 200]],
+    'Legend': [[64, 20, 150], [236, 60, 170], [255, 220, 110]]
+  });
+  Object.assign(SK.FIXED_BANDS, {
+    'Hot Streak': [[255, 92, 30], [255, 222, 90], 0.42],
+    'Service Ribbon': [[40, 90, 170], [250, 214, 90], 0.34],
+    'Seven Days': [[64, 200, 150], [18, 60, 70], 0.14]
+  });
+  Object.assign(SK.BURST_STYLES, {
+    'Flare': { colors: ['#ff5a1f', '#ffc83d', '#fff3b0'], shape: 'star' },
+    'Stamps': { colors: ['#b08d57', '#e8d5a8', '#6b4430'], shape: 'square' },
+    'Aligned': { colors: ['#ffe36b', '#7cc8ff', '#ffffff'], shape: 'star', count: 22 },
+    'Ovation': { colors: ['#ffc83d', '#ff6fb1', '#5b8cff', '#39ff88'], shape: 'heart', count: 22 }
+  });
+  Object.assign(SK.TRAIL_STYLES, {
+    'Cinders': [['#ff5a1f', '#ffa26b', '#3a2a24'], 'dot'],
+    'Afterglow': [['#ffc83d', '#ff8a3d', '#fff3b0'], 'puff'],
+    'Waypoints': [['#e8d5a8', '#b08d57'], 'ring'],
+    'Trailblazer': [['#ff7a2e', '#ffffff'], 'star'],
+    'Laurel Dust': [['#d8c060', '#7ac74f', '#fff3c9'], 'leaf']
+  });
+  for (const [name, a, accent, amb] of [
+    ['Hearth', '#2a1a14', '#ff8a3d', 'embers'],
+    ['Inferno', '#2a100c', '#ff4a1f', 'embers'],
+    ['Campground', '#1c2418', '#e0a860', 'fireflies'],
+    ['Summit', '#1a2430', '#d8e8f0', 'snow'],
+    ['Podium', '#201c28', '#ffd46b', 'glitter'],
+    ['Hall of Fame', '#262012', '#ffc83d', 'glitter']
+  ]) SK.BOARD_THEMES[name] = boardTheme(a, accent, amb);
+
   // ---------- Custom colour ----------
   // One colour is your own. It must be clearly different from every built-in colour
   // (perceptual distance, CIE ΔE76 in Lab space).
@@ -640,7 +682,25 @@
       P('p-museum', 440, 130), E('e-teary', 475, 26)]
   };
   for (const t of SK.TRACKS) t.steps.push(...LATER[t.id]);
-  SK.TRACKS.find(t => t.id === 'collector').steps.push(P('p-gradient', 499, SK.GRAD));
+  SK.TRACKS.find(t => t.id === 'collector').steps.push(P('p-gradient', 529, SK.GRAD));   // every other reward in the game
+
+  const idx = (list, name) => { const i = SK[list].indexOf(name); if (i < 0) throw new Error('no ' + name); return i; };
+  const col = name => SK.COLORS.findIndex(c => c[0] === name);
+  const pat = name => idx('PATTERNS', name), brs = name => idx('BURSTS', name), trl = name => idx('TRAILS', name), brd = name => idx('BOARDS', name);
+  SK.TRACKS.push(
+    { id: 'streak', name: 'Daily streak', unit: 'days', how: 'Your longest run of Daily Challenges, played on days in a row. These rewards can’t be earned any other way.',
+      value: p => p.bestStreak, verb: g => 'Reach a ' + g + ' day Daily streak',
+      steps: [C('c-kindling', 2, col('Kindling')), T('t-cinders', 3, trl('Cinders')), P('p-hotstreak', 5, pat('Hot Streak')), B('b-flare', 7, brs('Flare')), BD('bd-hearth', 10, brd('Hearth')),
+              C('c-wildfire', 14, col('Wildfire')), P('p-phoenix', 21, pat('Phoenix')), T('t-afterglow', 30, trl('Afterglow')), BD('bd-inferno', 60, brd('Inferno')), P('p-eternal', 100, pat('Eternal Flame'))] },
+    { id: 'missions', name: 'Weekly missions', unit: 'missions', cumulative: true, how: 'Every weekly mission you finish. These rewards can’t be earned any other way.',
+      value: p => p.missions, verb: g => 'Finish ' + g + (g === 1 ? ' weekly mission' : ' weekly missions'),
+      steps: [C('c-cadet', 1, col('Cadet')), T('t-waypoints', 3, trl('Waypoints')), P('p-service', 6, pat('Service Ribbon')), B('b-stamps', 10, brs('Stamps')), BD('bd-campground', 15, brd('Campground')),
+              C('c-compass', 20, col('Compass')), P('p-merit', 30, pat('Merit')), T('t-trailblazer', 45, trl('Trailblazer')), BD('bd-summit', 60, brd('Summit')), P('p-veteran', 90, pat('Veteran'))] },
+    { id: 'perfect', name: 'Perfect weeks', unit: 'weeks', cumulative: true, how: 'Weeks where you finish all three missions. These rewards can’t be earned any other way.',
+      value: p => p.perfect, verb: g => 'Finish all three missions in ' + g + (g === 1 ? ' week' : ' weeks'),
+      steps: [C('c-flawless', 1, col('Flawless')), B('b-aligned', 2, brs('Aligned')), P('p-sevendays', 3, pat('Seven Days')), T('t-laureldust', 5, trl('Laurel Dust')), BD('bd-podium', 8, brd('Podium')),
+              C('c-platinum', 12, col('Platinum')), B('b-ovation', 16, brs('Ovation')), P('p-trophy', 20, pat('Trophy')), BD('bd-halloffame', 30, brd('Hall of Fame')), P('p-legend', 52, pat('Legend'))] }
+  );
 
   for (const t of SK.TRACKS) t.steps.sort((a, b) => a.goal - b.goal);   // stops always run in goal order
 

@@ -12,9 +12,9 @@
 // slot is merged by itself, so changing one thing on one device never touches the others.
 (function (root) {
   'use strict';
-  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'customGrad', 'unlockToasts'];
+  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'customGrad', 'unlockToasts', 'lbName', 'lbId'];
   const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
-  const COUNTS = ['games', 'apples', 'timeMs', 'xp'];
+  const COUNTS = ['games', 'apples', 'timeMs', 'xp', 'missions', 'perfect'];
   const ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // no 0/O or 1/I/L, so codes are easy to read out
   const CODE_LEN = 8;
 
@@ -47,7 +47,7 @@
   }
 
   function emptyCombos() { return [0, 1, 2, 3, 4].map(() => ({ look: null, at: 0 })); }
-  const emptyWeek = () => ({ week: '', devices: {}, claimed: [false, false, false] });
+  const emptyWeek = () => ({ week: '', devices: {}, claimed: [false, false, false], bonus: false });
   function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0, combos: emptyCombos(), daily: {}, weekly: emptyWeek() }; }
   const DAILY_KEEP = 400;   // days of results to keep, so a save can't outgrow the size limit
   const sortDays = o => { const out = {}; for (const k of Object.keys(o).sort().slice(-DAILY_KEEP)) out[k] = o[k]; return out; };
@@ -80,6 +80,8 @@
         else if (typeof v === 'boolean') out.settings[k] = v;
         else if (k === 'customColor' && (v === null || okHex(v))) out.settings[k] = v;
         else if (k === 'customGrad' && (v === null || okGrad(v))) out.settings[k] = v;
+        else if (k === 'lbName' && typeof v === 'string' && v.length <= 32) out.settings[k] = v;
+        else if (k === 'lbId' && typeof v === 'string' && /^[0-9a-z]{0,32}$/.test(v)) out.settings[k] = v;
       }
     }
     out.settingsAt = num(d.settingsAt);
@@ -104,6 +106,7 @@
         }
       }
       if (Array.isArray(w.claimed) && w.claimed.length === 3) out.weekly.claimed = w.claimed.map(v => v === true);
+      out.weekly.bonus = w.bonus === true;
     }
     return out;
   }
@@ -113,7 +116,7 @@
     const out = empty();
     for (const src of [a, b]) {
       for (const id in src.devices) {
-        const r = src.devices[id], o = out.devices[id] || (out.devices[id] = { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0, at: 0 });
+        const r = src.devices[id], o = out.devices[id] || (out.devices[id] = { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0, at: 0 });
         for (const k in o) o[k] = Math.max(o[k], r[k]);
       }
       for (const k in src.best) out.best[k] = Math.max(out.best[k] || 0, src.best[k]);
@@ -121,6 +124,8 @@
     }
     const newer = b.settingsAt > a.settingsAt ? b : a;
     out.settings = Object.assign({}, newer.settings); out.settingsAt = newer.settingsAt;
+    // A device that hasn't heard your leaderboard name yet mustn't blank it just by being newer.
+    for (const k of ['lbName', 'lbId']) if (!out.settings[k]) { const o = newer === a ? b : a; if (o.settings[k]) out.settings[k] = o.settings[k]; }
     out.combos = a.combos.map((x, i) => { const y = b.combos[i]; return y.at > x.at ? y : x; });
     const days = Object.assign({}, a.daily);
     for (const k in b.daily) days[k] = Math.max(days[k] || 0, b.daily[k]);
@@ -130,6 +135,7 @@
     else {
       out.weekly.week = a.weekly.week;
       out.weekly.claimed = a.weekly.claimed.map((v, i) => v || b.weekly.claimed[i]);
+      out.weekly.bonus = a.weekly.bonus || b.weekly.bonus;
       out.weekly.devices = Object.assign({}, a.weekly.devices);
       for (const id in b.weekly.devices) {
         const x = out.weekly.devices[id], y = b.weekly.devices[id];
@@ -141,7 +147,7 @@
 
   // Totals across devices; pass skip to leave one device out.
   function totals(doc, skip) {
-    const t = { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 };
+    const t = { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0 };
     for (const id in doc.devices) {
       if (id === skip) continue;
       const r = doc.devices[id];

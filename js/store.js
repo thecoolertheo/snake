@@ -19,15 +19,16 @@
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
                   volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, customGrad: null, unlockToasts: true,
                   combos: [null, null, null, null, null],
-                  duel: false, duelMode: 'classic', colorSort: false,
+                  duel: false, duelMode: 'classic', colorSort: false, lbName: '', lbId: '',
                   autoRestart: false, countdown: true, grace: true, wake: true, shake: true, confetti: true, swipe: 1 },
       best: {},        // "mode|board|apples" -> best score
-      stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, xpInit: false },
+      stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, xpInit: false },
       unlocked: [],
       daily: { days: {} },   // "2026-11-04" -> that day's Daily Challenge score (see daily.js)
-      weekly: { week: '', mine: [0, 0, 0], seen: {}, claimed: [false, false, false] },
+      weekly: { week: '', mine: [0, 0, 0], seen: {}, claimed: [false, false, false], bonus: false },
+      board: { run: null },   // today's scored Daily run, kept until the leaderboard has it (see board.js)
       // Live sync (js/sync.js): code in use, this device's id, and what the other devices have added.
-      sync: { code: '', last: '', device: '', others: { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 }, settingsAt: 0, comboAt: [0, 0, 0, 0, 0], at: 0 }
+      sync: { code: '', last: '', device: '', others: { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0 }, settingsAt: 0, comboAt: [0, 0, 0, 0, 0], at: 0 }
     };
   }
 
@@ -76,7 +77,7 @@
     // Snapshot used by unlock conditions.
     progress() {
       const st = this.data.stats;
-      return { games: st.games, apples: st.apples, longest: st.longest, minutes: Math.floor(st.timeMs / 60000), xp: st.xp, level: S.skins.levelOf(st.xp), collected: this.data.unlocked.filter(id => id !== 'p-gradient').length, bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
+      return { games: st.games, apples: st.apples, longest: st.longest, minutes: Math.floor(st.timeMs / 60000), xp: st.xp, missions: st.missions, perfect: st.perfect, bestStreak: S.daily.bestStreak(this.data.daily.days), level: S.skins.levelOf(st.xp), collected: this.data.unlocked.filter(id => id !== 'p-gradient').length, bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
     },
     isUnlocked(id) { return this.data.unlocked.indexOf(id) >= 0; },
     getBest(mode, board, apples) { return this.data.best[bestKey(mode, board, apples)] || 0; },

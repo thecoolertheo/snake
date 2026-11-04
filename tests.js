@@ -293,7 +293,7 @@
     test('sync: counters add up across devices, never double count', () => {
       const a = { devices: { A: dev(5, 100, 9) } }, b = { devices: { B: dev(2, 40, 14) } };
       const m = C.mergeDocs(a, b);
-      eq(C.totals(m), { games: 7, apples: 21, timeMs: 7000, xp: 140, longest: 14 });
+      eq(C.totals(m), { games: 7, apples: 21, timeMs: 7000, xp: 140, missions: 0, perfect: 0, longest: 14 });
       eq(C.totals(C.mergeDocs(m, b)).games, 7, 'merging the same device again');
       eq(C.totals(C.mergeDocs(m, { devices: { A: dev(6, 120, 9) } })).games, 8, 'device A played one more');
       eq(C.totals(C.mergeDocs(m, { devices: { A: dev(1, 10, 1) } })).games, 7, 'an older copy never lowers totals');
@@ -335,7 +335,7 @@
     test('sync: bad data is dropped', () => {
       const m = C.sanitize({ devices: { A: { games: -5, xp: 'lots', apples: 1 / 0 }, '': { games: 3 } }, best: { k: -1, j: 'x', ok: 4 }, unlocked: [1, 'a', 'a', null],
         settings: { color: 2, mode: 'turbo', customColor: 'red', hat: 1e9 }, settingsAt: -1 });
-      eq(m.devices, { A: { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0, at: 0 } }); eq(m.best, { ok: 4 }); eq(m.unlocked, ['a']); eq(m.settings, { color: 2 }); eq(m.settingsAt, 0);
+      eq(m.devices, { A: { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0, at: 0 } }); eq(m.best, { ok: 4 }); eq(m.unlocked, ['a']); eq(m.settings, { color: 2 }); eq(m.settingsAt, 0);
     });
   }
 
@@ -355,11 +355,11 @@
   if (typeof module !== 'undefined' && !root.document && !S.daily) require('./js/daily.js');
   if (S.skins) {
     const SK = S.skins, hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
-    test('rewards: exactly 500, all different, every path long enough', () => {
-      eq(SK.UNLOCKS.length, 500); eq(new Set(SK.UNLOCKS.map(u => u.id)).size, 500);
-      eq(new Set(SK.UNLOCKS.map(u => u.kind + u.index)).size, 500, 'one reward per item');
+    test('rewards: exactly 530, all different, every path long enough', () => {
+      eq(SK.UNLOCKS.length, 530); eq(new Set(SK.UNLOCKS.map(u => u.id)).size, 530);
+      eq(new Set(SK.UNLOCKS.map(u => u.kind + u.index)).size, 530, 'one reward per item');
       for (const t of SK.TRACKS) {
-        if (t.steps.length < 22) throw new Error(t.id + ' has only ' + t.steps.length);
+        if (t.steps.length < (t.id === 'streak' || t.id === 'missions' || t.id === 'perfect' ? 10 : 22)) throw new Error(t.id + ' has only ' + t.steps.length);
         eq(new Set(t.steps.map(s => s.goal)).size, t.steps.length, t.id + ' repeats a goal');
       }
     });
@@ -372,7 +372,7 @@
       const FIRST = { color: 48, pattern: 26, eyes: 20, hat: 21, burst: 14, trail: 12, food: 13, board: 11 };
       for (const k in LIST) for (let i = FIRST[k]; i < SK[LIST[k]].length; i++) if (!SK.unlockFor(k, i)) throw new Error('no reward for ' + SK[LIST[k]][i]);
       for (const k in LIST) eq(new Set(SK[LIST[k]].map(x => (Array.isArray(x) ? x[0] : x))).size, SK[LIST[k]].length, k + ' repeats a name');
-      for (const n of SK.PATTERNS.slice(26, -1)) if (!SK.GRADIENTS[n] && !SK.FIXED_BANDS[n]) throw new Error('pattern ' + n);
+      for (const n of SK.PATTERNS.slice(26)) if (n !== 'Gradient' && !SK.GRADIENTS[n] && !SK.FIXED_BANDS[n]) throw new Error('pattern ' + n);
       for (const n of SK.BURSTS) if (!SK.BURST_STYLES[n]) throw new Error('burst ' + n);
       for (const n of SK.TRAILS.slice(1)) if (!SK.TRAIL_STYLES[n]) throw new Error('trail ' + n);
       for (const n of SK.BOARDS.slice(1)) if (!SK.BOARD_THEMES[n]) throw new Error('board ' + n);
@@ -509,6 +509,73 @@
     }
   });
 
+  // ---------- leaderboard replays ----------
+  if (S.daily) {
+    const D = S.daily, DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    // Plays like a person: turns at random, sometimes late enough to redo the last move.
+    function play(spec, seed, stopAt) {
+      const r = S.util.rng(seed), g = new S.Game({ cols: spec.cols, rows: spec.rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks, record: true });
+      while (g.alive && g.ticks < stopAt) {
+        for (let n = r() * 3 | 0; n > 0; n--) { const d = DIRS4[r() * 4 | 0]; g.turn(d[0], d[1], r() < 0.4 ? 0.1 : 1); }
+        if (g.alive) g.step();
+        g.events.length = 0;
+      }
+      return g;
+    }
+    test('replay: every mode gives the exact same game from its moves, redos and grace included', () => {
+      let redos = 0, eaten = 0;
+      for (const m of S.MODES) for (let seed = 1; seed <= 40; seed++) {
+        const spec = Object.assign(D.challenge('2026-11-04'), { mode: m.id }), g = play(spec, seed * 7, 2000);
+        const r = D.replay(spec, g.log, g.ticks);
+        if (!r) throw new Error(m.id + ' seed ' + seed + ' would not replay');
+        eq([r.score, r.alive, r.cells.length, r.steps], [g.score, g.alive, g.cells.length, g.steps], m.id + ' seed ' + seed);
+        eq(r.cells[0], g.cells[0], m.id + ' head'); eaten += g.eaten;
+        for (let i = 1; i < g.log.length; i += 2) if (g.log[i] & 4) redos++;
+      }
+      if (!redos || !eaten) throw new Error('test never redid a move or ate an apple');
+    });
+    test('replay: tampering is caught', () => {
+      const spec = D.challenge('2026-11-04');
+      let g = null;
+      for (let seed = 1; seed < 400 && !(g && g.score > 0 && g.log.length > 6); seed++) g = play(spec, seed, 2000);
+      eq(D.replay(spec, g.log, g.ticks).score, g.score, 'honest run');
+      eq(D.replay(spec, 'nope', g.ticks), null, 'not a list'); eq(D.replay(spec, [1], g.ticks), null, 'odd length');
+      eq(D.replay(spec, g.log, 1e9), null, 'too long'); eq(D.replay(spec, g.log, 0), null, 'no ticks');
+      eq(D.replay(spec, [0, 99], 5), null, 'bad direction');
+      eq(D.replay(spec, g.log.concat([g.ticks + 50, 0]), g.ticks), null, 'moves past the end');
+      const other = D.challenge('2026-11-05'), r = D.replay(other, g.log, g.ticks);
+      if (r && r.score === g.score && r.score > 3) throw new Error('moves should not carry over to another day');
+    });
+    test('names: short, plain and polite', () => {
+      eq(D.cleanName('  Theo  '), 'Theo'); eq(D.cleanName('snake_fan-99'), 'snake_fan-99'); eq(D.cleanName('Zoë'), 'Zoë');
+      eq(D.cleanName('a'), '', 'too short'); eq(D.cleanName('x'.repeat(17)), '', 'too long');
+      eq(D.cleanName('<b>hi</b>'), '', 'markup'); eq(D.cleanName('sh1t head'), '', 'disguised'); eq(D.cleanName(null), '');
+    });
+    test('weekly bonus: pays once, when all three are done', () => {
+      const d = { weekly: { week: '', mine: [0, 0, 0], seen: {}, claimed: [false, false, false], bonus: false } }, day = new Date(2026, 10, 4, 12);
+      D.ensureWeek(d, day);
+      d.weekly.claimed = [true, true, false];
+      eq(D.claim(d, day).length, 0, 'two of three');
+      const list = D.missions(d.weekly.week);
+      d.weekly.mine[2] = list[2].goal;
+      const paid = D.claim(d, day);
+      eq(paid.length, 2, 'mission and bonus'); eq(paid[1].bonus, true); eq(paid[1].xp, D.BONUS_XP);
+      eq(D.claim(d, day).length, 0, 'only once');
+      D.ensureWeek(d, new Date(2026, 10, 9, 12)); eq(d.weekly.bonus, false, 'new week');
+    });
+    if (S.skins) test('rewards: the exclusive ones sit on streak, mission and perfect week paths only', () => {
+      const SK = S.skins;
+      const exclusive = SK.UNLOCKS.filter(u => ['streak', 'missions', 'perfect'].indexOf(u.track.id) >= 0);
+      eq(exclusive.length, 30);
+      for (const u of exclusive) { eq(!!SK.itemName(u), true, u.id); if (u.kind === 'board' && !SK.BOARD_THEMES[SK.BOARDS[u.index]]) throw new Error(u.id); }
+      for (const name of SK.PATTERNS.slice(136)) if (!SK.GRADIENTS[name] && !SK.FIXED_BANDS[name]) throw new Error(name);
+      for (const name of SK.BURSTS.slice(-4)) if (!SK.BURST_STYLES[name]) throw new Error(name);
+      for (const name of SK.TRAILS.slice(-5)) if (!SK.TRAIL_STYLES[name]) throw new Error(name);
+      const p = { bestStreak: 7, missions: 3, perfect: 1 };
+      eq(SK.UNLOCKS.filter(u => u.track.id === 'streak' && u.value(p) >= u.goal).length, 4);
+    });
+  }
+
   // ---------- Daily Challenge and weekly missions ----------
   if (S.daily) {
     const D = S.daily, at = (y, m, d) => new Date(y, m - 1, d, 12);
@@ -608,6 +675,13 @@
       const m = C.mergeDocs({ weekly: { week: '2026-W45', devices: { a: [5, 0, 0] }, claimed: [false, true, false] } },
         { weekly: { week: '2026-W45', devices: { a: [3, 1, 0], b: [7, 0, 0] }, claimed: [true, false, false] } });
       eq(m.weekly.devices, { a: [5, 1, 0], b: [7, 0, 0] }); eq(m.weekly.claimed, [true, true, false]);
+    });
+    test('sync: a newer device that has no leaderboard name never blanks yours', () => {
+      const named = { settings: { lbName: 'Theo', lbId: 'abc', color: 1 }, settingsAt: 5 }, fresh = { settings: { lbName: '', lbId: '', color: 2 }, settingsAt: 9 };
+      const m = C.mergeDocs(named, fresh);
+      eq(m.settings.color, 2, 'the newer look wins'); eq(m.settings.lbName, 'Theo'); eq(m.settings.lbId, 'abc');
+      eq(C.mergeDocs({ weekly: { week: '2026-W45', bonus: true } }, { weekly: { week: '2026-W45' } }).weekly.bonus, true, 'bonus stays claimed');
+      eq(C.totals({ devices: { a: { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 4, perfect: 1, longest: 0 }, b: { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 2, perfect: 0, longest: 0 } } }).missions, 6);
     });
     test('sync: a newer week replaces an older one, and old saves still merge', () => {
       const old = { weekly: { week: '2026-W45', devices: { a: [9, 9, 9] }, claimed: [true, true, true] } }, cur = { weekly: { week: '2026-W46', devices: { b: [1, 0, 0] } } };

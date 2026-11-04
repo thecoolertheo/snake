@@ -4,29 +4,8 @@
 // Saves are merged with the same rules as the game (js/sync-core.js), so nothing is ever lost.
 const core = require('../js/sync-core.js');
 
-const DB = process.env.DATABASE_URL;
+const { sql, cors } = require('./_db.js');
 const MAX_BODY = 64 * 1024;
-const DB_TIMEOUT = 3000;
-
-async function query1(query, params) {
-  const host = new URL(DB).hostname.replace(/^[^.]+\./, 'api.');
-  const r = await fetch('https://' + host + '/sql', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Neon-Connection-String': DB, 'Neon-Raw-Text-Output': 'true', 'Neon-Array-Mode': 'true' },
-    body: JSON.stringify({ query, params: params || [] }),
-    signal: AbortSignal.timeout(DB_TIMEOUT)
-  });
-  const j = await r.json().catch(() => null);
-  if (!r.ok || !j) throw new Error('db ' + r.status + ' ' + (j && j.message));
-  return j.rows || [];
-}
-// A stuck database connection shouldn't hold the request up, so give up on it quickly and try again.
-async function sql(query, params) {
-  for (let i = 0; ; i++) {
-    try { return await query1(query, params); }
-    catch (e) { if (e.name !== 'TimeoutError' || i >= 2) throw e; console.error('db call timed out, retrying'); }
-  }
-}
 
 let ready = null;
 function setup() {
@@ -62,10 +41,7 @@ async function handle(body) {
 
 module.exports = async (req, res) => {
   // The game can also run from a file on your computer, so allow any origin. The code is the key.
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cache-Control', 'no-store');
+  cors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   let body = req.body;

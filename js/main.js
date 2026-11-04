@@ -151,7 +151,7 @@
       const spec = D.challenge(D.dayKey());
       run = { kind: 'daily', spec, fixed: true, scored: !(spec.key in data.daily.days) };
       cols = spec.cols; rows = spec.rows;
-      game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks });   // edge grace is always on, so scores compare
+      game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks, record: run.scored });   // edge grace is always on, so scores compare
     } else if (pick === 'duel') {
       if (!match || match.mode !== settings.duelMode) match = { mode: settings.duelMode, wins: [0, 0] };
       if (match.wins.some(n => n >= ROUNDS_TO_WIN)) match.wins = [0, 0];
@@ -297,6 +297,13 @@
     evs.length = 0;
   }
 
+  // Counts finished missions and any weekly bonus. Returns the XP they're worth.
+  function payout(list) {
+    let xp = 0;
+    for (const m of list) { xp += m.xp; if (m.bonus) data.stats.perfect++; else data.stats.missions++; }
+    return xp;
+  }
+
   // One step for both snakes in a two-player game, and everything that came out of it.
   function duelTick() {
     S.duelStep(game, foe.g);
@@ -351,7 +358,9 @@
       dailyXp = D.dailyXp(D.streak(data.daily.days, run.spec.key));
     } else if (!daily) isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
     const missions = D.record(data, { mode: game.mode, apples: game.eaten, ms: gameTime, score: game.score, length: game.maxLen, daily: scored });
-    s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0) + dailyXp + missions.reduce((n, m) => n + m.xp, 0);
+    s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0) + dailyXp + payout(missions);
+    if (scored) S.board.record({ day: run.spec.key, score: game.score, ticks: game.ticks, log: game.log, sent: false });
+    ui.lastResult = { daily, score: game.score, mode: S.MODE[game.mode].name, isBest: isBest && game.score > 0, day: daily ? run.spec.key : '' };
     const unlocked = checkUnlocks();
     store.save();
     return { isBest: isBest && game.score > 0, celebrate: isBest && (bestBefore > 0 || game.score >= 10), unlocked, missions, dailyXp };
@@ -387,7 +396,7 @@
         if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 50);
       }
     }
-    const p = { level, collected: b.collected, games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
+    const p = { ...b, level, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
       bestAny: Math.max(b.bestAny, score), bestMode: m => Math.max(b.bestMode(m), m === mode ? score : 0) };
     let changed = false;
     for (const u of SK.UNLOCKS) {
@@ -430,7 +439,7 @@
     let badge = '';
     if (r.isBest) badge = 'New best!';
     if (r.dailyXp) { const n = D.streak(data.daily.days, run.spec.key); badge = 'Daily done · ' + n + ' day streak · +' + r.dailyXp + ' XP'; title = 'Daily done'; }
-    for (const m of r.missions) { badge = (badge ? badge + ' · ' : '') + 'Mission done +' + m.xp + ' XP'; ui.renderDaily(); }
+    for (const m of r.missions) { badge = (badge ? badge + ' · ' : '') + (m.bonus ? 'Perfect week! +' : 'Mission done +') + m.xp + ' XP'; ui.renderDaily(); }
     const lvl = SK.levelOf(data.stats.xp);
     let lvlUp = 0;
     if (lvl > shownLevel) { shownLevel = lvl; lvlUp = lvl; badge = (badge ? badge + ' · ' : '') + 'Level ' + lvl + '!'; A.sfx.newBest(); }
@@ -785,7 +794,7 @@
     canSync: () => state === 'menu' || state === 'over' || state === 'paused',
     status: ui.renderSync,
     remote: ch => {
-      data.stats.xp += D.claim(data).reduce((n, m) => n + m.xp, 0);    // your devices together finished a mission
+      data.stats.xp += payout(D.claim(data));                          // your devices together finished a mission
       shownLevel = Math.max(shownLevel, SK.levelOf(data.stats.xp));   // levels earned elsewhere don't pop up here
       if (checkUnlocks().length) store.save();                         // combined totals can reach new goals
       if (ch.look) { applyAccent(); applyTheme(); }
@@ -794,6 +803,7 @@
       if (ui.shows('unlocks') && ui.menuOpen()) ui.renderRoadmap();
     }
   });
+  S.board.init(store, ui.renderBoard);
   setInterval(() => { if (ui.tab === 'settings' && ui.menuOpen()) ui.renderSync(); }, 15000);   // keeps "Synced 2 min ago" fresh
   S.input.init({
     dir: turn,

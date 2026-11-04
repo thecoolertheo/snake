@@ -41,6 +41,7 @@
       this.blocks = opts.blocks || [];        // walls already on the board at the start
       this.start = opts.start;                // { x, y, dx }: where the snake begins, if not the usual spot
       this.share = opts.share;                // two-player: share this game's board, so the snakes can hit each other
+      this.log = opts.record ? [] : null;     // scored Daily: every move, so the leaderboard can replay the game
       this.waitApples = !!opts.waitApples;    // two-player: apples go down once both snakes are on the board
       this.reset();
     }
@@ -56,6 +57,7 @@
       this.pendingWalls = [];
       this.wallCount = 0;
       this.spawned = 0;
+      this.ticks = 0;                      // calls to step(), which is what a replay counts
       for (const [bx, by] of this.blocks) { this.wall[this.idx(bx, by)] = 2; this.wallCount++; }
       this.cells = [];
       for (let i = 0; i < 3; i++) this._addCell(hx - i * dx, y, false);
@@ -163,7 +165,8 @@
           d.x === u.dir.x && d.y === u.dir.y && nx * d.x + ny * d.y === 0) {
         this._revert();
         this.queue.push({ x: nx, y: ny });
-        this.step();
+        if (this.log) this._logMove(this.ticks, nx, ny, true);
+        this.redoing = true; this.step(); this.redoing = false;
         return 'redo';
       }
       const ref = this.queue.length ? this.queue[this.queue.length - 1] : d;
@@ -172,6 +175,9 @@
       this.queue.push({ x: nx, y: ny });
       return true;
     }
+
+    // Two numbers per move: the tick, then the direction (0-3), plus 4 if it was a redo.
+    _logMove(t, x, y, redo) { this.log.push(t, (x ? (x > 0 ? 0 : 1) : (y > 0 ? 2 : 3)) + (redo ? 4 : 0)); }
 
     _revert() {
       const u = this.undo;
@@ -223,6 +229,8 @@
     step() {
       if (!this.alive) return;
       const r = this.rules;
+      if (this.log && this.queue.length && !this.redoing) this._logMove(this.ticks, this.queue[0].x, this.queue[0].y, false);
+      this.ticks++;
       const nd = this.queue.length ? this.queue.shift() : this.dir;
       const head = this.cells[0], tail = this.cells[this.cells.length - 1];
       let hx = head.x + nd.x, hy = head.y + nd.y;

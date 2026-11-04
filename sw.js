@@ -1,9 +1,9 @@
 // Offline support. Network first (so you always get the latest version when online),
 // falling back to the cached copy when offline. Fonts are cached on first use.
-const CACHE = 'snake-v38';
+const CACHE = 'snake-v39';
 const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
-  'js/util.js', 'js/game.js', 'js/store.js', 'js/skins.js', 'js/daily.js', 'js/audio.js', 'js/render.js', 'js/input.js', 'js/ui.js', 'js/sync-core.js', 'js/sync.js', 'js/main.js',
+  'js/util.js', 'js/game.js', 'js/store.js', 'js/skins.js', 'js/daily.js', 'js/audio.js', 'js/render.js', 'js/input.js', 'js/ui.js', 'js/sync-core.js', 'js/sync.js', 'js/board.js', 'js/main.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
 ];
 

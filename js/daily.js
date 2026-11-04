@@ -80,7 +80,7 @@
     [m('apples', 120, 'Eat 120 apples'), m('score', 15, 'Score 15 in one game', true), m('length', 20, 'Grow to length 20', true), m('dailies', 3, 'Play 3 Daily Challenges'), m('apples:portal', 30, 'Eat 30 apples in Portal'), m('apples:poison', 30, 'Eat 30 apples in Poison')],
     [m('apples', 300, 'Eat 300 apples'), m('score', 30, 'Score 30 in one game', true), m('length', 35, 'Grow to length 35', true), m('dailies', 5, 'Play 5 Daily Challenges'), m('minutes', 45, 'Play for 45 minutes')]
   ];
-  const MISSION_XP = [150, 300, 600];
+  const MISSION_XP = [150, 300, 600], BONUS_XP = 500;   // the bonus is for finishing all three in one week
 
   function missions(week) {
     const r = U.rng(hash('week' + week)), out = [];
@@ -94,7 +94,7 @@
   // Moves the save on to the current week. A clock running behind never rolls it back.
   function ensureWeek(data, date) {
     const w = data.weekly, now = weekKey(date);
-    if (w.week < now) { w.week = now; w.mine = [0, 0, 0]; w.seen = {}; w.claimed = [false, false, false]; }
+    if (w.week < now) { w.week = now; w.mine = [0, 0, 0]; w.seen = {}; w.claimed = [false, false, false]; w.bonus = false; }
     return w;
   }
 
@@ -117,6 +117,7 @@
     missions(w.week).forEach((x, i) => {
       if (!w.claimed[i] && total(w, i, x) >= x.goal) { w.claimed[i] = true; out.push(x); }
     });
+    if (!w.bonus && w.claimed.every(Boolean)) { w.bonus = true; out.push({ bonus: true, xp: BONUS_XP, text: 'All three missions' }); }
     return out;
   }
 
@@ -130,5 +131,34 @@
     return claim(data, date);
   }
 
-  S.daily = { COLS, ROWS, LAYOUTS, dayKey, dayNum, keyOf, weekKey, daysLeftInWeek, challenge, streak, bestStreak, dailyXp, POOL, MISSION_XP, missions, ensureWeek, total, claim, record };
+  // ---------- leaderboard rules, shared with the server (api/board.js) ----------
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]], MAX_TICKS = 40000;
+  // Plays a Daily again from its list of moves. The score comes from this, never from what a player claims.
+  function replay(spec, log, ticks) {
+    if (!Array.isArray(log) || log.length % 2 || !Number.isInteger(ticks) || ticks < 1 || ticks > MAX_TICKS) return null;
+    const g = new S.Game({ cols: spec.cols, rows: spec.rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks });
+    let i = 0;
+    while (g.ticks < ticks && g.alive) {
+      const due = i < log.length && log[i] === g.ticks;
+      if (due) {
+        const d = log[i + 1], o = DIRS[d & 3];
+        if (!Number.isInteger(d) || d < 0 || d > 7) return null;
+        i += 2;
+        if (d & 4) { if (!g.undo) return null; g._revert(); g.queue.push({ x: o[0], y: o[1] }); g.step(); continue; }
+        g.queue.push({ x: o[0], y: o[1] });
+      }
+      g.step();
+    }
+    return i === log.length && g.ticks === ticks ? g : null;
+  }
+  // Names are public, so they stay short and plain. '' means not allowed.
+  const BLOCKED = ['fuck', 'shit', 'cunt', 'bitch', 'nigg', 'fagg', 'rape', 'nazi', 'hitler', 'whore', 'slut', 'retard'];
+  function cleanName(s) {
+    const n = String(s == null ? '' : s).normalize('NFKC').replace(/\s+/g, ' ').trim();
+    if (!/^[\p{L}\p{N} _-]{2,16}$/u.test(n)) return '';
+    const plain = n.toLowerCase().replace(/[ _-]/g, '').replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's');
+    return BLOCKED.some(w => plain.indexOf(w) >= 0) ? '' : n;
+  }
+
+  S.daily = { replay, cleanName, BONUS_XP, COLS, ROWS, LAYOUTS, dayKey, dayNum, keyOf, weekKey, daysLeftInWeek, challenge, streak, bestStreak, dailyXp, POOL, MISSION_XP, missions, ensureWeek, total, claim, record };
 })(typeof window !== 'undefined' ? window : globalThis);

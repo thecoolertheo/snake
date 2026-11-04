@@ -9,11 +9,11 @@
   const LIVE = 'https://snake-lake-two.vercel.app/api/sync';
   const local = /^(localhost|127\.|192\.168\.|10\.|\[?::1)/.test(location.hostname);
   const API = root.SNAKE_SYNC_API || (location.protocol.indexOf('http') === 0 && !local ? '/api/sync' : LIVE);   // SNAKE_SYNC_API: for local testing
-  const zeros = () => ({ games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 });
+  const zeros = () => ({ games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0 });
   const randomId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
   let store, h, timer = 0, busy = false, again = false, lastLook = '', lastCombos = [], rawSave = null;
-  const sync = S.sync = { state: 'off', at: 0, devices: 0, msg: '' };
+  const sync = S.sync = { state: 'off', at: 0, devices: 0, msg: '', boardApi: API.replace(/sync$/, 'board') };
   const sd = () => store.data.sync;
   const look = () => { const o = {}; for (const k of C.SYNCED) o[k] = store.data.settings[k]; return o; };
 
@@ -25,7 +25,7 @@
     for (const k of C.COUNTS) mine[k] = Math.max(0, s[k] - (y.others[k] || 0));
     return { devices: { [y.device]: mine }, best: d.best, unlocked: d.unlocked, settings: look(), settingsAt: y.settingsAt,
       combos: d.settings.combos.map((c, i) => ({ look: c, at: y.comboAt[i] || 0 })), daily: d.daily.days,
-      weekly: { week: d.weekly.week, devices: { [y.device]: d.weekly.mine }, claimed: d.weekly.claimed } };
+      weekly: { week: d.weekly.week, devices: { [y.device]: d.weekly.mine }, claimed: d.weekly.claimed, bonus: d.weekly.bonus } };
   }
 
   // Takes the merged save from the server. Returns what changed, or null.
@@ -44,7 +44,7 @@
     for (const id of doc.unlocked) if (d.unlocked.indexOf(id) < 0) d.unlocked.push(id);
     let lookChanged = false;
     if (doc.settingsAt > y.settingsAt) {
-      for (const k of C.SYNCED) if (k in doc.settings && d.settings[k] !== doc.settings[k]) { d.settings[k] = doc.settings[k]; lookChanged = true; }
+      for (const k of C.SYNCED) if (k in doc.settings && d.settings[k] !== doc.settings[k] && !((k === 'lbName' || k === 'lbId') && !doc.settings[k])) { d.settings[k] = doc.settings[k]; lookChanged = true; }
       y.settingsAt = doc.settingsAt;
       lastLook = JSON.stringify(look());
     }
@@ -54,10 +54,11 @@
     for (const k in doc.daily || {}) d.daily.days[k] = Math.max(d.daily.days[k] || 0, doc.daily[k]);
     const w = doc.weekly, mine = d.weekly;
     if (w && w.week >= mine.week) {   // a server from before weekly missions sends no week at all
-      if (w.week > mine.week) { mine.week = w.week; mine.mine = (w.devices[me] || [0, 0, 0]).slice(); mine.claimed = [false, false, false]; }
+      if (w.week > mine.week) { mine.week = w.week; mine.mine = (w.devices[me] || [0, 0, 0]).slice(); mine.claimed = [false, false, false]; mine.bonus = false; }
       mine.seen = {};
       for (const id in w.devices) if (id !== me) mine.seen[id] = w.devices[id];
       mine.claimed = mine.claimed.map((v, i) => v || w.claimed[i]);
+      mine.bonus = mine.bonus || !!w.bonus;
     }
     sync.devices = Object.keys(doc.devices).length;
     return before !== state() ? { look: lookChanged } : null;

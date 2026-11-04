@@ -971,6 +971,20 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .panel-home[data-fit^="g"] .nx-mini .nx-ring { width: calc(34px * var(--hk)); height: calc(34px * var(--hk)); }
 .panel-home[data-fit^="g"] .nx-mini .nx-ring .rw { width: calc(27px * var(--hk)); height: calc(27px * var(--hk)); }
 .cat-tools { flex-wrap: wrap; justify-content: flex-end; }
+/* Weekly bonus and the leaderboard */
+.ms.bonus { padding-top: var(--sp-3); border-top: 1px solid var(--c-line); }
+.ms.bonus .ms-t em { color: var(--c-gold); }
+.board { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.board:empty { display: none; }
+.board li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: var(--sp-2); align-items: center; padding: 6px var(--sp-2); border-radius: var(--r-sm); font-size: var(--fs-sm); }
+.board li:nth-child(odd) { background: rgba(255, 255, 255, .03); }
+.board li.me { background: color-mix(in srgb, var(--mode-accent) 22%, transparent); }
+.lb-n { color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.board li:nth-child(1) .lb-n { color: var(--c-gold); font-weight: 700; }
+.lb-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board b { font-variant-numeric: tabular-nums; }
+.board-you { margin: 0; font-size: var(--fs-sm); font-weight: 700; }
+#boardRename { justify-self: start; }
 </style>
 </head>
 <body>
@@ -1029,6 +1043,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
           </div>
           <div class="pause-box" id="overBox" hidden>
             <button class="play" id="againBtn" type="button">Play again</button>
+            <button class="pbtn" id="shareBtn" type="button">Share result</button>
             <button class="pbtn" id="overHome" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="currentColor"/></svg>Main menu</button>
           </div>
         </div>
@@ -1100,12 +1115,23 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 <button class="play" id="dailyPlay" type="button">Play</button>
                 <p class="hint" id="dailyNote"></p>
                 <div class="streak"><div><b id="dailyStreak">0</b><small>Day streak</small></div><div><b id="dailyBest">0</b><small>Best streak</small></div><div class="dots" id="dailyDots"></div></div>
+                <p class="hint" id="dailyNext"></p>
+                <button class="pbtn" id="dailyShare" type="button" hidden>Share result</button>
+              </div>
+              <div class="card" id="boardCard"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v5a6 6 0 0 1-12 0zM6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3"/><path d="M11 14h2v4h3v3H8v-3h3z"/></svg><span>Today’s leaderboard</span><small id="boardCount"></small></h3>
+                <p class="hint" id="boardNote"></p>
+                <form class="sync-join" id="boardJoin"><input id="boardName" type="text" placeholder="Your name" aria-label="Leaderboard name" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="16"><button class="play" type="submit">Join</button></form>
+                <ol class="board" id="boardList"></ol>
+                <p class="board-you" id="boardYou" hidden></p>
+                <button class="link" id="boardRename" type="button" hidden>Change my name</button>
               </div>
             </section>
 
             <section class="panel panel-detail" role="tabpanel" data-panel="weekly" hidden>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.500L16 11H5" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linejoin="round" stroke-linecap="round"/></svg><span>This week</span><small id="weekLeft"></small></h3>
                 <div class="week" id="weekList"></div>
+                <div class="ms bonus" id="weekBonus"></div>
+                <p class="hint" id="weekNext"></p>
                 <p class="hint">New missions every Monday. XP is added as soon as you finish one, and progress from all your synced devices adds up.</p>
               </div>
             </section>
@@ -1294,6 +1320,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       this.blocks = opts.blocks || [];        // walls already on the board at the start
       this.start = opts.start;                // { x, y, dx }: where the snake begins, if not the usual spot
       this.share = opts.share;                // two-player: share this game's board, so the snakes can hit each other
+      this.log = opts.record ? [] : null;     // scored Daily: every move, so the leaderboard can replay the game
       this.waitApples = !!opts.waitApples;    // two-player: apples go down once both snakes are on the board
       this.reset();
     }
@@ -1309,6 +1336,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       this.pendingWalls = [];
       this.wallCount = 0;
       this.spawned = 0;
+      this.ticks = 0;                      // calls to step(), which is what a replay counts
       for (const [bx, by] of this.blocks) { this.wall[this.idx(bx, by)] = 2; this.wallCount++; }
       this.cells = [];
       for (let i = 0; i < 3; i++) this._addCell(hx - i * dx, y, false);
@@ -1416,7 +1444,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
           d.x === u.dir.x && d.y === u.dir.y && nx * d.x + ny * d.y === 0) {
         this._revert();
         this.queue.push({ x: nx, y: ny });
-        this.step();
+        if (this.log) this._logMove(this.ticks, nx, ny, true);
+        this.redoing = true; this.step(); this.redoing = false;
         return 'redo';
       }
       const ref = this.queue.length ? this.queue[this.queue.length - 1] : d;
@@ -1425,6 +1454,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       this.queue.push({ x: nx, y: ny });
       return true;
     }
+
+    // Two numbers per move: the tick, then the direction (0-3), plus 4 if it was a redo.
+    _logMove(t, x, y, redo) { this.log.push(t, (x ? (x > 0 ? 0 : 1) : (y > 0 ? 2 : 3)) + (redo ? 4 : 0)); }
 
     _revert() {
       const u = this.undo;
@@ -1476,6 +1508,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     step() {
       if (!this.alive) return;
       const r = this.rules;
+      if (this.log && this.queue.length && !this.redoing) this._logMove(this.ticks, this.queue[0].x, this.queue[0].y, false);
+      this.ticks++;
       const nd = this.queue.length ? this.queue.shift() : this.dir;
       const head = this.cells[0], tail = this.cells[this.cells.length - 1];
       let hx = head.x + nd.x, hy = head.y + nd.y;
@@ -1656,15 +1690,16 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
                   volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, customGrad: null, unlockToasts: true,
                   combos: [null, null, null, null, null],
-                  duel: false, duelMode: 'classic', colorSort: false,
+                  duel: false, duelMode: 'classic', colorSort: false, lbName: '', lbId: '',
                   autoRestart: false, countdown: true, grace: true, wake: true, shake: true, confetti: true, swipe: 1 },
       best: {},        // "mode|board|apples" -> best score
-      stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, xpInit: false },
+      stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, xpInit: false },
       unlocked: [],
       daily: { days: {} },   // "2026-11-04" -> that day's Daily Challenge score (see daily.js)
-      weekly: { week: '', mine: [0, 0, 0], seen: {}, claimed: [false, false, false] },
+      weekly: { week: '', mine: [0, 0, 0], seen: {}, claimed: [false, false, false], bonus: false },
+      board: { run: null },   // today's scored Daily run, kept until the leaderboard has it (see board.js)
       // Live sync (js/sync.js): code in use, this device's id, and what the other devices have added.
-      sync: { code: '', last: '', device: '', others: { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 }, settingsAt: 0, comboAt: [0, 0, 0, 0, 0], at: 0 }
+      sync: { code: '', last: '', device: '', others: { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0 }, settingsAt: 0, comboAt: [0, 0, 0, 0, 0], at: 0 }
     };
   }
 
@@ -1713,7 +1748,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     // Snapshot used by unlock conditions.
     progress() {
       const st = this.data.stats;
-      return { games: st.games, apples: st.apples, longest: st.longest, minutes: Math.floor(st.timeMs / 60000), xp: st.xp, level: S.skins.levelOf(st.xp), collected: this.data.unlocked.filter(id => id !== 'p-gradient').length, bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
+      return { games: st.games, apples: st.apples, longest: st.longest, minutes: Math.floor(st.timeMs / 60000), xp: st.xp, missions: st.missions, perfect: st.perfect, bestStreak: S.daily.bestStreak(this.data.daily.days), level: S.skins.levelOf(st.xp), collected: this.data.unlocked.filter(id => id !== 'p-gradient').length, bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
     },
     isUnlocked(id) { return this.data.unlocked.indexOf(id) >= 0; },
     getBest(mode, board, apples) { return this.data.best[bestKey(mode, board, apples)] || 0; },
@@ -2126,6 +2161,48 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ['Gallery', '#241e2a', '#c77dff', 'sparkle']
   ]) SK.BOARD_THEMES[name] = boardTheme(a, accent, amb);
 
+  // Exclusive rewards: these only come from streaks, weekly missions and perfect weeks.
+  // Added at the end of each list, because saved looks store positions in these lists.
+  SK.COLORS.push(['Kindling', '#ffa26b'], ['Wildfire', '#f2541b'], ['Cadet', '#4a6fa5'], ['Compass', '#b08d57'], ['Flawless', '#e8fff4'], ['Platinum', '#b4bdd6']);
+  SK.PATTERNS.push('Hot Streak', 'Phoenix', 'Eternal Flame', 'Service Ribbon', 'Merit', 'Veteran', 'Seven Days', 'Trophy', 'Legend');
+  SK.BURSTS.push('Flare', 'Stamps', 'Aligned', 'Ovation');
+  SK.TRAILS.push('Cinders', 'Afterglow', 'Waypoints', 'Trailblazer', 'Laurel Dust');
+  SK.BOARDS.push('Hearth', 'Inferno', 'Campground', 'Summit', 'Podium', 'Hall of Fame');
+  Object.assign(SK.GRADIENTS, {
+    'Phoenix': [[255, 236, 120], [255, 96, 32], [150, 16, 60]],
+    'Eternal Flame': [[255, 244, 214], [255, 160, 50], [214, 36, 96]],
+    'Merit': [[28, 58, 120], [90, 150, 230], [250, 214, 110]],
+    'Veteran': [[50, 66, 44], [150, 140, 90], [240, 200, 90]],
+    'Trophy': [[120, 72, 8], [240, 186, 52], [255, 248, 200]],
+    'Legend': [[64, 20, 150], [236, 60, 170], [255, 220, 110]]
+  });
+  Object.assign(SK.FIXED_BANDS, {
+    'Hot Streak': [[255, 92, 30], [255, 222, 90], 0.42],
+    'Service Ribbon': [[40, 90, 170], [250, 214, 90], 0.34],
+    'Seven Days': [[64, 200, 150], [18, 60, 70], 0.14]
+  });
+  Object.assign(SK.BURST_STYLES, {
+    'Flare': { colors: ['#ff5a1f', '#ffc83d', '#fff3b0'], shape: 'star' },
+    'Stamps': { colors: ['#b08d57', '#e8d5a8', '#6b4430'], shape: 'square' },
+    'Aligned': { colors: ['#ffe36b', '#7cc8ff', '#ffffff'], shape: 'star', count: 22 },
+    'Ovation': { colors: ['#ffc83d', '#ff6fb1', '#5b8cff', '#39ff88'], shape: 'heart', count: 22 }
+  });
+  Object.assign(SK.TRAIL_STYLES, {
+    'Cinders': [['#ff5a1f', '#ffa26b', '#3a2a24'], 'dot'],
+    'Afterglow': [['#ffc83d', '#ff8a3d', '#fff3b0'], 'puff'],
+    'Waypoints': [['#e8d5a8', '#b08d57'], 'ring'],
+    'Trailblazer': [['#ff7a2e', '#ffffff'], 'star'],
+    'Laurel Dust': [['#d8c060', '#7ac74f', '#fff3c9'], 'leaf']
+  });
+  for (const [name, a, accent, amb] of [
+    ['Hearth', '#2a1a14', '#ff8a3d', 'embers'],
+    ['Inferno', '#2a100c', '#ff4a1f', 'embers'],
+    ['Campground', '#1c2418', '#e0a860', 'fireflies'],
+    ['Summit', '#1a2430', '#d8e8f0', 'snow'],
+    ['Podium', '#201c28', '#ffd46b', 'glitter'],
+    ['Hall of Fame', '#262012', '#ffc83d', 'glitter']
+  ]) SK.BOARD_THEMES[name] = boardTheme(a, accent, amb);
+
   // ---------- Custom colour ----------
   // One colour is your own. It must be clearly different from every built-in colour
   // (perceptual distance, CIE ΔE76 in Lab space).
@@ -2371,7 +2448,25 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       P('p-museum', 440, 130), E('e-teary', 475, 26)]
   };
   for (const t of SK.TRACKS) t.steps.push(...LATER[t.id]);
-  SK.TRACKS.find(t => t.id === 'collector').steps.push(P('p-gradient', 499, SK.GRAD));
+  SK.TRACKS.find(t => t.id === 'collector').steps.push(P('p-gradient', 529, SK.GRAD));   // every other reward in the game
+
+  const idx = (list, name) => { const i = SK[list].indexOf(name); if (i < 0) throw new Error('no ' + name); return i; };
+  const col = name => SK.COLORS.findIndex(c => c[0] === name);
+  const pat = name => idx('PATTERNS', name), brs = name => idx('BURSTS', name), trl = name => idx('TRAILS', name), brd = name => idx('BOARDS', name);
+  SK.TRACKS.push(
+    { id: 'streak', name: 'Daily streak', unit: 'days', how: 'Your longest run of Daily Challenges, played on days in a row. These rewards can’t be earned any other way.',
+      value: p => p.bestStreak, verb: g => 'Reach a ' + g + ' day Daily streak',
+      steps: [C('c-kindling', 2, col('Kindling')), T('t-cinders', 3, trl('Cinders')), P('p-hotstreak', 5, pat('Hot Streak')), B('b-flare', 7, brs('Flare')), BD('bd-hearth', 10, brd('Hearth')),
+              C('c-wildfire', 14, col('Wildfire')), P('p-phoenix', 21, pat('Phoenix')), T('t-afterglow', 30, trl('Afterglow')), BD('bd-inferno', 60, brd('Inferno')), P('p-eternal', 100, pat('Eternal Flame'))] },
+    { id: 'missions', name: 'Weekly missions', unit: 'missions', cumulative: true, how: 'Every weekly mission you finish. These rewards can’t be earned any other way.',
+      value: p => p.missions, verb: g => 'Finish ' + g + (g === 1 ? ' weekly mission' : ' weekly missions'),
+      steps: [C('c-cadet', 1, col('Cadet')), T('t-waypoints', 3, trl('Waypoints')), P('p-service', 6, pat('Service Ribbon')), B('b-stamps', 10, brs('Stamps')), BD('bd-campground', 15, brd('Campground')),
+              C('c-compass', 20, col('Compass')), P('p-merit', 30, pat('Merit')), T('t-trailblazer', 45, trl('Trailblazer')), BD('bd-summit', 60, brd('Summit')), P('p-veteran', 90, pat('Veteran'))] },
+    { id: 'perfect', name: 'Perfect weeks', unit: 'weeks', cumulative: true, how: 'Weeks where you finish all three missions. These rewards can’t be earned any other way.',
+      value: p => p.perfect, verb: g => 'Finish all three missions in ' + g + (g === 1 ? ' week' : ' weeks'),
+      steps: [C('c-flawless', 1, col('Flawless')), B('b-aligned', 2, brs('Aligned')), P('p-sevendays', 3, pat('Seven Days')), T('t-laureldust', 5, trl('Laurel Dust')), BD('bd-podium', 8, brd('Podium')),
+              C('c-platinum', 12, col('Platinum')), B('b-ovation', 16, brs('Ovation')), P('p-trophy', 20, pat('Trophy')), BD('bd-halloffame', 30, brd('Hall of Fame')), P('p-legend', 52, pat('Legend'))] }
+  );
 
   for (const t of SK.TRACKS) t.steps.sort((a, b) => a.goal - b.goal);   // stops always run in goal order
 
@@ -2476,7 +2571,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     [m('apples', 120, 'Eat 120 apples'), m('score', 15, 'Score 15 in one game', true), m('length', 20, 'Grow to length 20', true), m('dailies', 3, 'Play 3 Daily Challenges'), m('apples:portal', 30, 'Eat 30 apples in Portal'), m('apples:poison', 30, 'Eat 30 apples in Poison')],
     [m('apples', 300, 'Eat 300 apples'), m('score', 30, 'Score 30 in one game', true), m('length', 35, 'Grow to length 35', true), m('dailies', 5, 'Play 5 Daily Challenges'), m('minutes', 45, 'Play for 45 minutes')]
   ];
-  const MISSION_XP = [150, 300, 600];
+  const MISSION_XP = [150, 300, 600], BONUS_XP = 500;   // the bonus is for finishing all three in one week
 
   function missions(week) {
     const r = U.rng(hash('week' + week)), out = [];
@@ -2490,7 +2585,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   // Moves the save on to the current week. A clock running behind never rolls it back.
   function ensureWeek(data, date) {
     const w = data.weekly, now = weekKey(date);
-    if (w.week < now) { w.week = now; w.mine = [0, 0, 0]; w.seen = {}; w.claimed = [false, false, false]; }
+    if (w.week < now) { w.week = now; w.mine = [0, 0, 0]; w.seen = {}; w.claimed = [false, false, false]; w.bonus = false; }
     return w;
   }
 
@@ -2513,6 +2608,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     missions(w.week).forEach((x, i) => {
       if (!w.claimed[i] && total(w, i, x) >= x.goal) { w.claimed[i] = true; out.push(x); }
     });
+    if (!w.bonus && w.claimed.every(Boolean)) { w.bonus = true; out.push({ bonus: true, xp: BONUS_XP, text: 'All three missions' }); }
     return out;
   }
 
@@ -2526,7 +2622,36 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     return claim(data, date);
   }
 
-  S.daily = { COLS, ROWS, LAYOUTS, dayKey, dayNum, keyOf, weekKey, daysLeftInWeek, challenge, streak, bestStreak, dailyXp, POOL, MISSION_XP, missions, ensureWeek, total, claim, record };
+  // ---------- leaderboard rules, shared with the server (api/board.js) ----------
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]], MAX_TICKS = 40000;
+  // Plays a Daily again from its list of moves. The score comes from this, never from what a player claims.
+  function replay(spec, log, ticks) {
+    if (!Array.isArray(log) || log.length % 2 || !Number.isInteger(ticks) || ticks < 1 || ticks > MAX_TICKS) return null;
+    const g = new S.Game({ cols: spec.cols, rows: spec.rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks });
+    let i = 0;
+    while (g.ticks < ticks && g.alive) {
+      const due = i < log.length && log[i] === g.ticks;
+      if (due) {
+        const d = log[i + 1], o = DIRS[d & 3];
+        if (!Number.isInteger(d) || d < 0 || d > 7) return null;
+        i += 2;
+        if (d & 4) { if (!g.undo) return null; g._revert(); g.queue.push({ x: o[0], y: o[1] }); g.step(); continue; }
+        g.queue.push({ x: o[0], y: o[1] });
+      }
+      g.step();
+    }
+    return i === log.length && g.ticks === ticks ? g : null;
+  }
+  // Names are public, so they stay short and plain. '' means not allowed.
+  const BLOCKED = ['fuck', 'shit', 'cunt', 'bitch', 'nigg', 'fagg', 'rape', 'nazi', 'hitler', 'whore', 'slut', 'retard'];
+  function cleanName(s) {
+    const n = String(s == null ? '' : s).normalize('NFKC').replace(/\s+/g, ' ').trim();
+    if (!/^[\p{L}\p{N} _-]{2,16}$/u.test(n)) return '';
+    const plain = n.toLowerCase().replace(/[ _-]/g, '').replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's');
+    return BLOCKED.some(w => plain.indexOf(w) >= 0) ? '' : n;
+  }
+
+  S.daily = { replay, cleanName, BONUS_XP, COLS, ROWS, LAYOUTS, dayKey, dayNum, keyOf, weekKey, daysLeftInWeek, challenge, streak, bestStreak, dailyXp, POOL, MISSION_XP, missions, ensureWeek, total, claim, record };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -4136,6 +4261,15 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     // Daily Challenge and two-player
     $('pageBack').addEventListener('click', () => { ui.setTab('home'); h.click(); });
     $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
+    $('dailyShare').addEventListener('click', e => { h.click(); ui.share(todayResult(), e.currentTarget); });
+    $('shareBtn').addEventListener('click', e => { h.click(); ui.share(ui.lastResult, e.currentTarget); });
+    $('boardJoin').addEventListener('submit', async e => {
+      e.preventDefault(); h.click();
+      const ok = await S.board.setName($('boardName').value);
+      if (!ok) { S.board.msg = 'Names are 2 to 16 letters or numbers, and need to be polite.'; ui.renderBoard(); return; }
+      ui.boardEdit = false; ui.renderBoard();
+    });
+    $('boardRename').addEventListener('click', () => { h.click(); ui.boardEdit = true; $('boardName').value = st.lbName; ui.renderBoard(); $('boardName').focus(); });
     $('swDuel').addEventListener('click', () => { st.duel = !st.duel; hideModeLock(); h.gameChanged(); h.click(); });
 
     // Snake
@@ -4606,6 +4740,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     collector: '<path d="M4 10h16v10H4z" fill="#c77dff"/><path d="M3 7h18v4H3z" fill="#e2b8ff"/><path d="M11 7h2v13h-2z" fill="#ffc83d"/><path d="M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1z" fill="none" stroke="#ffc83d" stroke-width="1.6"/>',
     level: '<path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 16.9 6.1 20l1.2-6.5L2.5 8.9 9.1 8z" fill="#ffc83d"/>',
     time: '<circle cx="12" cy="12" r="9" fill="none" stroke="#7cc8ff" stroke-width="2.2"/><path d="M12 7v5l3.5 2" stroke="#7cc8ff" stroke-width="2.2" fill="none" stroke-linecap="round"/>',
+    streak: '<path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 2-7 2 1 3 2 3 4 1-2 2-5 1-9z" fill="#ff8a3d"/><path d="M12 13c.6 2 2.500 2.800 2.500 5a2.500 2.500 0 0 1-5 0c0-2 2-3 2.500-5z" fill="#ffc83d"/>',
+    missions: '<path d="M5 21V4M5 4h11l-2 3.500L16 11H5" fill="none" stroke="#7cc8ff" stroke-width="2.200" stroke-linejoin="round" stroke-linecap="round"/>',
+    perfect: '<path d="M6 3h12v5a6 6 0 0 1-12 0zM6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3" fill="#ffc83d" stroke="#ffc83d" stroke-width="1"/><path d="M11 14h2v4h3v3H8v-3h3z" fill="#d99a00"/>',
     rewards: '<path d="M4 10h16v10H4z" fill="#c77dff"/><path d="M3 7h18v4H3z" fill="#e2b8ff"/><path d="M11 7h2v13h-2z" fill="#ffc83d"/><path d="M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1z" fill="none" stroke="#ffc83d" stroke-width="1.6"/>'
   };
 
@@ -4809,6 +4946,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     $('dailyRules').textContent = [spec.layout, spec.apples + (m.portal ? ' pair' : ' apple') + (spec.apples > 1 ? 's' : ''), SPEED_WORD(spec.speed) + ' speed', spec.ramp ? 'Speeds up' : ''].filter(Boolean).join(' · ');
     $('dailyPlay').textContent = played ? 'Practice' : 'Play today’s challenge';
     $('dailyNote').textContent = played ? 'Today’s score: ' + days[key] + '. A new challenge arrives at midnight.' : 'Your first go counts, so make it a good one. Worth +' + D.dailyXp(now + 1) + ' XP.';
+    $('dailyShare').hidden = !played;
+    $('dailyNext').textContent = nextOn('streak', 'Next streak reward');
     $('dailyStreak').textContent = now; $('dailyBest').textContent = D.bestStreak(days);
     // This week, Sunday to Saturday.
     const n = D.dayNum(key), dow = new Date(n * 864e5).getUTCDay();
@@ -4825,6 +4964,10 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       return '<div class="ms' + (done ? ' done' : '') + '"><div class="ms-t"><b>' + x.text + '</b><em>' + (done ? 'Done' : '+' + x.xp + ' XP') + '</em></div>' +
         '<i class="nx-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i><small>' + v + ' of ' + x.goal + (min ? ' minutes' : '') + '</small></div>';
     }).join('');
+    const allDone = w.claimed.filter(Boolean).length;
+    $('weekBonus').className = 'ms bonus' + (w.bonus ? ' done' : '');
+    $('weekBonus').innerHTML = '<div class="ms-t"><b>Perfect week: finish all three</b><em>' + (w.bonus ? 'Done' : '+' + D.BONUS_XP + ' XP') + '</em></div><i class="nx-bar"><i style="width:' + (allDone / 3 * 100).toFixed(1) + '%"></i></i><small>' + allDone + ' of 3</small>';
+    $('weekNext').textContent = [nextOn('missions', 'Next mission reward'), nextOn('perfect', 'Next perfect week reward')].filter(Boolean).join(' · ');
     // The two short cards on Home.
     const list = D.missions(w.week), doneN = w.claimed.filter(Boolean).length;
     $('homeDaily').classList.toggle('new', !played);
@@ -4834,11 +4977,89 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       '<span class="hev-bars">' + list.map((x, i) => '<i><i style="width:' + Math.min(100, D.total(w, i, x) / x.goal * 100).toFixed(1) + '%"></i></i>').join('') + '</span></span>';
     ui.updateFades();
   };
+  const todayResult = () => {
+    const key = D.dayKey();
+    return { daily: true, day: key, score: store.data.daily.days[key] || 0, mode: S.MODE[D.challenge(key).mode].name };
+  };
+
+  // Daily Challenge leaderboard. Names come from other players, so they only ever go in as plain text.
+  ui.renderBoard = function () {
+    const B = S.board, joined = !!st.lbName, played = D.dayKey() in store.data.daily.days;
+    $('boardJoin').hidden = joined && !ui.boardEdit;
+    $('boardRename').hidden = !joined || !!ui.boardEdit;
+    $('boardCount').textContent = joined && B.count ? B.count + (B.count === 1 ? ' player' : ' players') : '';
+    const list = $('boardList'); list.textContent = '';
+    B.top.forEach((r, i) => {
+      const li = el('li', r.me ? 'me' : ''), n = el('span', 'lb-n'), name = el('span', 'lb-name'), sc = el('b');
+      n.textContent = i + 1; name.textContent = r.name; sc.textContent = r.score;
+      li.append(n, name, sc); list.appendChild(li);
+    });
+    const inTop = B.top.some(r => r.me), you = $('boardYou');
+    you.hidden = !(B.you && !inTop);
+    if (B.you) you.textContent = 'You’re #' + B.you.rank + ' with ' + B.you.score;
+    const note = $('boardNote');
+    note.textContent = B.msg || (!joined ? 'Pick a name to compare today’s score with everyone. Your name and score will be public.'
+      : B.state === 'loading' ? 'Loading…' : !B.top.length ? (played ? 'No scores yet today.' : 'No scores yet today. Be the first!')
+      : played ? '' : 'Your first go today goes on the board.');
+    note.hidden = !note.textContent;
+    ui.updateFades();
+  };
+
+  // Your result, as text and as a picture, sent wherever you like.
+  const SITE = 'https://snake-lake-two.vercel.app';
+  function shareText(r) {
+    if (!r.daily) return '🐍 Snake Plus · ' + r.mode + '\nScore ' + r.score + (r.isBest ? ' · new best!' : '') + '\n' + SITE;
+    const days = store.data.daily.days, n = D.dayNum(r.day), dow = new Date(n * 864e5).getUTCDay(), streak = D.streak(days, r.day);
+    let week = '';
+    for (let i = 0; i < 7; i++) week += D.keyOf(n - dow + i) in days ? '🟩' : i > dow ? '⬜' : '⬛';
+    const date = new Date(n * 864e5).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    return '🐍 Snake Plus Daily · ' + date + '\nScore ' + r.score + ' in ' + r.mode + '\n🔥 ' + streak + ' day streak\n' + week + '\n' + SITE;
+  }
+  function shareImage(r) {
+    const c = document.createElement('canvas'), g = c.getContext('2d'), accent = getComputedStyle(document.documentElement).getPropertyValue('--mode-accent').trim() || '#5b8cff';
+    c.width = 1200; c.height = 630;
+    const bg = g.createLinearGradient(0, 0, 1200, 630); bg.addColorStop(0, '#16201b'); bg.addColorStop(1, '#0b100d');
+    g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+    g.strokeStyle = accent; g.lineWidth = 34; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(760, 520); g.lineTo(1040, 520); g.arcTo(1110, 520, 1110, 450, 70); g.lineTo(1110, 180); g.arcTo(1110, 110, 1040, 110, 70); g.lineTo(900, 110); g.stroke();
+    g.fillStyle = '#fff'; for (const y of [100, 120]) { g.beginPath(); g.arc(892, y, 7, 0, 7); g.fill(); }
+    const font = (w, s) => w + ' ' + s + 'px Rubik, system-ui, sans-serif';
+    g.textBaseline = 'alphabetic'; g.fillStyle = accent; g.font = font(700, 44); g.fillText('SNAKE PLUS', 70, 110);
+    g.fillStyle = '#8aa094'; g.font = font(500, 32); g.fillText(r.daily ? 'Daily Challenge · ' + r.mode : r.mode, 70, 165);
+    g.fillStyle = '#e6efe9'; g.font = font(700, 190); g.fillText(String(r.score), 64, 360);
+    g.fillStyle = '#8aa094'; g.font = font(500, 34); g.fillText(r.isBest ? 'New best score!' : 'points', 72, 415);
+    if (r.daily) {
+      const days = store.data.daily.days, n = D.dayNum(r.day), dow = new Date(n * 864e5).getUTCDay();
+      g.fillStyle = '#ffc83d'; g.font = font(700, 36); g.fillText(D.streak(days, r.day) + ' day streak', 72, 490);
+      for (let i = 0; i < 7; i++) { g.fillStyle = D.keyOf(n - dow + i) in days ? accent : 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(92 + i * 54, 535, 18, 0, 7); g.fill(); }
+    }
+    g.fillStyle = '#5f7268'; g.font = font(500, 26); g.fillText(SITE.replace('https://', ''), 70, 600);
+    return new Promise(res => c.toBlob(res, 'image/png'));
+  }
+  ui.share = async function (r, btn) {
+    if (!r) return;
+    const text = shareText(r), label = btn.textContent, say = t => { btn.textContent = t; setTimeout(() => { btn.textContent = label; }, 1800); };
+    try {
+      const blob = navigator.share ? await shareImage(r) : null, file = blob && new File([blob], 'snake-plus.png', { type: 'image/png' });
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
+      if (navigator.share) { await navigator.share({ text }); return; }
+    } catch (e) { if (e.name === 'AbortError') return; }   // you closed the share sheet
+    try { await navigator.clipboard.writeText(text); say('Copied'); }
+    catch (e) { say('Couldn’t share'); }
+  };
+
+  // "Next reward" lines on the Daily and Weekly pages.
+  function nextOn(id, word) {
+    const t = SK.TRACKS.find(x => x.id === id), next = t.steps.find(s => !store.isUnlocked(s.id));
+    if (!next) return '';
+    const u = SK.UNLOCKS.find(x => x.id === next.id);
+    return word + ': ' + SK.itemName(u) + ' at ' + u.goal + ' ' + (u.goal === 1 ? t.unit.replace(/s$/, '') : t.unit);
+  }
   ui.setDuel = on => { ui.el.bar.classList.toggle('duel', on); };
   ui.setRunTag = t => { ui.runTag = t; ui.el.modeTag.textContent = t || S.MODE[st.mode].name; };
   ui.sideNames = () => (root.innerWidth >= root.innerHeight ? ['on the left', 'on the right'] : ['on the top half', 'on the bottom half']);
   ui.toastMission = function (m) {
-    const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">+</i><span><small>Mission done! +' + m.xp + ' XP</small><b>' + m.text + '</b></span>');
+    const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">+</i><span><small>' + (m.bonus ? 'Perfect week! +' : 'Mission done! +') + m.xp + ' XP</small><b>' + m.text + '</b></span>');
     $('toasts').appendChild(t);
     setTimeout(() => t.classList.add('out'), 2800); setTimeout(() => t.remove(), 3300);
   };
@@ -4872,6 +5093,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock(); hideModeLock();
     if (main === 'home' || FROM_HOME[main]) ui.renderDaily();
+    if (main === 'daily') { ui.renderBoard(); S.board.send(); S.board.load(); }
     if (main === 'home') renderHome();
     if (ui.shows('stats')) renderStats();
     if (ui.shows('unlocks')) renderRoadmap();
@@ -4993,6 +5215,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     E.overlay.hidden = !card; E.shell.hidden = card;
     if (o.next) renderNext(E.nextGoal, 1); else E.nextGoal.hidden = true;
     $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
+    $('shareBtn').hidden = !o.over || L[0] === 'Player 1';   // nothing to share from a two-player round
     ui.renderMute();
     ui.refresh();
     ui.updateFades();
@@ -5026,9 +5249,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 // slot is merged by itself, so changing one thing on one device never touches the others.
 (function (root) {
   'use strict';
-  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'customGrad', 'unlockToasts'];
+  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'customGrad', 'unlockToasts', 'lbName', 'lbId'];
   const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
-  const COUNTS = ['games', 'apples', 'timeMs', 'xp'];
+  const COUNTS = ['games', 'apples', 'timeMs', 'xp', 'missions', 'perfect'];
   const ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // no 0/O or 1/I/L, so codes are easy to read out
   const CODE_LEN = 8;
 
@@ -5061,7 +5284,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   }
 
   function emptyCombos() { return [0, 1, 2, 3, 4].map(() => ({ look: null, at: 0 })); }
-  const emptyWeek = () => ({ week: '', devices: {}, claimed: [false, false, false] });
+  const emptyWeek = () => ({ week: '', devices: {}, claimed: [false, false, false], bonus: false });
   function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0, combos: emptyCombos(), daily: {}, weekly: emptyWeek() }; }
   const DAILY_KEEP = 400;   // days of results to keep, so a save can't outgrow the size limit
   const sortDays = o => { const out = {}; for (const k of Object.keys(o).sort().slice(-DAILY_KEEP)) out[k] = o[k]; return out; };
@@ -5094,6 +5317,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         else if (typeof v === 'boolean') out.settings[k] = v;
         else if (k === 'customColor' && (v === null || okHex(v))) out.settings[k] = v;
         else if (k === 'customGrad' && (v === null || okGrad(v))) out.settings[k] = v;
+        else if (k === 'lbName' && typeof v === 'string' && v.length <= 32) out.settings[k] = v;
+        else if (k === 'lbId' && typeof v === 'string' && /^[0-9a-z]{0,32}$/.test(v)) out.settings[k] = v;
       }
     }
     out.settingsAt = num(d.settingsAt);
@@ -5118,6 +5343,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         }
       }
       if (Array.isArray(w.claimed) && w.claimed.length === 3) out.weekly.claimed = w.claimed.map(v => v === true);
+      out.weekly.bonus = w.bonus === true;
     }
     return out;
   }
@@ -5127,7 +5353,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const out = empty();
     for (const src of [a, b]) {
       for (const id in src.devices) {
-        const r = src.devices[id], o = out.devices[id] || (out.devices[id] = { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0, at: 0 });
+        const r = src.devices[id], o = out.devices[id] || (out.devices[id] = { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0, at: 0 });
         for (const k in o) o[k] = Math.max(o[k], r[k]);
       }
       for (const k in src.best) out.best[k] = Math.max(out.best[k] || 0, src.best[k]);
@@ -5135,6 +5361,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     }
     const newer = b.settingsAt > a.settingsAt ? b : a;
     out.settings = Object.assign({}, newer.settings); out.settingsAt = newer.settingsAt;
+    // A device that hasn't heard your leaderboard name yet mustn't blank it just by being newer.
+    for (const k of ['lbName', 'lbId']) if (!out.settings[k]) { const o = newer === a ? b : a; if (o.settings[k]) out.settings[k] = o.settings[k]; }
     out.combos = a.combos.map((x, i) => { const y = b.combos[i]; return y.at > x.at ? y : x; });
     const days = Object.assign({}, a.daily);
     for (const k in b.daily) days[k] = Math.max(days[k] || 0, b.daily[k]);
@@ -5144,6 +5372,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     else {
       out.weekly.week = a.weekly.week;
       out.weekly.claimed = a.weekly.claimed.map((v, i) => v || b.weekly.claimed[i]);
+      out.weekly.bonus = a.weekly.bonus || b.weekly.bonus;
       out.weekly.devices = Object.assign({}, a.weekly.devices);
       for (const id in b.weekly.devices) {
         const x = out.weekly.devices[id], y = b.weekly.devices[id];
@@ -5155,7 +5384,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
   // Totals across devices; pass skip to leave one device out.
   function totals(doc, skip) {
-    const t = { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 };
+    const t = { games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0 };
     for (const id in doc.devices) {
       if (id === skip) continue;
       const r = doc.devices[id];
@@ -5182,11 +5411,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const LIVE = 'https://snake-lake-two.vercel.app/api/sync';
   const local = /^(localhost|127\.|192\.168\.|10\.|\[?::1)/.test(location.hostname);
   const API = root.SNAKE_SYNC_API || (location.protocol.indexOf('http') === 0 && !local ? '/api/sync' : LIVE);   // SNAKE_SYNC_API: for local testing
-  const zeros = () => ({ games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 });
+  const zeros = () => ({ games: 0, apples: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, longest: 0 });
   const randomId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
   let store, h, timer = 0, busy = false, again = false, lastLook = '', lastCombos = [], rawSave = null;
-  const sync = S.sync = { state: 'off', at: 0, devices: 0, msg: '' };
+  const sync = S.sync = { state: 'off', at: 0, devices: 0, msg: '', boardApi: API.replace(/sync$/, 'board') };
   const sd = () => store.data.sync;
   const look = () => { const o = {}; for (const k of C.SYNCED) o[k] = store.data.settings[k]; return o; };
 
@@ -5198,7 +5427,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     for (const k of C.COUNTS) mine[k] = Math.max(0, s[k] - (y.others[k] || 0));
     return { devices: { [y.device]: mine }, best: d.best, unlocked: d.unlocked, settings: look(), settingsAt: y.settingsAt,
       combos: d.settings.combos.map((c, i) => ({ look: c, at: y.comboAt[i] || 0 })), daily: d.daily.days,
-      weekly: { week: d.weekly.week, devices: { [y.device]: d.weekly.mine }, claimed: d.weekly.claimed } };
+      weekly: { week: d.weekly.week, devices: { [y.device]: d.weekly.mine }, claimed: d.weekly.claimed, bonus: d.weekly.bonus } };
   }
 
   // Takes the merged save from the server. Returns what changed, or null.
@@ -5217,7 +5446,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     for (const id of doc.unlocked) if (d.unlocked.indexOf(id) < 0) d.unlocked.push(id);
     let lookChanged = false;
     if (doc.settingsAt > y.settingsAt) {
-      for (const k of C.SYNCED) if (k in doc.settings && d.settings[k] !== doc.settings[k]) { d.settings[k] = doc.settings[k]; lookChanged = true; }
+      for (const k of C.SYNCED) if (k in doc.settings && d.settings[k] !== doc.settings[k] && !((k === 'lbName' || k === 'lbId') && !doc.settings[k])) { d.settings[k] = doc.settings[k]; lookChanged = true; }
       y.settingsAt = doc.settingsAt;
       lastLook = JSON.stringify(look());
     }
@@ -5227,10 +5456,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     for (const k in doc.daily || {}) d.daily.days[k] = Math.max(d.daily.days[k] || 0, doc.daily[k]);
     const w = doc.weekly, mine = d.weekly;
     if (w && w.week >= mine.week) {   // a server from before weekly missions sends no week at all
-      if (w.week > mine.week) { mine.week = w.week; mine.mine = (w.devices[me] || [0, 0, 0]).slice(); mine.claimed = [false, false, false]; }
+      if (w.week > mine.week) { mine.week = w.week; mine.mine = (w.devices[me] || [0, 0, 0]).slice(); mine.claimed = [false, false, false]; mine.bonus = false; }
       mine.seen = {};
       for (const id in w.devices) if (id !== me) mine.seen[id] = w.devices[id];
       mine.claimed = mine.claimed.map((v, i) => v || w.claimed[i]);
+      mine.bonus = mine.bonus || !!w.bonus;
     }
     sync.devices = Object.keys(doc.devices).length;
     return before !== state() ? { look: lookChanged } : null;
@@ -5369,6 +5599,81 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
   sync._apply = apply; sync._localDoc = localDoc;   // for tests
 })(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+// Daily Challenge leaderboard, from the game's side. The server is api/board.js.
+// Your scored run is saved until the server has it, so playing offline or choosing a name later still counts.
+(function (root) {
+  'use strict';
+  const S = root.Snake, D = S.daily;
+  const board = S.board = { state: 'idle', top: [], count: 0, you: null, msg: '', day: '' };
+  let store, changed;
+  const st = () => store.data.settings, saved = () => store.data.board;
+
+  function newId() {
+    const a = new Uint32Array(4); root.crypto.getRandomValues(a);
+    return [...a].map(n => n.toString(36).padStart(7, '0')).join('').slice(0, 24);
+  }
+  async function post(body) {
+    const stop = new AbortController(), timer = setTimeout(() => stop.abort(), 10000);
+    try {
+      const r = await fetch(S.sync.boardApi, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store', signal: stop.signal });
+      let j = null; try { j = await r.json(); } catch (e) {}
+      return { status: r.status, body: j };
+    } finally { clearTimeout(timer); }
+  }
+
+  board.load = async function () {
+    const day = D.dayKey();
+    if (!st().lbName) { board.state = 'idle'; changed(); return; }
+    if (board.day !== day) { board.top = []; board.you = null; board.count = 0; board.day = day; }
+    board.state = board.top.length ? 'ready' : 'loading'; changed();
+    try {
+      const r = await post({ mode: 'top', day, id: st().lbId });
+      if (r.status !== 200 || !r.body) throw new Error('server');
+      board.top = r.body.top; board.count = r.body.count; board.you = r.body.you; board.state = 'ready'; board.msg = '';
+    } catch (e) {
+      board.state = 'error';
+      board.msg = navigator.onLine === false ? 'You’re offline. The leaderboard will load when you’re back.' : 'Couldn’t reach the leaderboard. Try again in a moment.';
+    }
+    changed();
+  };
+
+  // Sends today's run if there's one waiting. Runs from earlier days can no longer be added.
+  board.send = async function () {
+    const run = saved().run, day = D.dayKey();
+    if (!run || run.sent || !st().lbName) return;
+    if (D.dayNum(day) - D.dayNum(run.day) > 1 || run.score < 1) { saved().run = null; store.save(); return; }
+    try {
+      const r = await post({ mode: 'submit', day: run.day, id: st().lbId, name: st().lbName, score: run.score, ticks: run.ticks, log: run.log });
+      if (r.status === 200) { run.sent = true; board.msg = ''; store.save(); await board.load(); return; }
+      if (r.status === 422) { run.sent = true; store.save(); board.msg = 'That run couldn’t be verified, so it wasn’t added.'; }
+      else if (r.status === 409) { board.msg = 'That name isn’t allowed. Try a different one.'; }
+      changed();
+    } catch (e) {}   // still saved: it goes next time
+  };
+
+  board.record = run => { saved().run = run; store.save(); board.send(); };
+
+  // Returns false if the name isn't allowed.
+  board.setName = async function (text) {
+    const name = D.cleanName(text);
+    if (!name) return false;
+    if (!st().lbId) st().lbId = newId();
+    st().lbName = name; store.save();
+    const run = saved().run;
+    if (run && run.day === D.dayKey() && run.score > 0) run.sent = false;   // sent again, so your name changes on today's board
+    await board.send();
+    await board.load();
+    return true;
+  };
+
+  board.init = function (_store, onChange) {
+    store = _store; changed = onChange;
+    board.send();
+    root.addEventListener('online', () => board.send());
+  };
+})(window);
 </script>
 <script>
 // App glue: state machine, fixed-timestep loop, and wiring between game, renderer, UI, input and audio.
@@ -5524,7 +5829,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       const spec = D.challenge(D.dayKey());
       run = { kind: 'daily', spec, fixed: true, scored: !(spec.key in data.daily.days) };
       cols = spec.cols; rows = spec.rows;
-      game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks });   // edge grace is always on, so scores compare
+      game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks, record: run.scored });   // edge grace is always on, so scores compare
     } else if (pick === 'duel') {
       if (!match || match.mode !== settings.duelMode) match = { mode: settings.duelMode, wins: [0, 0] };
       if (match.wins.some(n => n >= ROUNDS_TO_WIN)) match.wins = [0, 0];
@@ -5670,6 +5975,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     evs.length = 0;
   }
 
+  // Counts finished missions and any weekly bonus. Returns the XP they're worth.
+  function payout(list) {
+    let xp = 0;
+    for (const m of list) { xp += m.xp; if (m.bonus) data.stats.perfect++; else data.stats.missions++; }
+    return xp;
+  }
+
   // One step for both snakes in a two-player game, and everything that came out of it.
   function duelTick() {
     S.duelStep(game, foe.g);
@@ -5724,7 +6036,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       dailyXp = D.dailyXp(D.streak(data.daily.days, run.spec.key));
     } else if (!daily) isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
     const missions = D.record(data, { mode: game.mode, apples: game.eaten, ms: gameTime, score: game.score, length: game.maxLen, daily: scored });
-    s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0) + dailyXp + missions.reduce((n, m) => n + m.xp, 0);
+    s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0) + dailyXp + payout(missions);
+    if (scored) S.board.record({ day: run.spec.key, score: game.score, ticks: game.ticks, log: game.log, sent: false });
+    ui.lastResult = { daily, score: game.score, mode: S.MODE[game.mode].name, isBest: isBest && game.score > 0, day: daily ? run.spec.key : '' };
     const unlocked = checkUnlocks();
     store.save();
     return { isBest: isBest && game.score > 0, celebrate: isBest && (bestBefore > 0 || game.score >= 10), unlocked, missions, dailyXp };
@@ -5760,7 +6074,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         if (r) confetti.pop(r.left + r.width / 2, r.top + r.height / 2, 50);
       }
     }
-    const p = { level, collected: b.collected, games: b.games, minutes: b.minutes, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
+    const p = { ...b, level, apples: b.apples + game.eaten, longest: Math.max(b.longest, game.cells.length),
       bestAny: Math.max(b.bestAny, score), bestMode: m => Math.max(b.bestMode(m), m === mode ? score : 0) };
     let changed = false;
     for (const u of SK.UNLOCKS) {
@@ -5803,7 +6117,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     let badge = '';
     if (r.isBest) badge = 'New best!';
     if (r.dailyXp) { const n = D.streak(data.daily.days, run.spec.key); badge = 'Daily done · ' + n + ' day streak · +' + r.dailyXp + ' XP'; title = 'Daily done'; }
-    for (const m of r.missions) { badge = (badge ? badge + ' · ' : '') + 'Mission done +' + m.xp + ' XP'; ui.renderDaily(); }
+    for (const m of r.missions) { badge = (badge ? badge + ' · ' : '') + (m.bonus ? 'Perfect week! +' : 'Mission done +') + m.xp + ' XP'; ui.renderDaily(); }
     const lvl = SK.levelOf(data.stats.xp);
     let lvlUp = 0;
     if (lvl > shownLevel) { shownLevel = lvl; lvlUp = lvl; badge = (badge ? badge + ' · ' : '') + 'Level ' + lvl + '!'; A.sfx.newBest(); }
@@ -6158,7 +6472,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     canSync: () => state === 'menu' || state === 'over' || state === 'paused',
     status: ui.renderSync,
     remote: ch => {
-      data.stats.xp += D.claim(data).reduce((n, m) => n + m.xp, 0);    // your devices together finished a mission
+      data.stats.xp += payout(D.claim(data));                          // your devices together finished a mission
       shownLevel = Math.max(shownLevel, SK.levelOf(data.stats.xp));   // levels earned elsewhere don't pop up here
       if (checkUnlocks().length) store.save();                         // combined totals can reach new goals
       if (ch.look) { applyAccent(); applyTheme(); }
@@ -6167,6 +6481,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       if (ui.shows('unlocks') && ui.menuOpen()) ui.renderRoadmap();
     }
   });
+  S.board.init(store, ui.renderBoard);
   setInterval(() => { if (ui.tab === 'settings' && ui.menuOpen()) ui.renderSync(); }, 15000);   // keeps "Synced 2 min ago" fresh
   S.input.init({
     dir: turn,

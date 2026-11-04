@@ -950,3 +950,17 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .panel-home[data-fit^="g"] .nx-mini .nx-ring { width: calc(34px * var(--hk)); height: calc(34px * var(--hk)); }
 .panel-home[data-fit^="g"] .nx-mini .nx-ring .rw { width: calc(27px * var(--hk)); height: calc(27px * var(--hk)); }
 .cat-tools { flex-wrap: wrap; justify-content: flex-end; }
+/* Weekly bonus and the leaderboard */
+.ms.bonus { padding-top: var(--sp-3); border-top: 1px solid var(--c-line); }
+.ms.bonus .ms-t em { color: var(--c-gold); }
+.board { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.board:empty { display: none; }
+.board li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: var(--sp-2); align-items: center; padding: 6px var(--sp-2); border-radius: var(--r-sm); font-size: var(--fs-sm); }
+.board li:nth-child(odd) { background: rgba(255, 255, 255, .03); }
+.board li.me { background: color-mix(in srgb, var(--mode-accent) 22%, transparent); }
+.lb-n { color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.board li:nth-child(1) .lb-n { color: var(--c-gold); font-weight: 700; }
+.lb-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board b { font-variant-numeric: tabular-nums; }
+.board-you { margin: 0; font-size: var(--fs-sm); font-weight: 700; }
+#boardRename { justify-self: start; }

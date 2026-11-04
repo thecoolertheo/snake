@@ -91,6 +91,15 @@
     // Daily Challenge and two-player
     $('pageBack').addEventListener('click', () => { ui.setTab('home'); h.click(); });
     $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
+    $('dailyShare').addEventListener('click', e => { h.click(); ui.share(todayResult(), e.currentTarget); });
+    $('shareBtn').addEventListener('click', e => { h.click(); ui.share(ui.lastResult, e.currentTarget); });
+    $('boardJoin').addEventListener('submit', async e => {
+      e.preventDefault(); h.click();
+      const ok = await S.board.setName($('boardName').value);
+      if (!ok) { S.board.msg = 'Names are 2 to 16 letters or numbers, and need to be polite.'; ui.renderBoard(); return; }
+      ui.boardEdit = false; ui.renderBoard();
+    });
+    $('boardRename').addEventListener('click', () => { h.click(); ui.boardEdit = true; $('boardName').value = st.lbName; ui.renderBoard(); $('boardName').focus(); });
     $('swDuel').addEventListener('click', () => { st.duel = !st.duel; hideModeLock(); h.gameChanged(); h.click(); });
 
     // Snake
@@ -561,6 +570,9 @@
     collector: '<path d="M4 10h16v10H4z" fill="#c77dff"/><path d="M3 7h18v4H3z" fill="#e2b8ff"/><path d="M11 7h2v13h-2z" fill="#ffc83d"/><path d="M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1z" fill="none" stroke="#ffc83d" stroke-width="1.6"/>',
     level: '<path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 16.9 6.1 20l1.2-6.5L2.5 8.9 9.1 8z" fill="#ffc83d"/>',
     time: '<circle cx="12" cy="12" r="9" fill="none" stroke="#7cc8ff" stroke-width="2.2"/><path d="M12 7v5l3.5 2" stroke="#7cc8ff" stroke-width="2.2" fill="none" stroke-linecap="round"/>',
+    streak: '<path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 2-7 2 1 3 2 3 4 1-2 2-5 1-9z" fill="#ff8a3d"/><path d="M12 13c.6 2 2.500 2.800 2.500 5a2.500 2.500 0 0 1-5 0c0-2 2-3 2.500-5z" fill="#ffc83d"/>',
+    missions: '<path d="M5 21V4M5 4h11l-2 3.500L16 11H5" fill="none" stroke="#7cc8ff" stroke-width="2.200" stroke-linejoin="round" stroke-linecap="round"/>',
+    perfect: '<path d="M6 3h12v5a6 6 0 0 1-12 0zM6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3" fill="#ffc83d" stroke="#ffc83d" stroke-width="1"/><path d="M11 14h2v4h3v3H8v-3h3z" fill="#d99a00"/>',
     rewards: '<path d="M4 10h16v10H4z" fill="#c77dff"/><path d="M3 7h18v4H3z" fill="#e2b8ff"/><path d="M11 7h2v13h-2z" fill="#ffc83d"/><path d="M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1z" fill="none" stroke="#ffc83d" stroke-width="1.6"/>'
   };
 
@@ -764,6 +776,8 @@
     $('dailyRules').textContent = [spec.layout, spec.apples + (m.portal ? ' pair' : ' apple') + (spec.apples > 1 ? 's' : ''), SPEED_WORD(spec.speed) + ' speed', spec.ramp ? 'Speeds up' : ''].filter(Boolean).join(' · ');
     $('dailyPlay').textContent = played ? 'Practice' : 'Play today’s challenge';
     $('dailyNote').textContent = played ? 'Today’s score: ' + days[key] + '. A new challenge arrives at midnight.' : 'Your first go counts, so make it a good one. Worth +' + D.dailyXp(now + 1) + ' XP.';
+    $('dailyShare').hidden = !played;
+    $('dailyNext').textContent = nextOn('streak', 'Next streak reward');
     $('dailyStreak').textContent = now; $('dailyBest').textContent = D.bestStreak(days);
     // This week, Sunday to Saturday.
     const n = D.dayNum(key), dow = new Date(n * 864e5).getUTCDay();
@@ -780,6 +794,10 @@
       return '<div class="ms' + (done ? ' done' : '') + '"><div class="ms-t"><b>' + x.text + '</b><em>' + (done ? 'Done' : '+' + x.xp + ' XP') + '</em></div>' +
         '<i class="nx-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i><small>' + v + ' of ' + x.goal + (min ? ' minutes' : '') + '</small></div>';
     }).join('');
+    const allDone = w.claimed.filter(Boolean).length;
+    $('weekBonus').className = 'ms bonus' + (w.bonus ? ' done' : '');
+    $('weekBonus').innerHTML = '<div class="ms-t"><b>Perfect week: finish all three</b><em>' + (w.bonus ? 'Done' : '+' + D.BONUS_XP + ' XP') + '</em></div><i class="nx-bar"><i style="width:' + (allDone / 3 * 100).toFixed(1) + '%"></i></i><small>' + allDone + ' of 3</small>';
+    $('weekNext').textContent = [nextOn('missions', 'Next mission reward'), nextOn('perfect', 'Next perfect week reward')].filter(Boolean).join(' · ');
     // The two short cards on Home.
     const list = D.missions(w.week), doneN = w.claimed.filter(Boolean).length;
     $('homeDaily').classList.toggle('new', !played);
@@ -789,11 +807,89 @@
       '<span class="hev-bars">' + list.map((x, i) => '<i><i style="width:' + Math.min(100, D.total(w, i, x) / x.goal * 100).toFixed(1) + '%"></i></i>').join('') + '</span></span>';
     ui.updateFades();
   };
+  const todayResult = () => {
+    const key = D.dayKey();
+    return { daily: true, day: key, score: store.data.daily.days[key] || 0, mode: S.MODE[D.challenge(key).mode].name };
+  };
+
+  // Daily Challenge leaderboard. Names come from other players, so they only ever go in as plain text.
+  ui.renderBoard = function () {
+    const B = S.board, joined = !!st.lbName, played = D.dayKey() in store.data.daily.days;
+    $('boardJoin').hidden = joined && !ui.boardEdit;
+    $('boardRename').hidden = !joined || !!ui.boardEdit;
+    $('boardCount').textContent = joined && B.count ? B.count + (B.count === 1 ? ' player' : ' players') : '';
+    const list = $('boardList'); list.textContent = '';
+    B.top.forEach((r, i) => {
+      const li = el('li', r.me ? 'me' : ''), n = el('span', 'lb-n'), name = el('span', 'lb-name'), sc = el('b');
+      n.textContent = i + 1; name.textContent = r.name; sc.textContent = r.score;
+      li.append(n, name, sc); list.appendChild(li);
+    });
+    const inTop = B.top.some(r => r.me), you = $('boardYou');
+    you.hidden = !(B.you && !inTop);
+    if (B.you) you.textContent = 'You’re #' + B.you.rank + ' with ' + B.you.score;
+    const note = $('boardNote');
+    note.textContent = B.msg || (!joined ? 'Pick a name to compare today’s score with everyone. Your name and score will be public.'
+      : B.state === 'loading' ? 'Loading…' : !B.top.length ? (played ? 'No scores yet today.' : 'No scores yet today. Be the first!')
+      : played ? '' : 'Your first go today goes on the board.');
+    note.hidden = !note.textContent;
+    ui.updateFades();
+  };
+
+  // Your result, as text and as a picture, sent wherever you like.
+  const SITE = 'https://snake-lake-two.vercel.app';
+  function shareText(r) {
+    if (!r.daily) return '🐍 Snake Plus · ' + r.mode + '\nScore ' + r.score + (r.isBest ? ' · new best!' : '') + '\n' + SITE;
+    const days = store.data.daily.days, n = D.dayNum(r.day), dow = new Date(n * 864e5).getUTCDay(), streak = D.streak(days, r.day);
+    let week = '';
+    for (let i = 0; i < 7; i++) week += D.keyOf(n - dow + i) in days ? '🟩' : i > dow ? '⬜' : '⬛';
+    const date = new Date(n * 864e5).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    return '🐍 Snake Plus Daily · ' + date + '\nScore ' + r.score + ' in ' + r.mode + '\n🔥 ' + streak + ' day streak\n' + week + '\n' + SITE;
+  }
+  function shareImage(r) {
+    const c = document.createElement('canvas'), g = c.getContext('2d'), accent = getComputedStyle(document.documentElement).getPropertyValue('--mode-accent').trim() || '#5b8cff';
+    c.width = 1200; c.height = 630;
+    const bg = g.createLinearGradient(0, 0, 1200, 630); bg.addColorStop(0, '#16201b'); bg.addColorStop(1, '#0b100d');
+    g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+    g.strokeStyle = accent; g.lineWidth = 34; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(760, 520); g.lineTo(1040, 520); g.arcTo(1110, 520, 1110, 450, 70); g.lineTo(1110, 180); g.arcTo(1110, 110, 1040, 110, 70); g.lineTo(900, 110); g.stroke();
+    g.fillStyle = '#fff'; for (const y of [100, 120]) { g.beginPath(); g.arc(892, y, 7, 0, 7); g.fill(); }
+    const font = (w, s) => w + ' ' + s + 'px Rubik, system-ui, sans-serif';
+    g.textBaseline = 'alphabetic'; g.fillStyle = accent; g.font = font(700, 44); g.fillText('SNAKE PLUS', 70, 110);
+    g.fillStyle = '#8aa094'; g.font = font(500, 32); g.fillText(r.daily ? 'Daily Challenge · ' + r.mode : r.mode, 70, 165);
+    g.fillStyle = '#e6efe9'; g.font = font(700, 190); g.fillText(String(r.score), 64, 360);
+    g.fillStyle = '#8aa094'; g.font = font(500, 34); g.fillText(r.isBest ? 'New best score!' : 'points', 72, 415);
+    if (r.daily) {
+      const days = store.data.daily.days, n = D.dayNum(r.day), dow = new Date(n * 864e5).getUTCDay();
+      g.fillStyle = '#ffc83d'; g.font = font(700, 36); g.fillText(D.streak(days, r.day) + ' day streak', 72, 490);
+      for (let i = 0; i < 7; i++) { g.fillStyle = D.keyOf(n - dow + i) in days ? accent : 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(92 + i * 54, 535, 18, 0, 7); g.fill(); }
+    }
+    g.fillStyle = '#5f7268'; g.font = font(500, 26); g.fillText(SITE.replace('https://', ''), 70, 600);
+    return new Promise(res => c.toBlob(res, 'image/png'));
+  }
+  ui.share = async function (r, btn) {
+    if (!r) return;
+    const text = shareText(r), label = btn.textContent, say = t => { btn.textContent = t; setTimeout(() => { btn.textContent = label; }, 1800); };
+    try {
+      const blob = navigator.share ? await shareImage(r) : null, file = blob && new File([blob], 'snake-plus.png', { type: 'image/png' });
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
+      if (navigator.share) { await navigator.share({ text }); return; }
+    } catch (e) { if (e.name === 'AbortError') return; }   // you closed the share sheet
+    try { await navigator.clipboard.writeText(text); say('Copied'); }
+    catch (e) { say('Couldn’t share'); }
+  };
+
+  // "Next reward" lines on the Daily and Weekly pages.
+  function nextOn(id, word) {
+    const t = SK.TRACKS.find(x => x.id === id), next = t.steps.find(s => !store.isUnlocked(s.id));
+    if (!next) return '';
+    const u = SK.UNLOCKS.find(x => x.id === next.id);
+    return word + ': ' + SK.itemName(u) + ' at ' + u.goal + ' ' + (u.goal === 1 ? t.unit.replace(/s$/, '') : t.unit);
+  }
   ui.setDuel = on => { ui.el.bar.classList.toggle('duel', on); };
   ui.setRunTag = t => { ui.runTag = t; ui.el.modeTag.textContent = t || S.MODE[st.mode].name; };
   ui.sideNames = () => (root.innerWidth >= root.innerHeight ? ['on the left', 'on the right'] : ['on the top half', 'on the bottom half']);
   ui.toastMission = function (m) {
-    const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">+</i><span><small>Mission done! +' + m.xp + ' XP</small><b>' + m.text + '</b></span>');
+    const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">+</i><span><small>' + (m.bonus ? 'Perfect week! +' : 'Mission done! +') + m.xp + ' XP</small><b>' + m.text + '</b></span>');
     $('toasts').appendChild(t);
     setTimeout(() => t.classList.add('out'), 2800); setTimeout(() => t.remove(), 3300);
   };
@@ -827,6 +923,7 @@
     if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock(); hideModeLock();
     if (main === 'home' || FROM_HOME[main]) ui.renderDaily();
+    if (main === 'daily') { ui.renderBoard(); S.board.send(); S.board.load(); }
     if (main === 'home') renderHome();
     if (ui.shows('stats')) renderStats();
     if (ui.shows('unlocks')) renderRoadmap();
@@ -948,6 +1045,7 @@
     E.overlay.hidden = !card; E.shell.hidden = card;
     if (o.next) renderNext(E.nextGoal, 1); else E.nextGoal.hidden = true;
     $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
+    $('shareBtn').hidden = !o.over || L[0] === 'Player 1';   // nothing to share from a two-player round
     ui.renderMute();
     ui.refresh();
     ui.updateFades();

@@ -51,6 +51,7 @@
   const PV_COLS = 10, PV_ROWS = 4;
   const pvView = new R.View($('pv'), PV_COLS, PV_ROWS, true);
   const pvSnake = new R.SnakeDrawer();
+  const pvAmbient = new R.Ambient();
   const confetti = new R.Confetti($('confetti'));
   const ambient = new R.Ambient();
   const liveUnlocked = [];   // rewards unlocked during the current game
@@ -72,7 +73,7 @@
   // Each mode has its own look: board colours + ambient effect, and an accent for the menu.
   function applyTheme() {
     const st = document.documentElement.style;
-    const T = view.setTheme(settings.mode, settings.boardSkin); pvView.setTheme(settings.mode, settings.boardSkin);
+    const T = view.setTheme(settings.mode, settings.boardSkin); pvTheme();
     st.setProperty('--mode-glow', T.glow);
     if (game) ambient.reset(T.amb, game.cols, game.rows);
   }
@@ -296,51 +297,83 @@
   const pvEats = [], pvBulges = new Float32Array(16), pvTime = { t: 0 };
   const pvFx = { mouth: 0, blink: 0, bulges: pvBulges, nBulges: 0, squash: 0 };
   const DIRS4 = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
-  function pvNew() { pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: 1, mode: 'classic', grace: false }); pvShrinking = false; pvEats.length = 0; }
-  // Can the snake step onto (x, y)? The tail cell is fine because it moves away.
-  function pvOpen(g, x, y) {
-    if (!g.inBounds(x, y)) return false;
-    const t = g.cells[g.cells.length - 1];
-    return g.occ[g.idx(x, y)] === 0 || (t.x === x && t.y === y && g.grow === 0);
+  // The preview plays the real mode: a locked mode tapped on the Modes page gets a try-out here too.
+  let pvTry = null, pvTarget = null, pvHint = null;
+  const pvModeId = () => pvTry || settings.mode;
+  function pvTheme() { pvAmbient.reset(pvView.setTheme(pvModeId(), settings.boardSkin).amb, PV_COLS, PV_ROWS); }
+  function pvNew() {
+    pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: 1, mode: pvModeId(), grace: false });
+    pvShrinking = false; pvEats.length = 0; pvHint = null; R.resetWalls(); pvGild(pvGame);
   }
-  // How many tiles can be reached from (x, y): used to avoid trapping itself.
-  function pvRoom(g, x, y) {
-    const seen = new Uint8Array(g.cols * g.rows), q = [x, y]; seen[g.idx(x, y)] = 1; let n = 0;
+  // Gold Rush: golden apples are rare in a real game, so show them often here.
+  function pvGild(g) {
+    if (!g.rules.gold) return;
+    for (const a of g.apples) if (a.kind === 'apple' && !a.seen) { a.seen = 1; if (Math.random() < 0.6) { a.kind = 'gold'; a.until = g.steps + 24; } }
+  }
+  // Tile index one step from (x, y), going round the edges in wrapping modes, or -1.
+  function pvNext(g, x, y, d) {
+    let nx = x + d.x, ny = y + d.y;
+    if (!g.inBounds(nx, ny)) { if (!g.rules.wrap) return -1; nx = (nx + g.cols) % g.cols; ny = (ny + g.rows) % g.rows; }
+    return g.idx(nx, ny);
+  }
+  // Can the snake step onto tile i? The tail tile is fine because it moves away.
+  function pvOpen(g, i) {
+    if (g.wall[i]) return false;
+    const x = i % g.cols, y = (i / g.cols) | 0, ai = g.appleAt(x, y);
+    if (ai >= 0 && g.apples[ai] !== pvTarget && (g.apples[ai].kind === 'poison' || g.apples[ai].kind === 'portal')) return false;
+    if (g.rules.ghost) return true;
+    const t = g.cells[g.cells.length - 1];
+    return g.occ[i] === 0 || (t.x === x && t.y === y && g.grow === 0);
+  }
+  // How many tiles can be reached from tile i: used to avoid trapping itself.
+  function pvRoom(g, i) {
+    const seen = new Uint8Array(g.cols * g.rows), q = [i]; seen[i] = 1; let n = 0;
     while (q.length) {
-      const cy = q.pop(), cx = q.pop(); n++;
-      for (const d of DIRS4) {
-        const nx = cx + d.x, ny = cy + d.y;
-        if (pvOpen(g, nx, ny) && !seen[g.idx(nx, ny)]) { seen[g.idx(nx, ny)] = 1; q.push(nx, ny); }
-      }
+      const c = q.pop(), x = c % g.cols, y = (c / g.cols) | 0; n++;
+      for (const d of DIRS4) { const k = pvNext(g, x, y, d); if (k >= 0 && !seen[k] && pvOpen(g, k)) { seen[k] = 1; q.push(k); } }
     }
     return n;
   }
-  // First step of the shortest path to the apple (breadth-first search), or null.
+  // First step of the shortest path to the target (breadth-first search), or null.
   function pvPathStep(g) {
-    const a = g.apples[0], h = g.cells[0]; if (!a) return null;
-    const prev = new Int16Array(g.cols * g.rows).fill(-1), start = g.idx(h.x, h.y), q = [start];
-    prev[start] = start;
-    while (q.length) {
-      const i = q.shift(), x = i % g.cols, y = (i / g.cols) | 0;
-      if (x === a.x && y === a.y) {
-        let k = i; while (prev[k] !== start) k = prev[k];
-        return { x: (k % g.cols) - h.x, y: ((k / g.cols) | 0) - h.y };
-      }
-      for (const d of DIRS4) {
-        const nx = x + d.x, ny = y + d.y;
-        if (pvOpen(g, nx, ny) && prev[g.idx(nx, ny)] < 0) { prev[g.idx(nx, ny)] = i; q.push(g.idx(nx, ny)); }
+    const a = pvTarget, h = g.cells[0]; if (!a) return null;
+    const first = new Int8Array(g.cols * g.rows).fill(-1), start = g.idx(h.x, h.y), goal = g.idx(a.x, a.y), q = [start];
+    first[start] = 4;
+    for (let n = 0; n < q.length; n++) {
+      const i = q[n];
+      if (i === goal) return DIRS4[first[i]];
+      for (let k = 0; k < 4; k++) {
+        const j = pvNext(g, i % g.cols, (i / g.cols) | 0, DIRS4[k]);
+        if (j >= 0 && first[j] < 0 && pvOpen(g, j)) { first[j] = i === start ? k : first[i]; q.push(j); }
       }
     }
     return null;
   }
+  // What to go for. In Poison it bites a purple apple now and then, so you can see it shrink.
+  function pvPick(g) {
+    if (g.rules.poison && g.cells.length >= 6) { const b = g.apples.find(a => a.kind === 'poison'); if (b) return b; }
+    const h = g.cells[0]; let best = null, bd = 1e9;
+    for (const a of g.apples) {
+      if (a.kind === 'poison') continue;
+      const d = Math.abs(a.x - h.x) + Math.abs(a.y - h.y);
+      if (d < bd) { bd = d; best = a; }
+    }
+    return best;
+  }
   function pvChoose(g) {
-    const h = g.cells[0], len = g.cells.length;
-    const safe = DIRS4.filter(d => !(d.x === -g.dir.x && d.y === -g.dir.y) && pvOpen(g, h.x + d.x, h.y + d.y))
-      .map(d => ({ d, room: pvRoom(g, h.x + d.x, h.y + d.y) }));
+    const h = g.cells[0], len = g.cells.length, safe = [];
+    pvTarget = pvPick(g);
+    for (const d of DIRS4) {
+      if (d.x === -g.dir.x && d.y === -g.dir.y) continue;
+      const i = pvNext(g, h.x, h.y, d);
+      if (i >= 0 && pvOpen(g, i)) safe.push({ d, room: pvRoom(g, i) });
+    }
     if (!safe.length) return null;
     const roomy = safe.filter(c => c.room >= len);
     const path = pvPathStep(g);
-    if (path && Math.random() < 0.75) { const c = roomy.find(c => c.d.x === path.x && c.d.y === path.y); if (c) return c.d; }
+    // Hunger: dawdles until the meter is nearly full, so you can watch it fill.
+    const eager = g.rules.hunger ? (g.hungerLevel() > 0.7 ? 0.95 : 0.1) : 0.75;
+    if (path && Math.random() < eager) { const c = roomy.find(c => c.d.x === path.x && c.d.y === path.y); if (c) return c.d; }
     const pool = roomy.length ? roomy : safe.sort((a, b) => b.room - a.room).slice(0, 1);
     // Wander: usually keep going straight if that's fine, otherwise pick at random.
     const straight = pool.find(c => c.d.x === g.dir.x && c.d.y === g.dir.y);
@@ -350,23 +383,41 @@
   function pvStep() {
     const g = pvGame, d = pvChoose(g);
     if (!d) { pvNew(); return; }
-    g.turn(d.x, d.y, 1); g.step();
+    // Mirror flips every turn, so it swipes the opposite way; the arrow shows that swipe.
+    const flip = g.rules.mirror ? -1 : 1;
+    if (flip < 0 && (d.x !== g.dir.x || d.y !== g.dir.y)) pvHint = { x: -d.x, y: -d.y, t: performance.now() };
+    g.turn(d.x * flip, d.y * flip, 1); g.step();
     if (!g.alive) { pvNew(); return; }
     emitTrail(pvView, g);
-    for (const e of g.events) if (e.type === 'eat') {
-      pvEats.push(pvTime.t);
-      const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
-      pvView.fx.burst(e.x * CELL + CELL / 2, e.y * CELL + CELL / 2, performance.now(), B.colors, B.count || 14, B.shape);
+    const now = performance.now();
+    for (const e of g.events) {
+      const cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
+      if (e.type === 'eat') {
+        for (let k = 0; k < (e.worth || 1); k++) pvEats.push(pvTime.t - k * baseMs() * 0.6);
+        if (e.kind === 'gold') pvView.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22);
+        else if (e.kind !== 'portal') {
+          const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
+          pvView.fx.burst(cx, cy, now, B.colors, B.count || 14, B.shape);
+        }
+      } else if (e.type === 'portal') {
+        const c = R.PORTAL_COLORS[e.pair % R.PORTAL_COLORS.length];
+        pvView.fx.ring(cx, cy, now, c); pvView.fx.burst(e.tx * CELL + CELL / 2, e.ty * CELL + CELL / 2, now, [c, '#ffffff', c], 10);
+      } else if (e.type === 'poison') pvView.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']);
+      else if (e.type === 'shrink') pvView.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5);
+      else if (e.type === 'expire') pvView.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6);
     }
     g.events.length = 0;
+    pvGild(g);
+    if (g.wallCount >= 7) { pvNew(); return; }   // the mini board fills up fast: clear it and go again
     if (g.cells.length >= PV_MAX) pvShrinking = true;
-    if (pvShrinking && (!g.trimTail() || g.cells.length <= 3)) pvShrinking = false;
+    if (pvShrinking && (!g.trimTail() || g.cells.length <= 3)) { pvShrinking = false; g.score = 0; }
   }
+  const pvStepMs = g => baseMs() * (g.rules.turbo ? Math.max(0.35, 0.7 * Math.pow(0.92, g.score)) : 1);
   function drawPreview(t, dt) {
-    if (!pvGame) pvNew();
-    const ms = baseMs();
+    if (!pvGame || pvGame.mode !== pvModeId()) pvNew();
     pvAcc += dt; pvTime.t += dt;
-    while (pvAcc >= ms) { pvAcc -= ms; pvStep(); }
+    let ms = pvStepMs(pvGame);
+    while (pvAcc >= ms) { pvAcc -= ms; pvStep(); ms = pvStepMs(pvGame); }
     const g = pvGame, p = Math.min(1, pvAcc / ms);
     let w = 0;
     for (let i = 0; i < pvEats.length; i++) {
@@ -374,13 +425,22 @@
       if (d < g.cells.length * CELL + CELL && w < pvBulges.length) { pvEats[w] = pvEats[i]; pvBulges[w++] = d; }
     }
     pvEats.length = w; pvFx.nBulges = w; pvFx.blink = fx.blink;
-    const c0 = g.cells[0], c1 = g.cells[1], ap = g.apples[0];
+    const c0 = g.cells[0], ap = pvTarget || g.apples[0];
     pvFx.mouth = ap && Math.abs(ap.x - c0.x) + Math.abs(ap.y - c0.y) <= 1 ? 1 - p * 0.3 : Math.max(0, pvFx.mouth - dt / 120);
-    const gc = pvView.begin();
+    const fdt = Math.min(dt, 50), gc = pvView.begin();
+    pvAmbient.draw(gc, t, fdt);
+    R.drawWalls(gc, g, t);
     for (const a of g.apples) R.drawApple(gc, a, t, g, p);
     const ang = U.lerpAng(U.angOf(g.prevDir.x, g.prevDir.y), U.angOf(g.dir.x, g.dir.y), U.ease(Math.min(1, p / 0.7)));
     pvSnake.draw(gc, g.cells, g.prevTail, p, CELL, ang, settings, pvFx);
-    pvView.fx.draw(gc, t, Math.min(dt, 50));
+    const P = pvSnake.path, hx = P.x[P.n - 1], hy = P.y[P.n - 1];
+    if (g.rules.hunger) R.drawHunger(gc, g.cols, g.rows, g.hungerLevel(), t);
+    if (g.rules.dark) R.drawDark(gc, g.cols, g.rows, hx, hy, g.apples, t);
+    pvView.fx.draw(gc, t, fdt);
+    if (pvHint) {
+      const age = (performance.now() - pvHint.t) / 650;
+      if (age >= 1) pvHint = null; else R.drawSwipeHint(gc, g.cols, g.rows, hx, hy, pvHint.x, pvHint.y, 1 - age);
+    }
   }
 
   function frame(t) {
@@ -482,7 +542,9 @@
       else if (state === 'menu' || state === 'over') { newGame(); state = 'menu'; ui.closeCard(); ui.setPlayLabel('Play'); }
       ui.el.mBest.textContent = currentBest();
       ui.refresh();
+      pvTheme(); fit();
     },
+    tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
       store.save(); applyAudio();
       if (key === 'color' || key === 'pattern') applyAccent();

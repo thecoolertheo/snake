@@ -225,6 +225,10 @@
   const openIn = (kind, n) => { let c = 0; for (let i = 0; i < n; i++) if (!kind || !lockedItem(kind, i)) c++; return c; };
   function buildWardrobe() {
     const box = $('catTabs');
+    const dice = el('button', 'cat-tab cat-rand', svg('<rect x="3" y="3" width="18" height="18" rx="4"/><g fill="var(--mode-accent)"><circle cx="8" cy="8" r="1.7"/><circle cx="16" cy="8" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="8" cy="16" r="1.7"/><circle cx="16" cy="16" r="1.7"/></g>') + '<span>Randomize</span>');
+    dice.type = 'button'; dice.id = 'randomBtn'; dice.title = 'Pick a random colour, pattern, tail, eyes, hat, effects, food and board';
+    dice.addEventListener('click', shuffleLook);
+    box.appendChild(dice);
     for (const [id, name] of cats()) {
       const b = el('button', 'cat-tab', '<i class="ct-ic"></i><span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
       b.addEventListener('click', () => { ui.setCat(id); h.click(); });
@@ -234,7 +238,6 @@
       const on = $('wardrobe').classList.toggle('hide-locked');
       e.currentTarget.setAttribute('aria-pressed', on); hideLock(); h.click();
     });
-    $('shuffleBtn').addEventListener('click', shuffleLook);
   }
   ui.setCat = function (id) {
     ui.cat = id; hideLock();
@@ -253,7 +256,7 @@
       if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; $('catCount').textContent = count; }
     }
   }
-  // Puts together a random look from what you've unlocked.
+  // Randomize: a random pick for every type of customization, from what you've unlocked.
   function shuffleLook() {
     for (const [id, , kind, items] of cats()) {
       const open = [];
@@ -304,9 +307,9 @@
   function showModeLock(u) {
     ui.modeLockFocus = u;
     ui.modeLock.querySelector('span').textContent = 'Locked: ' + SK.itemName(u) + '. ' + S.MODE[u.index].desc + ' To unlock: ' + lockText(u).split('. ').slice(1).join('. ') + ' ';
-    ui.modeLock.hidden = false; h.click();
+    ui.modeLock.hidden = false; h.tryMode(u.index); h.click();   // try it out in the preview
   }
-  function hideModeLock() { if (ui.modeLock) ui.modeLock.hidden = true; }
+  function hideModeLock() { if (ui.modeLock) ui.modeLock.hidden = true; h.tryMode(null); }
 
   function renderModes() {
     const cards = $('modeGrid').children;
@@ -541,7 +544,7 @@
     for (const p of document.querySelectorAll('[data-panel]')) p.hidden = pages.indexOf(p.dataset.panel) < 0;
     const slot = document.querySelector('[data-panel="' + main + '"] .pv-slot');
     if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
-    hideLock();
+    hideLock(); hideModeLock();
     if (main === 'home') renderHome();
     if (ui.shows('stats')) renderStats();
     if (ui.shows('unlocks')) renderRoadmap();

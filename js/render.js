@@ -948,6 +948,17 @@
     }
   }
 
+  // Mirror preview: a quick arrow beside the head showing which way the player "swiped".
+  R.drawSwipeHint = function (g, cols, rows, hx, hy, dx, dy, a) {
+    const W = cols * CELL, H = rows * CELL, r = CELL * 0.42;
+    const x = U.clamp(hx + dx * CELL * 1.3, r + 2, W - r - 2), y = U.clamp(hy + dy * CELL * 1.3, r + 2, H - r - 2);
+    g.save(); g.translate(x, y); g.rotate(Math.atan2(dy, dx)); g.globalAlpha = a;
+    g.fillStyle = 'rgba(0,0,0,.55)'; dot(g, 0, 0, r * 1.25);
+    g.strokeStyle = '#fff'; g.lineWidth = CELL * 0.11; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(-r * 0.6, 0); g.lineTo(r * 0.55, 0); g.moveTo(r * 0.1, -r * 0.5); g.lineTo(r * 0.6, 0); g.lineTo(r * 0.1, r * 0.5); g.stroke();
+    g.restore();
+  };
+
   // Hunger mode: a thin meter along the bottom edge that fills and turns red as you get hungry.
   function drawHunger(g, cols, rows, level, t) {
     const W = cols * CELL, H = rows * CELL, h = 6, x = W * 0.2, w = W * 0.6, y = H - h - 8;

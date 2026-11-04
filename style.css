@@ -51,7 +51,8 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-html { touch-action: manipulation; }
+html { touch-action: manipulation; background: var(--c-surface); }
+html, body { height: 100vh; height: 100dvh; }
 body {
   background: radial-gradient(ellipse at 50% 30%, #15201a 0%, var(--c-bg) 70%) fixed, var(--c-bg);
   color: var(--c-fg); font-family: var(--font); font-size: var(--fs-md);
@@ -500,7 +501,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
    on tablets, laptops and landscape phones.
    ===================================================================== */
 .shell {
-  position: fixed; inset: 0; z-index: 20; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto;
+  position: fixed; inset: 0 0 auto 0; height: 100vh; height: 100dvh; z-index: 20; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas: "head" "main" "nav";
   background: radial-gradient(ellipse 90% 50% at 50% 0%, var(--accent-glow), transparent 75%), var(--c-bg);
   animation: fade var(--t-med) var(--ease);
@@ -547,12 +548,18 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .home-next { padding: var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-md); background: none; color: var(--c-muted); font-size: var(--fs-sm); line-height: 1.45; text-align: left; cursor: pointer; }
 .home-next:hover { color: var(--c-fg); }
 
+.panel[data-panel="modes"] > .pv-slot { grid-column: 1 / -1; position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); }
+
 /* Customize: an icon kit. Preview and what you're wearing up top, a dark panel of big tiles below. */
 .panel-snake { gap: var(--sp-3); }
 .ward-stage { display: grid; gap: var(--sp-2); position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); min-width: 0; }
 .cat-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--sp-4) * -1); padding: 2px var(--sp-4); }
 .cat-tabs::-webkit-scrollbar { display: none; }
 .cat-tab { flex: none; width: 66px; display: grid; justify-items: center; gap: 2px; padding: 6px 2px 5px; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: var(--c-muted); font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; cursor: pointer; transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast); }
+.cat-rand { background: var(--mode-accent); border-color: transparent; color: var(--mode-ink); }
+.cat-rand:hover { background: var(--mode-accent); filter: brightness(1.08); }
+.cat-rand:active { transform: scale(.95); }
+.cat-rand svg { width: 28px; height: 28px; fill: var(--mode-ink); }
 .cat-tab small { display: none; font-size: var(--fs-xs); font-weight: 400; font-variant-numeric: tabular-nums; opacity: .8; }
 .cat-tab:hover { background: var(--c-surface-2); }
 .cat-tab[aria-pressed="true"] { color: var(--c-fg); border-color: var(--mode-accent); background: color-mix(in srgb, var(--mode-accent) 14%, var(--c-surface)); }
@@ -575,7 +582,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .cat-filter svg { width: 13px; height: 13px; }
 .cat-filter:hover { color: var(--c-fg); }
 .cat-filter[aria-pressed="true"] { color: var(--c-fg); border-color: var(--mode-accent); }
-.hide-locked .locked { display: none; }
+.hide-locked .cat .locked { display: none; }
 .cat { display: grid; gap: var(--sp-3); min-width: 0; }
 .cat .swatches, .cat .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
 .cat .sw, .cat .chip { width: 100%; height: auto; aspect-ratio: 1; margin: 0; padding: 0; border-radius: var(--r-md); position: relative; display: grid; place-items: center; transition: transform var(--t-fast), box-shadow var(--t-fast); }
@@ -628,24 +635,14 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 }
 .shell[data-page="home"] .panels { display: grid; align-content: start; align-content: safe center; }
 
-/* Customize: preview and categories beside the kit once there's room */
-@media (min-width: 700px) {
-  .panel-snake { grid-template-columns: minmax(250px, 34%) minmax(0, 1fr); align-items: start; gap: var(--sp-4); }
-  .ward-stage { top: 0; background: none; padding: 0; gap: var(--sp-3); }
-  .cat-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; }
-  .cat-tab { width: auto; padding: var(--sp-2) 2px; }
-  .cat-tab small { display: block; }
-  .ct-ic { width: 36px; height: 36px; }
-  .ct-ic .ci { width: 28px; height: 28px; } .ct-ic .ci-img { width: 36px; height: 36px; }
-  .cat .swatches, .cat .chips { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
-}
-/* Short landscape screens: categories go back to one scrolling row */
+/* Short landscape screens: preview beside the kit, categories in one scrolling row */
 @media (max-height: 520px) and (min-width: 560px) {
-  .ward-stage { gap: var(--sp-2); }
-  .cat-tabs { display: flex; overflow-x: auto; }
-  .cat-tab { flex: none; width: 58px; padding: 4px 2px; }
-  .cat-tab small { display: none; }
-  .ct-ic { width: 24px; height: 24px; }
+  .panel-snake { grid-template-columns: minmax(220px, 36%) minmax(0, 1fr); align-items: start; gap: var(--sp-3); }
+  .ward-stage { top: 0; background: none; padding: 0; }
+  .cat-tabs { margin: 0; padding: 0; }
+  .cat-tab { width: 58px; padding: 4px 2px; }
+  .cat-rand { width: auto; padding-inline: var(--sp-2); }
+  .ct-ic, .cat-rand svg { width: 24px; height: 24px; }
   .ct-ic .ci { width: 20px; height: 20px; } .ct-ic .ci-img { width: 24px; height: 24px; }
 }
 
@@ -667,14 +664,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .panel[data-panel="stats"] .tiles { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
   .panel[data-panel="settings"] { display: block; columns: 3 420px; column-gap: var(--sp-3); }
   .panel[data-panel="settings"] > .card { break-inside: avoid; margin-bottom: var(--sp-3); }
-  /* Customize fills the window: categories stretch beside the preview, the kit scrolls inside its panel */
-  .panel-snake { grid-template-columns: minmax(320px, 36%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; align-content: stretch; height: 100%; overflow: hidden; }
-  .ward-stage { position: static; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
-  .cat-tabs { grid-auto-rows: minmax(0, 1fr); min-height: 0; }
-  .cat-tab { align-content: center; }
-  .ct-ic { width: 44px; height: 44px; }
-  .ct-ic .ci { width: 34px; height: 34px; } .ct-ic .ci-img { width: 44px; height: 44px; }
-  .ward-body { height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+  /* Customize: the same stacked layout as on a phone, centred, with the kit scrolling inside its panel */
+  .panel-snake { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); align-items: stretch; align-content: stretch; gap: var(--sp-3); max-width: 1000px !important; width: 100%; margin: 0 auto; height: 100%; overflow: hidden; padding-right: 0; }
+  .ward-stage { position: static; padding: 0; background: none; gap: var(--sp-3); }
+  .ward-stage .pv-slot { width: min(100%, 600px, 56vh); margin: 0 auto; }
+  .cat-tabs { margin: 0; padding: 2px; }
+  .cat-tab { flex: 1 1 0; width: auto; min-width: 70px; }
+  .ward-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
   .cat .swatches, .cat .chips { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
 }
 /* PC-sized windows: everything a size larger, so the pages fill the screen */
@@ -684,13 +680,10 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .tabs button { min-height: 52px; }
   .tabs button svg { width: 24px; height: 24px; }
   .mode-card { min-height: 112px; align-content: center; }
-  .ct-ic { width: clamp(44px, 8vh, 76px); height: clamp(44px, 8vh, 76px); }
-  .ct-ic .ci { width: 70%; height: 70%; } .ct-ic .ci-img { width: 100%; height: 100%; }
   .play-hero { padding: 20px var(--sp-5); font-size: 28px; }
   .play-pill { padding: 10px 34px; }
   .home-side .lvl { padding-block: var(--sp-3); }
   .htile { padding: var(--sp-4) var(--sp-3); }
   .htile svg { width: 32px; height: 32px; }
-  .cat .swatches, .cat .chips { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
   .switch-row { padding-block: var(--sp-2); }
 }

@@ -29,10 +29,11 @@
   const WIDE = root.matchMedia('(min-width: 1000px) and (min-height: 560px)');
   const MERGED = { home: ['home', 'modes'], modes: ['home', 'modes'], unlocks: ['unlocks', 'stats'], stats: ['unlocks', 'stats'] };
   const pagesFor = name => (WIDE.matches && MERGED[name]) || [name];
-  const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', daily: 'Daily', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
+  const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', daily: 'Daily Challenge', weekly: 'Weekly missions', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
   let st, h, store;   // settings, handlers, store
 
   const D = S.daily;
+  const FROM_HOME = { daily: 1, weekly: 1 };   // detail pages with no tab of their own: they open from Home and go back to it
   const DUEL_MODES = ['classic', 'borderless', 'walls', 'poison'];
   let duelMode = 'classic';
   const svg = (inner, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true">' + inner + '</svg>';
@@ -84,7 +85,7 @@
     toggle('swRamp', 'ramp');
 
     // Daily Challenge and two-player
-    $('homeDuel').addEventListener('click', () => { h.click(); ui.setTab('daily'); $('duelCard').scrollIntoView({ block: 'start' }); });
+    $('pageBack').addEventListener('click', () => { ui.setTab('home'); h.click(); });
     $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
     $('duelStart').addEventListener('click', () => { h.click(); h.duel(duelMode); });
     const duelBox = $('duelModes');
@@ -753,8 +754,13 @@
       return '<div class="ms' + (done ? ' done' : '') + '"><div class="ms-t"><b>' + x.text + '</b><em>' + (done ? 'Done' : '+' + x.xp + ' XP') + '</em></div>' +
         '<i class="nx-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i><small>' + v + ' of ' + x.goal + (min ? ' minutes' : '') + '</small></div>';
     }).join('');
-    const tab = $('tabs').querySelector('[data-tab="daily"]'); tab.classList.toggle('dot', !played);
-    $('homeDailyNote').textContent = played ? (now + ' day streak') : 'Not played yet';
+    // The two short cards on Home.
+    const list = D.missions(w.week), doneN = w.claimed.filter(Boolean).length;
+    $('homeDaily').classList.toggle('new', !played);
+    $('homeDaily').innerHTML = '<span class="hev-ic">' + svg(MODE_ICONS[m.id]) + '</span><span class="hev-t"><b>Daily Challenge</b><small>' +
+      (played ? 'Score ' + days[key] + ' · ' + now + ' day streak' : m.name + ' · +' + D.dailyXp(now + 1) + ' XP') + '</small></span>';
+    $('homeWeek').innerHTML = '<span class="hev-ic">' + svg(TRACK_ICONS.level) + '</span><span class="hev-t"><b>Weekly missions</b><small>' + doneN + ' of 3 done</small>' +
+      '<span class="hev-bars">' + list.map((x, i) => '<i><i style="width:' + Math.min(100, D.total(w, i, x) / x.goal * 100).toFixed(1) + '%"></i></i>').join('') + '</span></span>';
     ui.updateFades();
   };
   ui.setDuel = on => { ui.el.bar.classList.toggle('duel', on); };
@@ -787,13 +793,15 @@
     ui.tab = main;
     ui.el.shell.dataset.page = main;
     $('pageTitle').textContent = main === 'unlocks' && pages.length > 1 ? 'Progress' : PAGE_TITLES[main];
-    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === main);
+    const tab = FROM_HOME[main] ? 'home' : main;
+    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === tab);
+    $('pageBack').hidden = !FROM_HOME[main];
     for (const p of document.querySelectorAll('[data-panel]')) p.hidden = pages.indexOf(p.dataset.panel) < 0;
     const slot = document.querySelector('[data-panel="' + main + '"] .pv-slot');
     if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock(); hideModeLock();
+    if (main === 'home' || FROM_HOME[main]) ui.renderDaily();
     if (main === 'home') renderHome();
-    if (main === 'daily') ui.renderDaily();
     if (ui.shows('stats')) renderStats();
     if (ui.shows('unlocks')) renderRoadmap();
     if (main === 'settings') ui.renderSync();

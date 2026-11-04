@@ -94,14 +94,13 @@
     <nav class="tabs" role="tablist" id="tabs" aria-label="Menu">
             <button role="tab" type="button" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
             <button role="tab" type="button" data-tab="modes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
-            <button role="tab" type="button" data-tab="daily" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v3H7zM15 2h2v3h-2z"/><path d="M4 4h16a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 6v9h14v-9z"/><path d="M10.800 17.500l-3-3 1.400-1.400 1.600 1.600 4-4 1.400 1.400z"/></svg><span>Daily</span></button>
             <button role="tab" type="button" data-tab="snake" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h8a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="19.5" cy="4" r="2"/></svg><span>Customize</span></button>
             <button role="tab" type="button" data-tab="unlocks" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.5L16 11H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Unlocks</span></button>
             <button role="tab" type="button" data-tab="stats" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="17" rx="1"/></svg><span>Stats</span></button>
             <button role="tab" type="button" data-tab="settings" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5-2.1-.6a7 7 0 0 0-.7-1.7l1-2-2-2-1.9 1.1a7 7 0 0 0-1.7-.7L13 3h-2l-.6 2.1a7 7 0 0 0-1.7.7L6.8 4.7l-2 2 1 2a7 7 0 0 0-.7 1.7L3 11v2l2.1.6c.2.6.4 1.2.7 1.7l-1 1.9 2 2 1.9-1c.5.3 1.1.5 1.7.7L11 21h2l.6-2.1a7 7 0 0 0 1.7-.7l1.9 1 2-2-1-1.9c.3-.5.5-1.1.7-1.7L21 13z"/></svg><span>Settings</span></button>
     </nav>
   </aside>
-  <header class="page-head"><h2 id="pageTitle">Snake Plus</h2><button class="play play-pill" id="playTop" type="button">Play</button></header>
+  <header class="page-head"><span class="ph-title"><button class="back" id="pageBack" type="button" aria-label="Back to Home" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"/></svg></button><h2 id="pageTitle">Snake Plus</h2></span><button class="play play-pill" id="playTop" type="button">Play</button></header>
   <div class="panels" id="panels">
             <section class="panel panel-home" role="tabpanel" data-panel="home">
               <div class="home-hero">
@@ -109,12 +108,12 @@
                 <div class="pv-slot"><canvas id="pv" aria-hidden="true"></canvas></div>
                 <button class="setup" type="button" data-go="modes" aria-label="Change mode and board"><span class="mode-line" id="modeLine"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 <button id="playBtn" class="play play-hero" type="button">Play</button>
-                <div class="home-quick">
-                  <button type="button" data-go="daily"><b>Daily Challenge</b><small id="homeDailyNote"></small></button>
-                  <button type="button" id="homeDuel"><b>Two-player</b><small>One screen</small></button>
-                </div>
               </div>
               <div class="home-side">
+                <div class="home-events">
+                  <button class="hev" id="homeDaily" type="button" data-go="daily"></button>
+                  <button class="hev" id="homeWeek" type="button" data-go="weekly"></button>
+                </div>
                 <button class="lvl" id="homeLvl" type="button" data-go="unlocks" title="Player level"></button>
                 <div class="home-tiles">
                   <button class="htile" type="button" data-go="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg><b id="homeBest">0</b><small>Best on this setup</small></button>
@@ -137,9 +136,13 @@
                   <span><b>Speed up as you score</b><small>Gets a little faster with every apple</small></span><i class="switch"></i>
                 </button>
               </div>
+              <div class="card" id="duelCard"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="4"/><circle cx="17" cy="9" r="3"/><path d="M1 21c0-4 3-7 7-7s7 3 7 7zM16.500 21c0-3-1-5-2.500-6.500 3-1.500 8 .5 8 6.500z"/></svg><span>Two-player</span></h3>
+                <p class="hint">Two snakes, one screen, first to 3 rounds. WASD against the arrow keys, or swipe on your own half of the screen. Doesn’t count towards your stats.</p>
+                <div class="duel-row"><div class="seg" id="duelModes"></div><button class="play" id="duelStart" type="button">Start match</button></div>
+              </div>
             </section>
 
-            <section class="panel panel-daily" role="tabpanel" data-panel="daily" hidden>
+            <section class="panel panel-detail" role="tabpanel" data-panel="daily" hidden>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 6v9h14v-9z"/></svg><span>Daily Challenge</span></h3>
                 <div class="daily-mode" id="dailyMode"></div>
                 <p class="hint" id="dailyRules"></p>
@@ -147,19 +150,12 @@
                 <p class="hint" id="dailyNote"></p>
                 <div class="streak"><div><b id="dailyStreak">0</b><small>Day streak</small></div><div><b id="dailyBest">0</b><small>Best streak</small></div><div class="dots" id="dailyDots"></div></div>
               </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.500L16 11H5" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Weekly missions</span><small id="weekLeft"></small></h3>
+            </section>
+
+            <section class="panel panel-detail" role="tabpanel" data-panel="weekly" hidden>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.500L16 11H5" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linejoin="round" stroke-linecap="round"/></svg><span>This week</span><small id="weekLeft"></small></h3>
                 <div class="week" id="weekList"></div>
-              </div>
-              <div class="card" id="duelCard"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="4"/><circle cx="17" cy="9" r="3"/><path d="M1 21c0-4 3-7 7-7s7 3 7 7zM16.500 21c0-3-1-5-2.500-6.500 3-1.500 8 .5 8 6.500z"/></svg><span>Two-player</span></h3>
-                <p class="hint">Two snakes, one screen, first to 3 rounds. Crash into anything, including the other snake, and you lose the round. These games don’t count towards your stats.</p>
-                <div class="field"><span class="label">Mode</span><div class="seg" id="duelModes"></div></div>
-                <button class="play" id="duelStart" type="button">Start match</button>
-                <div class="help">
-                  <p><kbd>WASD</kbd><span>Player 1</span></p>
-                  <p><kbd>←↑↓→</kbd><span>Player 2</span></p>
-                  <p><kbd>Swipe</kbd><span>Each player swipes on their own half of the screen</span></p>
-                  <p><kbd>Gamepad</kbd><span>One each</span></p>
-                </div>
+                <p class="hint">New missions every Monday. XP is added as soon as you finish one, and progress from all your synced devices adds up.</p>
               </div>
             </section>
 
@@ -247,6 +243,8 @@
                   <p><kbd>Esc</kbd><kbd>P</kbd><span>Pause</span></p>
                   <p><kbd>Swipe</kbd><span>Anywhere on the screen</span></p>
                   <p><kbd>Gamepad</kbd><span>D-pad or stick · Start pauses · A plays</span></p>
+                  <p><kbd>WASD</kbd><span>Player 1 in two-player</span></p>
+                  <p><kbd>←↑↓→</kbd><span>Player 2 in two-player</span></p>
                 </div>
               </div>
             </section>

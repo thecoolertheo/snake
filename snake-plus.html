@@ -540,7 +540,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 }
 .side-nav { grid-area: nav; min-width: 0; background: var(--c-surface); border-top: 1px solid var(--c-line); }
 .brand { display: none; }
-.tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: var(--sp-1) max(var(--sp-1), env(safe-area-inset-right)) max(var(--sp-1), env(safe-area-inset-bottom)) max(var(--sp-1), env(safe-area-inset-left)); }
+.tabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: var(--sp-1) max(var(--sp-1), env(safe-area-inset-right)) max(var(--sp-1), env(safe-area-inset-bottom)) max(var(--sp-1), env(safe-area-inset-left)); }
 .tabs button { display: grid; justify-items: center; gap: 3px; min-height: 52px; align-content: center; padding: var(--sp-1) 0; border: 0; border-radius: var(--r-md); background: none; color: var(--c-muted); font-size: 10.5px; font-weight: 500; cursor: pointer; transition: color var(--t-fast), background var(--t-fast); }
 .tabs button svg { width: 22px; height: 22px; fill: currentColor; }
 .tabs button[aria-selected="true"] { color: var(--c-fg); }
@@ -872,22 +872,40 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .panel[data-panel="settings"] { height: auto; overflow: visible; padding-right: 0; }
 }
 
-/* Daily page */
-.tabs button { position: relative; }
-.tabs button.dot::after { content: ''; position: absolute; top: 7px; left: calc(50% + 9px); width: 8px; height: 8px; border-radius: 50%; background: var(--c-danger); box-shadow: 0 0 0 2px var(--c-surface); }
-.home-quick { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
-.home-quick button { display: grid; gap: 1px; padding: 7px var(--sp-2); text-align: center; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: inherit; cursor: pointer; transition: background var(--t-fast); }
-.home-quick button:hover { background: var(--c-surface-2); }
-.home-quick b { font-size: var(--fs-sm); font-weight: 500; }
-.home-quick small { font-size: var(--fs-xs); color: var(--c-muted); }
-.shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .home-quick button { padding: 3px var(--sp-2); }
-.shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .home-quick small { display: none; }
+/* Daily Challenge and weekly missions: short cards on Home that open a page of their own */
+.ph-title { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
+.back { display: grid; place-items: center; width: 36px; height: 36px; flex: none; margin-left: -8px; padding: 0; border: 0; border-radius: var(--r-md); background: none; color: inherit; cursor: pointer; }
+.back:hover { background: var(--c-surface-2); }
+.back[hidden] { display: none; }
+.back svg { width: 24px; height: 24px; }
+.shell[data-page="daily"] .play-pill { display: none; }
+.home-events { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.hev { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-2); align-items: center; min-width: 0; padding: var(--sp-2); text-align: left; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: inherit; cursor: pointer; transition: background var(--t-fast), transform var(--t-fast); }
+.hev:hover { background: var(--c-surface-2); }
+.hev:active { transform: scale(.98); }
+.hev.new { border-color: color-mix(in srgb, var(--mode-accent) 45%, var(--c-line)); }
+.hev.new::after { content: ''; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--c-danger); }
+.hev-ic svg { display: block; width: 26px; height: 26px; }
+.hev-t { display: grid; gap: 1px; min-width: 0; }
+.hev-t b { font-size: var(--fs-sm); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hev-t small { font-size: var(--fs-xs); color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hev-bars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 2px; }
+.hev-bars > i { display: block; height: 4px; border-radius: 2px; overflow: hidden; background: rgba(255, 255, 255, .1); }
+.hev-bars > i > i { display: block; height: 100%; background: var(--mode-accent); }
+.shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .hev { padding: 4px var(--sp-2); }
+.shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .hev-ic svg { width: 20px; height: 20px; }
+.panel-detail { width: 100%; max-width: 640px; margin-inline: auto; }
+.duel-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.duel-row .seg { flex: 2 1 260px; }
+.duel-row .play { flex: 1 1 130px; width: auto; }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) #duelCard .hint { display: none; }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) .duel-row .play { padding-block: 6px; font-size: var(--fs-sm); }
 .daily-mode { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); align-items: center; }
 .daily-mode .mc-ic svg { width: 40px; height: 40px; display: block; }
 .daily-mode span:last-child { display: grid; gap: 2px; }
 .daily-mode b { font-size: var(--fs-lg); }
 .daily-mode small { color: var(--c-muted); font-size: var(--fs-sm); }
-.panel-daily .play { width: 100%; }
+.panel-detail .play { width: 100%; }
 .streak { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; padding-top: var(--sp-2); border-top: 1px solid var(--c-line); }
 .streak > div:not(.dots) { display: grid; }
 .streak b { font-size: var(--fs-xl); font-variant-numeric: tabular-nums; line-height: 1.1; }
@@ -912,11 +930,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .toast-note { padding: 8px 18px; border-radius: var(--r-lg); }
 .toast-note b { font-size: var(--fs-sm); font-weight: 500; }
 .ms .nx-bar > i { min-width: 0; }
-@media (min-width: 820px) { .tabs button.dot::after { top: 8px; left: 28px; } }
-@media (min-width: 1000px) and (min-height: 560px) {
-  .panel-daily { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); align-items: start; }
-  .panel-daily #duelCard { grid-column: 2; grid-row: 1 / span 2; }
-}
+/* Narrow columns: the card titles need the room more than the icons do */
+.home-events { container-type: inline-size; }
+@container (max-width: 310px) { .hev { grid-template-columns: minmax(0, 1fr); } .hev-ic { display: none; } }
 @media (max-width: 360px) { .tabs button { font-size: 9px; letter-spacing: -.2px; } }
 </style>
 </head>
@@ -995,14 +1011,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     <nav class="tabs" role="tablist" id="tabs" aria-label="Menu">
             <button role="tab" type="button" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
             <button role="tab" type="button" data-tab="modes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
-            <button role="tab" type="button" data-tab="daily" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v3H7zM15 2h2v3h-2z"/><path d="M4 4h16a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 6v9h14v-9z"/><path d="M10.800 17.500l-3-3 1.400-1.400 1.600 1.600 4-4 1.400 1.400z"/></svg><span>Daily</span></button>
             <button role="tab" type="button" data-tab="snake" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h8a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="19.5" cy="4" r="2"/></svg><span>Customize</span></button>
             <button role="tab" type="button" data-tab="unlocks" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.5L16 11H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Unlocks</span></button>
             <button role="tab" type="button" data-tab="stats" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="17" rx="1"/></svg><span>Stats</span></button>
             <button role="tab" type="button" data-tab="settings" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5-2.1-.6a7 7 0 0 0-.7-1.7l1-2-2-2-1.9 1.1a7 7 0 0 0-1.7-.7L13 3h-2l-.6 2.1a7 7 0 0 0-1.7.7L6.8 4.7l-2 2 1 2a7 7 0 0 0-.7 1.7L3 11v2l2.1.6c.2.6.4 1.2.7 1.7l-1 1.9 2 2 1.9-1c.5.3 1.1.5 1.7.7L11 21h2l.6-2.1a7 7 0 0 0 1.7-.7l1.9 1 2-2-1-1.9c.3-.5.5-1.1.7-1.7L21 13z"/></svg><span>Settings</span></button>
     </nav>
   </aside>
-  <header class="page-head"><h2 id="pageTitle">Snake Plus</h2><button class="play play-pill" id="playTop" type="button">Play</button></header>
+  <header class="page-head"><span class="ph-title"><button class="back" id="pageBack" type="button" aria-label="Back to Home" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"/></svg></button><h2 id="pageTitle">Snake Plus</h2></span><button class="play play-pill" id="playTop" type="button">Play</button></header>
   <div class="panels" id="panels">
             <section class="panel panel-home" role="tabpanel" data-panel="home">
               <div class="home-hero">
@@ -1010,12 +1025,12 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 <div class="pv-slot"><canvas id="pv" aria-hidden="true"></canvas></div>
                 <button class="setup" type="button" data-go="modes" aria-label="Change mode and board"><span class="mode-line" id="modeLine"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 <button id="playBtn" class="play play-hero" type="button">Play</button>
-                <div class="home-quick">
-                  <button type="button" data-go="daily"><b>Daily Challenge</b><small id="homeDailyNote"></small></button>
-                  <button type="button" id="homeDuel"><b>Two-player</b><small>One screen</small></button>
-                </div>
               </div>
               <div class="home-side">
+                <div class="home-events">
+                  <button class="hev" id="homeDaily" type="button" data-go="daily"></button>
+                  <button class="hev" id="homeWeek" type="button" data-go="weekly"></button>
+                </div>
                 <button class="lvl" id="homeLvl" type="button" data-go="unlocks" title="Player level"></button>
                 <div class="home-tiles">
                   <button class="htile" type="button" data-go="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg><b id="homeBest">0</b><small>Best on this setup</small></button>
@@ -1038,9 +1053,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                   <span><b>Speed up as you score</b><small>Gets a little faster with every apple</small></span><i class="switch"></i>
                 </button>
               </div>
+              <div class="card" id="duelCard"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="4"/><circle cx="17" cy="9" r="3"/><path d="M1 21c0-4 3-7 7-7s7 3 7 7zM16.500 21c0-3-1-5-2.500-6.500 3-1.500 8 .5 8 6.500z"/></svg><span>Two-player</span></h3>
+                <p class="hint">Two snakes, one screen, first to 3 rounds. WASD against the arrow keys, or swipe on your own half of the screen. Doesn’t count towards your stats.</p>
+                <div class="duel-row"><div class="seg" id="duelModes"></div><button class="play" id="duelStart" type="button">Start match</button></div>
+              </div>
             </section>
 
-            <section class="panel panel-daily" role="tabpanel" data-panel="daily" hidden>
+            <section class="panel panel-detail" role="tabpanel" data-panel="daily" hidden>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 6v9h14v-9z"/></svg><span>Daily Challenge</span></h3>
                 <div class="daily-mode" id="dailyMode"></div>
                 <p class="hint" id="dailyRules"></p>
@@ -1048,19 +1067,12 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 <p class="hint" id="dailyNote"></p>
                 <div class="streak"><div><b id="dailyStreak">0</b><small>Day streak</small></div><div><b id="dailyBest">0</b><small>Best streak</small></div><div class="dots" id="dailyDots"></div></div>
               </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.500L16 11H5" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Weekly missions</span><small id="weekLeft"></small></h3>
+            </section>
+
+            <section class="panel panel-detail" role="tabpanel" data-panel="weekly" hidden>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.500L16 11H5" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linejoin="round" stroke-linecap="round"/></svg><span>This week</span><small id="weekLeft"></small></h3>
                 <div class="week" id="weekList"></div>
-              </div>
-              <div class="card" id="duelCard"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="4"/><circle cx="17" cy="9" r="3"/><path d="M1 21c0-4 3-7 7-7s7 3 7 7zM16.500 21c0-3-1-5-2.500-6.500 3-1.500 8 .5 8 6.500z"/></svg><span>Two-player</span></h3>
-                <p class="hint">Two snakes, one screen, first to 3 rounds. Crash into anything, including the other snake, and you lose the round. These games don’t count towards your stats.</p>
-                <div class="field"><span class="label">Mode</span><div class="seg" id="duelModes"></div></div>
-                <button class="play" id="duelStart" type="button">Start match</button>
-                <div class="help">
-                  <p><kbd>WASD</kbd><span>Player 1</span></p>
-                  <p><kbd>←↑↓→</kbd><span>Player 2</span></p>
-                  <p><kbd>Swipe</kbd><span>Each player swipes on their own half of the screen</span></p>
-                  <p><kbd>Gamepad</kbd><span>One each</span></p>
-                </div>
+                <p class="hint">New missions every Monday. XP is added as soon as you finish one, and progress from all your synced devices adds up.</p>
               </div>
             </section>
 
@@ -1148,6 +1160,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                   <p><kbd>Esc</kbd><kbd>P</kbd><span>Pause</span></p>
                   <p><kbd>Swipe</kbd><span>Anywhere on the screen</span></p>
                   <p><kbd>Gamepad</kbd><span>D-pad or stick · Start pauses · A plays</span></p>
+                  <p><kbd>WASD</kbd><span>Player 1 in two-player</span></p>
+                  <p><kbd>←↑↓→</kbd><span>Player 2 in two-player</span></p>
                 </div>
               </div>
             </section>
@@ -4018,10 +4032,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const WIDE = root.matchMedia('(min-width: 1000px) and (min-height: 560px)');
   const MERGED = { home: ['home', 'modes'], modes: ['home', 'modes'], unlocks: ['unlocks', 'stats'], stats: ['unlocks', 'stats'] };
   const pagesFor = name => (WIDE.matches && MERGED[name]) || [name];
-  const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', daily: 'Daily', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
+  const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', daily: 'Daily Challenge', weekly: 'Weekly missions', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
   let st, h, store;   // settings, handlers, store
 
   const D = S.daily;
+  const FROM_HOME = { daily: 1, weekly: 1 };   // detail pages with no tab of their own: they open from Home and go back to it
   const DUEL_MODES = ['classic', 'borderless', 'walls', 'poison'];
   let duelMode = 'classic';
   const svg = (inner, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true">' + inner + '</svg>';
@@ -4073,7 +4088,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     toggle('swRamp', 'ramp');
 
     // Daily Challenge and two-player
-    $('homeDuel').addEventListener('click', () => { h.click(); ui.setTab('daily'); $('duelCard').scrollIntoView({ block: 'start' }); });
+    $('pageBack').addEventListener('click', () => { ui.setTab('home'); h.click(); });
     $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
     $('duelStart').addEventListener('click', () => { h.click(); h.duel(duelMode); });
     const duelBox = $('duelModes');
@@ -4742,8 +4757,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       return '<div class="ms' + (done ? ' done' : '') + '"><div class="ms-t"><b>' + x.text + '</b><em>' + (done ? 'Done' : '+' + x.xp + ' XP') + '</em></div>' +
         '<i class="nx-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i><small>' + v + ' of ' + x.goal + (min ? ' minutes' : '') + '</small></div>';
     }).join('');
-    const tab = $('tabs').querySelector('[data-tab="daily"]'); tab.classList.toggle('dot', !played);
-    $('homeDailyNote').textContent = played ? (now + ' day streak') : 'Not played yet';
+    // The two short cards on Home.
+    const list = D.missions(w.week), doneN = w.claimed.filter(Boolean).length;
+    $('homeDaily').classList.toggle('new', !played);
+    $('homeDaily').innerHTML = '<span class="hev-ic">' + svg(MODE_ICONS[m.id]) + '</span><span class="hev-t"><b>Daily Challenge</b><small>' +
+      (played ? 'Score ' + days[key] + ' · ' + now + ' day streak' : m.name + ' · +' + D.dailyXp(now + 1) + ' XP') + '</small></span>';
+    $('homeWeek').innerHTML = '<span class="hev-ic">' + svg(TRACK_ICONS.level) + '</span><span class="hev-t"><b>Weekly missions</b><small>' + doneN + ' of 3 done</small>' +
+      '<span class="hev-bars">' + list.map((x, i) => '<i><i style="width:' + Math.min(100, D.total(w, i, x) / x.goal * 100).toFixed(1) + '%"></i></i>').join('') + '</span></span>';
     ui.updateFades();
   };
   ui.setDuel = on => { ui.el.bar.classList.toggle('duel', on); };
@@ -4776,13 +4796,15 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ui.tab = main;
     ui.el.shell.dataset.page = main;
     $('pageTitle').textContent = main === 'unlocks' && pages.length > 1 ? 'Progress' : PAGE_TITLES[main];
-    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === main);
+    const tab = FROM_HOME[main] ? 'home' : main;
+    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === tab);
+    $('pageBack').hidden = !FROM_HOME[main];
     for (const p of document.querySelectorAll('[data-panel]')) p.hidden = pages.indexOf(p.dataset.panel) < 0;
     const slot = document.querySelector('[data-panel="' + main + '"] .pv-slot');
     if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock(); hideModeLock();
+    if (main === 'home' || FROM_HOME[main]) ui.renderDaily();
     if (main === 'home') renderHome();
-    if (main === 'daily') ui.renderDaily();
     if (ui.shows('stats')) renderStats();
     if (ui.shows('unlocks')) renderRoadmap();
     if (main === 'settings') ui.renderSync();

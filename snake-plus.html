@@ -114,9 +114,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--c-fg); outl
 /* ---------- menu ---------- */
 .overlay { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; background: var(--c-scrim); padding: var(--sp-3); touch-action: pan-y; animation: fade var(--t-med) var(--ease); }
 .menu {
-  width: min(100%, 440px); max-height: 100%; display: flex; flex-direction: column;
+  width: min(100%, 380px); max-height: 100%; display: flex; flex-direction: column;
   background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--shadow-2), 0 0 0 1px var(--c-line);
-  overflow: hidden; animation: pop var(--t-med) var(--ease);
+  overflow: hidden auto; animation: pop var(--t-med) var(--ease);
 }
 .menu-head { display: grid; justify-items: center; gap: var(--sp-2); padding: var(--sp-4) var(--sp-4) var(--sp-2); }
 .menu h1 { margin: 0; font-size: var(--fs-md); color: var(--c-muted); font-weight: 500; letter-spacing: .04em; }
@@ -128,20 +128,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--c-fg); outl
 .big-stat-btn { cursor: pointer; }
 .big-stat-btn:hover { background: var(--c-surface-2); }
 .badge { margin: 0; padding: var(--sp-1) var(--sp-3); border-radius: var(--r-pill); background: rgba(242, 201, 76, .14); color: var(--c-gold); font-size: var(--fs-sm); font-weight: 700; animation: pop var(--t-med) var(--ease); text-align: center; }
-#pv { width: min(100%, 260px); aspect-ratio: 10 / 4; border-radius: var(--r-md); display: block; box-shadow: inset 0 0 0 1px var(--c-line); }
 .mode-line { margin: 0; color: var(--c-muted); font-size: var(--fs-sm); text-align: center; }
 
-.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--sp-1); margin: 0 var(--sp-4); padding: var(--sp-1); background: var(--c-bg); border-radius: var(--r-md); }
-.tabs button { border: 0; background: none; padding: var(--sp-2) 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 500; color: var(--c-muted); cursor: pointer; transition: background var(--t-fast), color var(--t-fast); }
-.tabs button[aria-selected="true"] { background: var(--c-surface-3); color: var(--c-fg); box-shadow: var(--shadow-1); }
 
-.panels { flex: 1 1 auto; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; padding: var(--sp-3) var(--sp-4); }
-.panel { display: grid; gap: var(--sp-3); animation: fade var(--t-med) var(--ease); }
 .field { display: grid; gap: 6px; min-width: 0; }
 .label { font-size: var(--fs-xs); color: var(--c-muted); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; display: flex; justify-content: space-between; }
 .label output { color: var(--c-fg); letter-spacing: 0; }
 
-.mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: var(--sp-2); }
 .mode-card { display: grid; justify-items: center; gap: 2px; padding: var(--sp-2) var(--sp-1); border-radius: var(--r-md); border: 1px solid var(--c-line); background: var(--c-surface-2); cursor: pointer; transition: transform var(--t-fast), background var(--t-fast); }
 .mode-card svg { width: 28px; height: 28px; }
 .mode-card b { font-size: var(--fs-sm); font-weight: 500; }
@@ -216,14 +210,12 @@ input[type=range] { width: 100%; accent-color: var(--c-accent); height: 28px; }
 .unlock.done .bar-p i { background: var(--c-good); }
 .unlock small { color: var(--c-muted); font-variant-numeric: tabular-nums; }
 
-.menu-foot { padding: var(--sp-3) var(--sp-4) var(--sp-4); border-top: 1px solid var(--c-line); }
 .play { width: 100%; background: var(--c-accent); color: var(--c-accent-fg); border: 0; border-radius: var(--r-md); padding: 13px var(--sp-5); font-weight: 700; font-size: var(--fs-lg); cursor: pointer; box-shadow: 0 6px 18px rgba(91, 140, 255, .3); transition: transform var(--t-fast), filter var(--t-fast); }
 .play:hover { filter: brightness(1.08); }
 .play:active { transform: scale(.98); }
 
 /* ---------- compact pause card ---------- */
 .menu.compact { width: min(100%, 380px); }
-.menu.compact .tabs, .menu.compact .panels, .menu.compact .menu-foot, .menu.compact #pv { display: none; }
 .pause-box { display: grid; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4) var(--sp-4); }
 .pause-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
 .pbtn { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); padding: 12px var(--sp-2); border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface-2); font-size: var(--fs-md); font-weight: 500; cursor: pointer; transition: background var(--t-fast), transform var(--t-fast); }
@@ -237,8 +229,6 @@ input[type=range] { width: 100%; accent-color: var(--c-accent); height: 28px; }
 /* ---------- unlock roadmap ---------- */
 .next-goal { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); text-align: center; }
 .link { border: 0; background: none; padding: 0; color: var(--c-accent); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.unlock-sum { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--c-muted); padding: var(--sp-2) var(--sp-3); background: var(--c-bg); border-radius: var(--r-md); }
-.unlock-sum b { color: var(--c-fg); font-weight: 500; }
 .lock-note { display: grid; gap: var(--sp-1); justify-items: start; }
 .road-intro { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); }
 .roadmap { display: grid; gap: var(--sp-3); }
@@ -309,16 +299,12 @@ html.full .app { gap: 0; }
     padding: max(var(--sp-3), env(safe-area-inset-top)) max(var(--sp-3), env(safe-area-inset-right)) max(var(--sp-3), env(safe-area-inset-bottom)) max(var(--sp-3), env(safe-area-inset-left));
   }
 }
-/* Short landscape screens: header on the left, tabs on the right. */
+/* Short landscape screens: scores on the left, buttons on the right. */
 @media (max-height: 520px) and (min-width: 560px) {
   .menu { width: min(100%, 760px); display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr auto; }
   .menu-head { grid-row: 1 / 4; align-content: center; border-right: 1px solid var(--c-line); }
-  .tabs { margin-top: var(--sp-3); }
-  .panels { min-height: 0; }
   .big-stat .num { font-size: var(--fs-xl); }
-  #pv { width: 200px; }
 }
-@media (max-height: 400px) { .menu-head #pv { display: none; } }
 @media (max-height: 520px) and (min-width: 560px) {
   .menu.compact { width: min(100%, 640px); }
   .menu.compact .pause-box { grid-row: 1 / 4; align-content: center; padding: var(--sp-4); }
@@ -343,20 +329,9 @@ body { background: radial-gradient(ellipse at 50% 20%, var(--mode-glow), transpa
 .menu-head { background: radial-gradient(ellipse 80% 90% at 50% 0%, var(--mode-glow), transparent 75%); }
 .menu h1 { color: var(--mode-accent); text-transform: uppercase; letter-spacing: .14em; font-size: var(--fs-sm); font-weight: 700; }
 .big-stat .num { text-shadow: 0 2px 12px rgba(0, 0, 0, .35); }
-#pv { box-shadow: 0 6px 18px rgba(0, 0, 0, .35), 0 0 0 1px rgba(255, 255, 255, .06); }
 
-/* Tabs with icons and a sliding highlight */
-.tabs { position: relative; background: rgba(0, 0, 0, .28); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3); }
-.tabs button { position: relative; z-index: 1; display: grid; justify-items: center; gap: 2px; padding: 7px 2px 6px; font-size: var(--fs-xs); background: none !important; box-shadow: none !important; }
-.tabs button svg { width: 18px; height: 18px; fill: currentColor; transition: transform var(--t-med) var(--ease); }
-.tabs button[aria-selected="true"] { color: var(--c-fg); }
-.tabs button[aria-selected="true"] svg { color: var(--mode-accent); transform: translateY(-1px) scale(1.08); }
-.tab-ink { position: absolute; z-index: 0; top: var(--sp-1); bottom: var(--sp-1); left: 0; width: 0; border-radius: var(--r-sm);
-  background: linear-gradient(180deg, var(--c-surface-3), #1f2e25); box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255, 255, 255, .06);
-  transition: transform var(--t-med) var(--ease), width var(--t-med) var(--ease); }
 
 /* Cards */
-.panel { gap: var(--sp-3); }
 .card { display: grid; gap: var(--sp-3); padding: var(--sp-3) var(--sp-3) var(--sp-4); border-radius: var(--r-lg);
   background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, .01)); border: 1px solid var(--c-line); }
 .card-h { margin: 0; display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--c-muted); }
@@ -413,8 +388,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .chip .ci-img { width: 24px; height: 24px; flex: none; margin: -2px 0; }
 .chip.locked .ci, .chip.locked .ci-img { filter: grayscale(.9) brightness(.6); }
 .chip .lock { margin-left: -2px; }
-.unlock-sum { gap: var(--sp-3); justify-content: flex-start; background: linear-gradient(90deg, color-mix(in srgb, var(--mode-accent) 14%, transparent), rgba(0, 0, 0, .2)); border: 1px solid var(--c-line); }
-.us-ring { width: 36px; height: 36px; flex: none; border-radius: 50%; background: conic-gradient(var(--mode-accent) var(--p), rgba(0, 0, 0, .35) 0); -webkit-mask: radial-gradient(circle, transparent 11px, #000 12px); mask: radial-gradient(circle, transparent 11px, #000 12px); }
 
 /* Stats tiles */
 .tiles { grid-template-columns: repeat(3, 1fr); }
@@ -467,7 +440,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .play { background: var(--mode-accent); color: var(--mode-ink); box-shadow: 0 6px 18px -4px var(--mode-accent); transition: background var(--t-med), transform var(--t-fast), filter var(--t-fast); }
 .switch-row[aria-checked="true"] .switch::after { background: var(--mode-ink); }
 .link { color: var(--mode-accent); }
-.us-ring, .rh-bar i { transition: background var(--t-med); }
 
 /* Player level badge in the menu header */
 .lvl { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: var(--sp-2); row-gap: 5px; width: min(100%, 280px);
@@ -543,6 +515,122 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .sync-code .pbtn { grid-column: 2; grid-row: 1 / span 2; padding: 8px var(--sp-4); font-size: var(--fs-sm); }
 .sync-msg { margin: 0; font-size: var(--fs-sm); color: var(--c-gold); background: rgba(242, 201, 76, .1); border-radius: var(--r-md); padding: var(--sp-2) var(--sp-3); }
 #syncState.ok { color: var(--c-good); }
+
+/* =====================================================================
+   Pages: the menu is a full-screen app. Bottom tabs on phones, a sidebar
+   on tablets, laptops and landscape phones.
+   ===================================================================== */
+.shell {
+  position: fixed; inset: 0; z-index: 20; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "head" "main" "nav";
+  background: radial-gradient(ellipse 90% 50% at 50% 0%, var(--accent-glow), transparent 75%), var(--c-bg);
+  animation: fade var(--t-med) var(--ease);
+}
+.side-nav { grid-area: nav; min-width: 0; background: var(--c-surface); border-top: 1px solid var(--c-line); }
+.brand { display: none; }
+.tabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: var(--sp-1) max(var(--sp-1), env(safe-area-inset-right)) max(var(--sp-1), env(safe-area-inset-bottom)) max(var(--sp-1), env(safe-area-inset-left)); }
+.tabs button { display: grid; justify-items: center; gap: 3px; min-height: 52px; align-content: center; padding: var(--sp-1) 0; border: 0; border-radius: var(--r-md); background: none; color: var(--c-muted); font-size: 10.5px; font-weight: 500; cursor: pointer; transition: color var(--t-fast), background var(--t-fast); }
+.tabs button svg { width: 22px; height: 22px; fill: currentColor; }
+.tabs button[aria-selected="true"] { color: var(--c-fg); }
+.tabs button[aria-selected="true"] svg { color: var(--mode-accent); }
+
+.page-head { grid-area: head; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: max(var(--sp-3), env(safe-area-inset-top)) max(var(--sp-4), env(safe-area-inset-right)) var(--sp-2) max(var(--sp-4), env(safe-area-inset-left)); min-height: 56px; }
+.page-head h2 { margin: 0; font-size: var(--fs-xl); font-weight: 700; }
+.shell[data-page="home"] .page-head { justify-content: center; }
+.shell[data-page="home"] .page-head h2 { color: var(--mode-accent); font-size: var(--fs-md); text-transform: uppercase; letter-spacing: .16em; }
+.shell[data-page="home"] .play-pill { display: none; }
+.play-pill { width: auto; padding: 8px var(--sp-5); font-size: var(--fs-md); border-radius: var(--r-pill); box-shadow: 0 4px 12px -4px var(--mode-accent); }
+
+.panels { grid-area: main; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: var(--sp-2) max(var(--sp-4), env(safe-area-inset-right)) var(--sp-5) max(var(--sp-4), env(safe-area-inset-left)); }
+.panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); width: 100%; max-width: 1040px; margin: 0 auto; animation: fade var(--t-med) var(--ease); }
+.panel[data-panel="unlocks"], .panel[data-panel="stats"] { max-width: 820px; }
+.panel[data-panel="modes"], .panel[data-panel="settings"] { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }
+#pv { display: block; width: 100%; aspect-ratio: 10 / 4; border-radius: var(--r-md); box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 1px rgba(255, 255, 255, .06); }
+.pv-slot { min-width: 0; }
+
+/* Home */
+.panel-home { max-width: 520px; gap: var(--sp-4); }
+.home-hero, .home-side { display: grid; gap: var(--sp-3); min-width: 0; align-content: start; }
+.setup { display: flex; align-items: center; justify-content: center; gap: var(--sp-1); padding: var(--sp-2); border: 0; background: none; color: var(--c-muted); cursor: pointer; border-radius: var(--r-md); }
+.setup:hover { color: var(--c-fg); }
+.setup svg { width: 16px; height: 16px; flex: none; }
+.setup .mode-line { color: inherit; }
+.play-hero { padding: 16px var(--sp-5); font-size: var(--fs-xl); }
+.home-side .lvl { width: 100%; }
+.home-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.htile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0 var(--sp-2); padding: var(--sp-3); text-align: left; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); cursor: pointer; transition: background var(--t-fast); }
+.htile:hover { background: var(--c-surface-2); }
+.htile svg { width: 26px; height: 26px; grid-row: span 2; color: var(--mode-accent); }
+.htile b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.htile small { font-size: var(--fs-xs); color: var(--c-muted); }
+.home-next { padding: var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-md); background: none; color: var(--c-muted); font-size: var(--fs-sm); line-height: 1.45; text-align: left; cursor: pointer; }
+.home-next:hover { color: var(--c-fg); }
+
+/* Customize */
+.panel-snake { gap: var(--sp-3); }
+.ward-stage { display: grid; gap: var(--sp-2); position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); min-width: 0; }
+.ward-stage .pbtn { padding: 9px var(--sp-2); font-size: var(--fs-sm); }
+.ward-stage .pbtn svg { width: 18px; height: 18px; }
+.ward-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); align-content: start; min-width: 0; }
+.cat-tabs { display: flex; gap: var(--sp-1); overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--sp-4) * -1); padding: 2px var(--sp-4); }
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tab { flex: none; display: grid; justify-items: center; padding: 6px var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: var(--c-muted); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; transition: color var(--t-fast), border-color var(--t-fast); }
+.cat-tab small { font-size: var(--fs-xs); font-weight: 400; font-variant-numeric: tabular-nums; opacity: .8; }
+.cat-tab[aria-pressed="true"] { color: var(--c-fg); border-color: var(--mode-accent); background: var(--c-surface-2); }
+.cat-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.cat-head span { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.cat-head b { font-size: var(--fs-lg); font-weight: 700; }
+.cat-head small { color: var(--c-muted); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-filter { flex: none; padding: 5px var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-pill); background: none; color: var(--c-muted); font-size: var(--fs-xs); font-weight: 500; cursor: pointer; }
+.cat-filter[aria-pressed="true"] { color: var(--c-fg); border-color: var(--mode-accent); }
+.hide-locked .locked { display: none; }
+.cat { display: grid; gap: var(--sp-3); min-width: 0; }
+.cat .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 12px 6px; justify-items: center; }
+.cat .sw { width: 38px; height: 38px; }
+.cat .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); }
+.cat .chip { min-height: 44px; justify-content: flex-start; padding: 6px var(--sp-3) 6px 8px; border-radius: var(--r-md); text-align: left; }
+.cat .chip .lock { margin-left: auto; }
+
+/* Sidebar */
+@media (min-width: 820px), (min-width: 560px) and (max-height: 520px) {
+  .shell { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "nav head" "nav main"; }
+  .side-nav { border-top: 0; border-right: 1px solid var(--c-line); display: flex; flex-direction: column; gap: var(--sp-3);
+    padding: max(var(--sp-3), env(safe-area-inset-top)) var(--sp-2) max(var(--sp-3), env(safe-area-inset-bottom)) max(var(--sp-2), env(safe-area-inset-left)); overflow-y: auto; }
+  .tabs { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 0; }
+  .shell[data-page="home"] .page-head { justify-content: flex-start; visibility: hidden; }
+}
+@media (min-width: 820px) {
+  .side-nav { width: 216px; padding-left: max(var(--sp-3), env(safe-area-inset-left)); padding-right: var(--sp-3); }
+  .brand { display: block; padding: var(--sp-2) var(--sp-3) var(--sp-3); color: var(--mode-accent); font-size: var(--fs-md); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .tabs button { grid-template-columns: auto 1fr; justify-items: start; align-items: center; gap: var(--sp-3); min-height: 44px; padding: 0 var(--sp-3); font-size: var(--fs-md); }
+  .tabs button:hover { background: var(--c-surface-2); }
+  .tabs button[aria-selected="true"] { background: var(--c-surface-3); }
+  .panels { padding-left: var(--sp-5); padding-right: var(--sp-5); }
+  .page-head { padding-left: var(--sp-5); padding-right: var(--sp-5); }
+  .panel-home { max-width: 960px; grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); align-items: center; gap: var(--sp-6); }
+}
+/* Customize: preview beside the options once there's room */
+@media (min-width: 700px) {
+  .panel-snake { grid-template-columns: minmax(240px, 360px) minmax(0, 1fr); align-items: start; gap: var(--sp-5); }
+  .ward-stage { top: 0; background: none; padding: 0; }
+  .cat-tabs { flex-wrap: wrap; margin: 0; padding: 0; overflow: visible; }
+}
+/* Landscape phones: just enough room for the essentials */
+@media (max-height: 520px) and (min-width: 560px) {
+  .side-nav { width: 76px; padding-left: max(var(--sp-1), env(safe-area-inset-left)); padding-right: var(--sp-1); gap: 0; }
+  .brand { display: none; }
+  .tabs button { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 1px; min-height: 0; padding: 4px 0; font-size: 9.5px; }
+  .tabs button svg { width: 18px; height: 18px; }
+  .page-head { min-height: 0; padding-top: max(var(--sp-2), env(safe-area-inset-top)); padding-bottom: var(--sp-1); }
+  .page-head h2 { font-size: var(--fs-lg); }
+  .shell[data-page="home"] .page-head { display: none; }
+  .panel-home { max-width: none; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 1fr); align-items: center; gap: var(--sp-4); }
+  .play-hero { padding: 10px var(--sp-5); font-size: var(--fs-lg); }
+  .home-next { display: none; }
+}
+.shell[data-page="home"] .panels { display: grid; align-content: center; }
 </style>
 </head>
 <body>
@@ -565,7 +653,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     <div class="stage" id="stage">
       <canvas id="c" aria-label="Snake board"></canvas>
       <div class="overlay" id="overlay">
-        <div class="menu" id="menu" role="dialog" aria-labelledby="ovTitle">
+        <div class="menu compact" id="menu" role="dialog" aria-labelledby="ovTitle">
           <div class="menu-head">
             <h1 id="ovTitle">Snake Plus</h1>
             <div class="scores">
@@ -578,15 +666,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 <span class="num" id="mBest">0</span><small>Best</small>
               </button>
             </div>
-            <button class="lvl" id="lvl" type="button" data-go="unlocks" title="Player level"></button>
+            <button class="lvl" id="lvl" type="button" title="Player level"></button>
             <p class="badge" id="badge" hidden></p>
             <div class="missed" id="missed" hidden>
               <div class="ms-h"><b>What you missed</b><small>Unlocked this game. Tap one to use it.</small><button type="button" class="ms-x" id="missedClose" aria-label="Close">×</button></div>
               <div class="ms-list" id="missedList"></div>
             </div>
             <p class="next-goal" id="nextGoal" hidden></p>
-            <canvas id="pv" aria-hidden="true"></canvas>
-            <p class="mode-line" id="modeLine"></p>
           </div>
 
           <div class="pause-box" id="pauseBox" hidden>
@@ -601,18 +687,52 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
             </div>
             <p class="pause-hint">Esc, P or Start also resumes</p>
           </div>
-
-          <div class="tabs" role="tablist" id="tabs">
-            <button role="tab" type="button" data-tab="modes" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
-            <button role="tab" type="button" data-tab="snake" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h8a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="19.5" cy="4" r="2"/></svg><span>Snake</span></button>
+          <div class="pause-box" id="overBox" hidden>
+            <button class="play" id="againBtn" type="button">Play again</button>
+            <button class="pbtn" id="overHome" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="currentColor"/></svg>Main menu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dpad" id="dpad" hidden aria-label="Direction pad">
+    <button type="button" data-dir="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M12 6l7 9H5z"/></svg></button>
+    <button type="button" data-dir="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M6 12l9-7v14z"/></svg></button>
+    <button type="button" data-dir="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M18 12l-9 7V5z"/></svg></button>
+    <button type="button" data-dir="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M12 18l-7-9h14z"/></svg></button>
+  </div>
+</main>
+<div class="shell" id="shell" data-page="home">
+  <aside class="side-nav">
+    <div class="brand">Snake Plus</div>
+    <nav class="tabs" role="tablist" id="tabs" aria-label="Menu">
+            <button role="tab" type="button" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
+            <button role="tab" type="button" data-tab="modes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
+            <button role="tab" type="button" data-tab="snake" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h8a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="19.5" cy="4" r="2"/></svg><span>Customize</span></button>
             <button role="tab" type="button" data-tab="unlocks" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.5L16 11H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Unlocks</span></button>
             <button role="tab" type="button" data-tab="stats" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="17" rx="1"/></svg><span>Stats</span></button>
             <button role="tab" type="button" data-tab="settings" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5-2.1-.6a7 7 0 0 0-.7-1.7l1-2-2-2-1.9 1.1a7 7 0 0 0-1.7-.7L13 3h-2l-.6 2.1a7 7 0 0 0-1.7.7L6.8 4.7l-2 2 1 2a7 7 0 0 0-.7 1.7L3 11v2l2.1.6c.2.6.4 1.2.7 1.7l-1 1.9 2 2 1.9-1c.5.3 1.1.5 1.7.7L11 21h2l.6-2.1a7 7 0 0 0 1.7-.7l1.9 1 2-2-1-1.9c.3-.5.5-1.1.7-1.7L21 13z"/></svg><span>Settings</span></button>
-            <i class="tab-ink" id="tabInk"></i>
-          </div>
+    </nav>
+  </aside>
+  <header class="page-head"><h2 id="pageTitle">Snake Plus</h2><button class="play play-pill" id="playTop" type="button">Play</button></header>
+  <div class="panels" id="panels">
+            <section class="panel panel-home" role="tabpanel" data-panel="home">
+              <div class="home-hero">
+                <div class="pv-slot"><canvas id="pv" aria-hidden="true"></canvas></div>
+                <button class="setup" type="button" data-go="modes" aria-label="Change mode and board"><span class="mode-line" id="modeLine"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <button id="playBtn" class="play play-hero" type="button">Play</button>
+              </div>
+              <div class="home-side">
+                <button class="lvl" id="homeLvl" type="button" data-go="unlocks" title="Player level"></button>
+                <div class="home-tiles">
+                  <button class="htile" type="button" data-go="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg><b id="homeBest">0</b><small>Best on this setup</small></button>
+                  <button class="htile" type="button" data-go="unlocks"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.5L16 11H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg><b id="homeGot">0</b><small>Rewards unlocked</small></button>
+                </div>
+                <button class="home-next" id="homeNext" type="button" data-go="unlocks"></button>
+              </div>
+            </section>
 
-          <div class="panels" id="panels">
-            <section class="panel" role="tabpanel" data-panel="modes">
+            <section class="panel" role="tabpanel" data-panel="modes" hidden>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Game mode</span></h3>
                 <div class="mode-grid" id="modeGrid"></div>
               </div>
@@ -626,32 +746,30 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
               </div>
             </section>
 
-            <section class="panel" role="tabpanel" data-panel="snake" hidden>
-              <div class="unlock-sum" id="unlockSum"></div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.4-4-8.2-9-8.2z"/><circle cx="7.5" cy="11" r="1.4" fill="#16201b"/><circle cx="10" cy="7" r="1.4" fill="#16201b"/><circle cx="14.5" cy="7" r="1.4" fill="#16201b"/></svg><span>Colour</span></h3>
-                <div class="swatches" id="optColor"></div>
+            <section class="panel panel-snake" role="tabpanel" data-panel="snake" hidden>
+              <div class="ward-stage">
+                <div class="pv-slot"></div>
+                <button class="pbtn" id="shuffleBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3.5c5 0 6 10 11 10H21M3 17h3.5c1.8 0 3-1.300 4.200-3M21 7h-3.500c-1.800 0-3 1.300-4.200 3M18.500 4.500 21 7l-2.500 2.500M18.500 14.500 21 17l-2.500 2.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Surprise me</button>
+              </div>
+              <div class="ward-body" id="wardrobe">
+                <div class="cat-tabs" id="catTabs"></div>
+                <div class="cat-head"><span><b id="catTitle"></b><small id="catNow"></small></span><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></div>
+                <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
+                <div class="cat" data-cat="color"><div class="swatches" id="optColor"></div>
                 <div class="custom-pick" id="customPick" hidden>
                   <label class="cp-row"><span class="cp-well"><input type="color" id="customInput" value="#00c2a8" aria-label="Pick your custom colour"></span>
                     <span class="cp-text"><b>Your own colour</b><small id="customStatus">Pick any colour that isn't already in the game.</small></span></label>
                 </div>
+                </div>
+                <div class="cat" data-cat="pattern" hidden><div class="chips" id="optPattern"></div></div>
+                <div class="cat" data-cat="shape" hidden><div class="chips" id="optShape"></div></div>
+                <div class="cat" data-cat="eyes" hidden><div class="chips" id="optEyes"></div></div>
+                <div class="cat" data-cat="hat" hidden><div class="chips" id="optHat"></div></div>
+                <div class="cat" data-cat="burst" hidden><div class="chips" id="optBurst"></div></div>
+                <div class="cat" data-cat="trail" hidden><div class="chips" id="optTrail"></div></div>
+                <div class="cat" data-cat="food" hidden><div class="chips" id="optFood"></div></div>
+                <div class="cat" data-cat="boardSkin" hidden><div class="chips" id="optBoardSkin"></div></div>
               </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="1.4"/></svg><span>Pattern</span></h3>
-                <div class="chips" id="optPattern"></div>
-                <div class="field"><span class="label">Tail</span><div class="chips" id="optShape"></div></div>
-              </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.6" fill="#16201b"/><circle cx="15" cy="10" r="1.6" fill="#16201b"/><path d="M8.5 14.5c2 2 5 2 7 0" stroke="#16201b" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg><span>Face</span></h3>
-                <div class="field"><span class="label">Eyes</span><div class="chips" id="optEyes"></div></div>
-                <div class="field"><span class="label">Hat</span><div class="chips" id="optHat"></div></div>
-              </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="1.4"/></svg><span>Effects</span></h3>
-                <div class="field"><span class="label">Eat effect</span><div class="chips" id="optBurst"></div></div>
-                <div class="field"><span class="label">Trail</span><div class="chips" id="optTrail"></div></div>
-              </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" stroke="#16201b" stroke-width="1.4" fill="none"/></svg><span>World</span></h3>
-                <div class="field"><span class="label">Food</span><div class="chips" id="optFood"></div></div>
-                <div class="field"><span class="label">Board</span><div class="chips" id="optBoardSkin"></div></div>
-              </div>
-              <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
             </section>
 
             <section class="panel" role="tabpanel" data-panel="unlocks" hidden>
@@ -701,22 +819,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 <div class="best-list" id="bestList"></div>
               </div>
             </section>
-          </div>
-
-          <div class="menu-foot">
-            <button id="playBtn" class="play" type="button">Play</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
-  <div class="dpad" id="dpad" hidden aria-label="Direction pad">
-    <button type="button" data-dir="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M12 6l7 9H5z"/></svg></button>
-    <button type="button" data-dir="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M6 12l9-7v14z"/></svg></button>
-    <button type="button" data-dir="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M18 12l-9 7V5z"/></svg></button>
-    <button type="button" data-dir="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M12 18l-7-9h14z"/></svg></button>
-  </div>
-</main>
+</div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
@@ -2577,7 +2681,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   };
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   // Touches that start on these are left alone (buttons, menu, sliders).
-  const INTERACTIVE = 'button, a, input, select, label, .overlay, .dpad';
+  const INTERACTIVE = 'button, a, input, select, label, .overlay, .shell, .dpad';
 
   let H = null;
   const pads = {};   // gamepad index -> previous button/axis state
@@ -2696,7 +2800,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const BOARD_NAMES = { s: 'Small', m: 'Medium', l: 'Large', f: 'Fill screen' };
   const BOARD_KEYS = ['s', 'm', 'l', 'f'];
 
-  const ui = S.ui = { tab: 'modes' };
+  const ui = S.ui = { tab: 'home', cat: 'color' };
+  const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
   let st, h, store;   // settings, handlers, store
 
   const svg = (inner, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true">' + inner + '</svg>';
@@ -2709,7 +2814,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ui.el = {
       score: $('score'), best: $('best'), bestBtn: $('bestBtn'), overlay: $('overlay'), title: $('ovTitle'),
       mScore: $('mScore'), mBest: $('mBest'), mBestBtn: $('mBestBtn'), play: $('playBtn'), mute: $('muteBtn'), menu: $('menuBtn'),
-      stage: $('stage'), wrap: $('wrap'), bar: $('bar'), pv: $('pv'), app: $('app'), dpad: $('dpad'),
+      shell: $('shell'), stage: $('stage'), wrap: $('wrap'), bar: $('bar'), pv: $('pv'), app: $('app'), dpad: $('dpad'),
       badge: $('badge'), modeLine: $('modeLine'), modeTag: $('modeTag'), panels: $('panels'), lockNote: $('lockNote'), lockText: $('lockText'), nextGoal: $('nextGoal')
     };
     const E = ui.el;
@@ -2718,7 +2823,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ui.el.panels.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) { ui.setTab(b.dataset.go); h.click(); } });
     $('missedList').addEventListener('click', useMissed);
     $('missedClose').addEventListener('click', () => { $('missed').hidden = true; h.click(); });
-    $('lvl').addEventListener('click', () => { ui.setTab('unlocks'); h.click(); });
+    $('lvl').addEventListener('click', () => { ui.openPage('unlocks'); h.click(); });
     $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { ui.setTab(b.dataset.tab); h.click(); } });
 
     // Modes
@@ -2736,7 +2841,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       });
       grid.appendChild(b);
     }
-    ui.modeDesc = el('p', 'mode-desc'); grid.after(ui.modeDesc);
+    ui.modeDesc = el('p', 'mode-desc'); grid.before(ui.modeDesc);
     ui.modeLock = el('div', 'lock-note'); ui.modeLock.hidden = true;
     ui.modeLock.innerHTML = '<span></span><button type="button" class="link">See it on the roadmap</button>';
     ui.modeLock.querySelector('button').addEventListener('click', () => { ui.showOnRoad(ui.modeLockFocus); h.click(); });
@@ -2790,13 +2895,15 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
     // Bar + header buttons
     E.play.addEventListener('click', h.play);
+    $('playTop').addEventListener('click', h.play);
+    $('againBtn').addEventListener('click', h.play);
+    $('overHome').addEventListener('click', h.home);
     E.menu.addEventListener('click', h.pause);
     E.bestBtn.addEventListener('click', h.openBest);
-    E.mBestBtn.addEventListener('click', () => { ui.setTab('stats', true); h.click(); });
+    E.mBestBtn.addEventListener('click', () => { ui.openPage('stats'); h.click(); });
     E.mute.addEventListener('click', () => { st.muted = !st.muted; ui.renderMute(); h.settingsChanged('muted'); if (!st.muted) h.click(); });
     ui.renderMute();
     ui.refresh();
-    root.addEventListener('resize', () => ui.moveInk());
   };
 
   function seg(id, items, key, isGame) {
@@ -2877,8 +2984,56 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     chips('optTrail', 'trail', SK.TRAILS, 'trail');
     chips('optFood', 'food', SK.FOODS, 'food');
     chips('optBoardSkin', 'boardSkin', SK.BOARDS, 'board');
+    buildWardrobe();
   }
-  function showLock(u) { ui.lockFocus = u; ui.el.lockText.textContent = lockText(u) + ' '; ui.el.lockNote.hidden = false; ui.el.lockNote.scrollIntoView({ block: 'nearest', behavior: S.render.reduced ? 'auto' : 'smooth' }); h.click(); }
+  // Customize page: one category at a time, next to the live preview.
+  const cats = () => [
+    ['color', 'Colour', 'color', SK.COLORS.map(c => c[0])], ['pattern', 'Pattern', 'pattern', SK.PATTERNS], ['shape', 'Tail', null, SK.SHAPES],
+    ['eyes', 'Eyes', 'eyes', SK.EYES], ['hat', 'Hat', 'hat', SK.HATS], ['burst', 'Eat effect', 'burst', SK.BURSTS],
+    ['trail', 'Trail', 'trail', SK.TRAILS], ['food', 'Food', 'food', SK.FOODS], ['boardSkin', 'Board', 'board', SK.BOARDS]
+  ];
+  const openIn = (kind, n) => { let c = 0; for (let i = 0; i < n; i++) if (!kind || !lockedItem(kind, i)) c++; return c; };
+  function buildWardrobe() {
+    const box = $('catTabs');
+    for (const [id, name] of cats()) {
+      const b = el('button', 'cat-tab', '<span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
+      b.addEventListener('click', () => { ui.setCat(id); h.click(); });
+      box.appendChild(b);
+    }
+    $('catFilter').addEventListener('click', e => {
+      const on = $('wardrobe').classList.toggle('hide-locked');
+      e.currentTarget.setAttribute('aria-pressed', on); hideLock(); h.click();
+    });
+    $('shuffleBtn').addEventListener('click', shuffleLook);
+  }
+  ui.setCat = function (id) {
+    ui.cat = id; hideLock();
+    for (const c of $('wardrobe').querySelectorAll('.cat')) c.hidden = c.dataset.cat !== id;
+    renderCats();
+    const tab = $('catTabs').querySelector('[data-cat="' + id + '"]');
+    if (tab.scrollIntoView) tab.scrollIntoView({ block: 'nearest', inline: 'center', behavior: S.render.reduced ? 'auto' : 'smooth' });
+  };
+  function renderCats() {
+    for (const [id, name, kind, items] of cats()) {
+      const b = $('catTabs').querySelector('[data-cat="' + id + '"]');
+      b.setAttribute('aria-pressed', id === ui.cat);
+      b.querySelector('small').textContent = openIn(kind, items.length) + '/' + items.length;
+      if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; }
+    }
+  }
+  // Puts together a random look from what you've unlocked.
+  function shuffleLook() {
+    for (const [id, , kind, items] of cats()) {
+      const open = [];
+      for (let i = 0; i < items.length; i++) if ((!kind || !lockedItem(kind, i)) && !(id === 'color' && i === SK.CUSTOM && !st.customColor)) open.push(i);
+      st[id] = open[Math.floor(Math.random() * open.length)];
+      h.settingsChanged(id);
+    }
+    $('customPick').hidden = st.color !== SK.CUSTOM;
+    h.click(); renderSkins(); ui.bump(ui.el.pv);
+  }
+
+  function showLock(u) { ui.lockFocus = u; ui.el.lockText.textContent = lockText(u) + ' '; ui.el.lockNote.hidden = false; h.click(); }
   function hideLock() { ui.el.lockNote.hidden = true; }
 
   function renderSkins() {
@@ -2904,20 +3059,19 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     });
     chipsRender('optPattern', 'pattern', SK.PATTERNS, 'pattern');
     chipsRender('optEyes', 'eyes', SK.EYES, 'eyes');
-    const got = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length;
-    $('unlockSum').innerHTML = '<span class="us-ring" style="--p:' + (got / SK.UNLOCKS.length * 100).toFixed(1) + '%"></span><span><b>' + got + ' of ' + SK.UNLOCKS.length + '</b> rewards unlocked<br><button type="button" class="link" data-go="unlocks">See the roadmap</button></span>';
     chipsRender('optShape', 'shape', SK.SHAPES);
     chipsRender('optHat', 'hat', SK.HATS, 'hat');
     chipsRender('optBurst', 'burst', SK.BURSTS, 'burst');
     chipsRender('optTrail', 'trail', SK.TRAILS, 'trail');
     chipsRender('optFood', 'food', SK.FOODS, 'food');
     chipsRender('optBoardSkin', 'boardSkin', SK.BOARDS, 'board');
+    renderCats();
   }
 
   function showModeLock(u) {
     ui.modeLockFocus = u;
     ui.modeLock.querySelector('span').textContent = 'Locked: ' + SK.itemName(u) + '. ' + S.MODE[u.index].desc + ' To unlock: ' + lockText(u).split('. ').slice(1).join('. ') + ' ';
-    ui.modeLock.hidden = false; ui.modeLock.scrollIntoView({ block: 'nearest', behavior: S.render.reduced ? 'auto' : 'smooth' }); h.click();
+    ui.modeLock.hidden = false; h.click();
   }
   function hideModeLock() { if (ui.modeLock) ui.modeLock.hidden = true; }
 
@@ -3127,9 +3281,16 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   };
   ui.renderRoadmap = () => renderRoadmap();
 
+  function renderHome() {
+    $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
+    $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
+    const ng = ui.nextGoal(), nx = $('homeNext');
+    nx.hidden = !ng; nx.textContent = ng;
+  }
+
   // Re-render everything that depends on settings or saved data.
   ui.refresh = function () {
-    renderModes(); renderSkins(); ui.renderLevel();
+    renderModes(); renderSkins(); ui.renderLevel(); renderHome();
     if (ui.tab === 'stats') renderStats();
     const m = S.MODE[st.mode];
     const line = m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
@@ -3137,31 +3298,31 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ui.el.modeTag.textContent = m.name;
   };
 
+  // Pages: one full-screen page at a time. The preview canvas moves to whichever page shows it.
   ui.setTab = function (name, scrollToBest) {
     ui.tab = name;
+    ui.el.shell.dataset.page = name;
+    $('pageTitle').textContent = PAGE_TITLES[name];
     for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === name);
-    ui.moveInk();
     for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
+    const slot = document.querySelector('[data-panel="' + name + '"] .pv-slot');
+    if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock();
+    if (name === 'home') renderHome();
     if (name === 'stats') renderStats();
     if (name === 'unlocks') renderRoadmap();
     if (name === 'settings') ui.renderSync();
     ui.el.panels.scrollTop = 0;
     if (scrollToBest) { const hd = $('bestHeading'); ui.el.panels.scrollTop = hd.offsetTop - ui.el.panels.offsetTop - 8; }
   };
-
-  // Sliding highlight behind the active tab.
-  ui.moveInk = () => {
-    const b = $('tabs').querySelector('[aria-selected="true"]'), ink = $('tabInk');
-    if (!b || !b.offsetWidth) return;
-    ink.style.width = b.offsetWidth + 'px'; ink.style.transform = 'translateX(' + b.offsetLeft + 'px)';
-  };
+  // Opens a page from the game (the card underneath stays for when you come back to it).
+  ui.openPage = function (name) { ui.el.shell.hidden = false; ui.setTab(name, name === 'stats'); };
 
   // Player level + XP bar in the menu header.
   ui.renderLevel = function () {
     const xp = store.data.stats.xp, L = SK.levelOf(xp), a = SK.xpForLevel(L), b = SK.xpForLevel(L + 1);
     const pct = L >= 100 ? 100 : Math.min(100, (xp - a) / (b - a) * 100);
-    $('lvl').innerHTML = '<span class="lv-n">' + L + '</span><span class="lv-t"><b>' + SK.titleOf(L) + '</b><small>' +
+    $('lvl').innerHTML = $('homeLvl').innerHTML = '<span class="lv-n">' + L + '</span><span class="lv-t"><b>' + SK.titleOf(L) + '</b><small>' +
       (L >= 100 ? 'Max level!' : (b - xp) + ' XP to level ' + (L + 1)) + '</small></span><i class="lv-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i>';
   };
   ui.toastLevel = function (L, title) {
@@ -3186,7 +3347,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   function useMissed(e) {
     const b = e.target.closest('.ms-item[data-id]'); if (!b) return;
     const u = SK.UNLOCKS.find(x => x.id === b.dataset.id);
-    if (u.kind === 'color' && u.index === SK.CUSTOM && !st.customColor) { ui.setTab('snake'); $('customPick').hidden = false; h.click(); return; }
+    if (u.kind === 'color' && u.index === SK.CUSTOM && !st.customColor) { ui.openPage('snake'); ui.setCat('color'); $('customPick').hidden = false; h.click(); return; }
     st[SK.settingKey(u.kind)] = u.index; h.click();
     if (u.kind === 'mode') h.gameChanged(); else h.settingsChanged(u.kind);
     ui.refresh(); ui.bump(ui.el.pv);
@@ -3214,30 +3375,28 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ui.el.best.textContent = n;
     ui.el.bestBtn.classList.toggle('passed', !!passed);
   };
-  ui.menuOpen = () => !ui.el.overlay.hidden;
-  // o = { title, score, best, btn, badge, tab }
+  ui.pageOpen = () => !ui.el.shell.hidden;
+  ui.menuOpen = () => ui.pageOpen() || !ui.el.overlay.hidden;
+  // o = { title, score, best, btn, badge, next, missed, tab, compact, over }
+  // compact (paused) and over (game over) show a card on the board; anything else shows the pages.
   ui.showMenu = o => {
-    const E = ui.el;
-    E.title.textContent = o.title; E.mScore.textContent = o.score; E.mBest.textContent = o.best; E.play.textContent = o.btn;
+    const E = ui.el, card = !!(o.compact || o.over);
+    E.title.textContent = o.title; E.mScore.textContent = o.score; E.mBest.textContent = o.best;
+    ui.setPlayLabel(o.btn);
     E.badge.hidden = !o.badge; if (o.badge) E.badge.textContent = o.badge;
     renderMissed(o.missed);
     E.nextGoal.hidden = !o.next; if (o.next) E.nextGoal.textContent = o.next;
-    E.overlay.hidden = false;
-    requestAnimationFrame(ui.moveInk);
-    // Pause shows a compact card (no tabs, never scrolls); everything else shows the full menu.
-    $('menu').classList.toggle('compact', !!o.compact); $('pauseBox').hidden = !o.compact;
+    E.overlay.hidden = !card; E.shell.hidden = card;
+    $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
     ui.renderMute();
     ui.refresh();
-    if (o.tab) ui.setTab(o.tab, o.tab === 'stats');
-    else if (ui.tab === 'stats') renderStats();
-    else if (ui.tab === 'unlocks') renderRoadmap();
-    (o.compact ? $('resumeBtn') : E.play).focus({ preventScroll: true });
+    if (!card) ui.setTab(o.tab || 'home', o.tab === 'stats');
+    (o.compact ? $('resumeBtn') : o.over ? $('againBtn') : E.play).focus({ preventScroll: true });
   };
-  // Open the full tabbed menu from the pause card.
-  ui.expand = () => { $('menu').classList.remove('compact'); $('pauseBox').hidden = true; requestAnimationFrame(ui.moveInk); };
-  ui.setPlayLabel = t => { ui.el.play.textContent = t; };
+  ui.closeCard = () => { ui.el.overlay.hidden = true; };
+  ui.setPlayLabel = t => { ui.el.play.textContent = t; $('playTop').textContent = t; };
   ui.hideMenu = () => {
-    ui.el.overlay.hidden = true;
+    ui.el.overlay.hidden = true; ui.el.shell.hidden = true;
     const a = document.activeElement; if (a && a.blur) a.blur();
   };
   ui.bump = (node, big) => {
@@ -3660,6 +3819,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
   function turn(nx, ny) {
     if (state === 'dying') return;
+    if (ui.pageOpen() && ui.tab !== 'home') return;   // arrow keys don't start a game from Modes, Settings, ...
     if (state === 'menu' || state === 'over' || state === 'paused') {
       start();   // a direction from the menu starts the countdown and sets your first move
       if (state === 'countdown' && game.turn(nx, ny, 1)) A.sfx.turn();
@@ -3779,7 +3939,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const quiet = settings.unlockToasts === false;
     const missed = quiet && (r.unlocked.length || liveLevel || lvlUp) ? { items: r.unlocked, level: Math.max(liveLevel, lvlUp) } : null;
     if (missed) badge = r.isBest ? 'New best!' : '';   // the card already lists unlocks and level-ups
-    showMenu(title, 'Play again', { badge, next: ui.nextGoal(), missed });
+    showMenu(title, 'Play again', { over: true, badge, next: ui.nextGoal(), missed });
     if (missed) { A.sfx.unlock(); const box = document.getElementById('missed').getBoundingClientRect(); confetti.pop(box.left + box.width / 2, box.top + 20, 36); }
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
     if (r.unlocked.length > liveUnlocked.length) A.sfx.unlock();   // end-of-game unlocks (e.g. games played)
@@ -3798,7 +3958,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const w = Math.floor(cell * view.cols), h = Math.floor(cell * view.rows);
     E.wrap.style.width = w + 'px';
     view.resize(w, h);
-    if (ui.menuOpen() && E.pv.offsetParent) { const pw = E.pv.clientWidth || 200; pvView.resize(pw, Math.round(pw * PV_ROWS / PV_COLS)); }
+    if (ui.menuOpen() && E.pv.offsetParent) { const pw = E.pv.parentElement.clientWidth || 200; pvView.resize(pw, Math.round(pw * PV_ROWS / PV_COLS)); }
     if (confetti.active) confetti.resize();
   }
 
@@ -3958,6 +4118,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     }
     eats.length = w; fx.nBulges = w;
 
+    if (!ui.pageOpen()) {   // a full page covers the board, so there's no need to draw it
     const g = view.begin(shake ? (Math.random() * 2 - 1) * shake : 0, shake ? (Math.random() * 2 - 1) * shake : 0);
     ambient.draw(g, t, fdt);
     R.drawWalls(g, game, t);
@@ -3970,6 +4131,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (state === 'countdown') {
       const ce = t - countT, n = Math.min(2, Math.floor(ce / COUNT_MS));
       R.drawCountdown(g, game.cols, game.rows, String(3 - n), (ce - n * COUNT_MS) / COUNT_MS);
+    }
     }
 
     if (ui.menuOpen() && pvView.cv.offsetParent) drawPreview(t, Math.min(dt, 100));
@@ -3987,13 +4149,12 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     openBest: () => {
       if (state === 'dying') return;
       if (state === 'play' || state === 'countdown') pause();
-      if (!ui.menuOpen()) showMenu(GAME_NAME, 'Play');
-      ui.expand(); ui.setTab('stats', true);
+      ui.openPage('stats');
     },
     gameChanged: () => {
       store.save();
       if (state === 'paused') { pendingNew = true; ui.setPlayLabel('New game'); }
-      else if (state === 'menu' || state === 'over') { newGame(); state = 'menu'; ui.setPlayLabel('Play'); }
+      else if (state === 'menu' || state === 'over') { newGame(); state = 'menu'; ui.closeCard(); ui.setPlayLabel('Play'); }
       ui.el.mBest.textContent = currentBest();
       ui.refresh();
     },
@@ -4005,6 +4166,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       if (key === 'speed' || key === 'ramp') ui.refresh();
     },
     click: () => A.sfx.click(),
+    layout: () => fit(),
     // Pause card: restart counts the current game, then starts a fresh one with a countdown.
     restart: () => {
       if (state !== 'paused') return;
@@ -4013,9 +4175,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       newGame(); state = 'menu'; start();
     },
     home: () => {
-      if (state !== 'paused') return;
+      if (state !== 'paused' && state !== 'over') return;
       A.sfx.click();
-      if (game.steps > 0) endGame();
+      if (state === 'paused' && game.steps > 0) endGame();
       newGame(); state = 'menu';
       showMenu(GAME_NAME, 'Play');
     }

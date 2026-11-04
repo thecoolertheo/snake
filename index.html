@@ -39,7 +39,7 @@
     <div class="stage" id="stage">
       <canvas id="c" aria-label="Snake board"></canvas>
       <div class="overlay" id="overlay">
-        <div class="menu" id="menu" role="dialog" aria-labelledby="ovTitle">
+        <div class="menu compact" id="menu" role="dialog" aria-labelledby="ovTitle">
           <div class="menu-head">
             <h1 id="ovTitle">Snake Plus</h1>
             <div class="scores">
@@ -52,15 +52,13 @@
                 <span class="num" id="mBest">0</span><small>Best</small>
               </button>
             </div>
-            <button class="lvl" id="lvl" type="button" data-go="unlocks" title="Player level"></button>
+            <button class="lvl" id="lvl" type="button" title="Player level"></button>
             <p class="badge" id="badge" hidden></p>
             <div class="missed" id="missed" hidden>
               <div class="ms-h"><b>What you missed</b><small>Unlocked this game. Tap one to use it.</small><button type="button" class="ms-x" id="missedClose" aria-label="Close">×</button></div>
               <div class="ms-list" id="missedList"></div>
             </div>
             <p class="next-goal" id="nextGoal" hidden></p>
-            <canvas id="pv" aria-hidden="true"></canvas>
-            <p class="mode-line" id="modeLine"></p>
           </div>
 
           <div class="pause-box" id="pauseBox" hidden>
@@ -75,18 +73,52 @@
             </div>
             <p class="pause-hint">Esc, P or Start also resumes</p>
           </div>
-
-          <div class="tabs" role="tablist" id="tabs">
-            <button role="tab" type="button" data-tab="modes" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
-            <button role="tab" type="button" data-tab="snake" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h8a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="19.5" cy="4" r="2"/></svg><span>Snake</span></button>
+          <div class="pause-box" id="overBox" hidden>
+            <button class="play" id="againBtn" type="button">Play again</button>
+            <button class="pbtn" id="overHome" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="currentColor"/></svg>Main menu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dpad" id="dpad" hidden aria-label="Direction pad">
+    <button type="button" data-dir="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M12 6l7 9H5z"/></svg></button>
+    <button type="button" data-dir="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M6 12l9-7v14z"/></svg></button>
+    <button type="button" data-dir="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M18 12l-9 7V5z"/></svg></button>
+    <button type="button" data-dir="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M12 18l-7-9h14z"/></svg></button>
+  </div>
+</main>
+<div class="shell" id="shell" data-page="home">
+  <aside class="side-nav">
+    <div class="brand">Snake Plus</div>
+    <nav class="tabs" role="tablist" id="tabs" aria-label="Menu">
+            <button role="tab" type="button" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
+            <button role="tab" type="button" data-tab="modes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
+            <button role="tab" type="button" data-tab="snake" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h8a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="19.5" cy="4" r="2"/></svg><span>Customize</span></button>
             <button role="tab" type="button" data-tab="unlocks" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.5L16 11H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Unlocks</span></button>
             <button role="tab" type="button" data-tab="stats" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="17" rx="1"/></svg><span>Stats</span></button>
             <button role="tab" type="button" data-tab="settings" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5-2.1-.6a7 7 0 0 0-.7-1.7l1-2-2-2-1.9 1.1a7 7 0 0 0-1.7-.7L13 3h-2l-.6 2.1a7 7 0 0 0-1.7.7L6.8 4.7l-2 2 1 2a7 7 0 0 0-.7 1.7L3 11v2l2.1.6c.2.6.4 1.2.7 1.7l-1 1.9 2 2 1.9-1c.5.3 1.1.5 1.7.7L11 21h2l.6-2.1a7 7 0 0 0 1.7-.7l1.9 1 2-2-1-1.9c.3-.5.5-1.1.7-1.7L21 13z"/></svg><span>Settings</span></button>
-            <i class="tab-ink" id="tabInk"></i>
-          </div>
+    </nav>
+  </aside>
+  <header class="page-head"><h2 id="pageTitle">Snake Plus</h2><button class="play play-pill" id="playTop" type="button">Play</button></header>
+  <div class="panels" id="panels">
+            <section class="panel panel-home" role="tabpanel" data-panel="home">
+              <div class="home-hero">
+                <div class="pv-slot"><canvas id="pv" aria-hidden="true"></canvas></div>
+                <button class="setup" type="button" data-go="modes" aria-label="Change mode and board"><span class="mode-line" id="modeLine"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <button id="playBtn" class="play play-hero" type="button">Play</button>
+              </div>
+              <div class="home-side">
+                <button class="lvl" id="homeLvl" type="button" data-go="unlocks" title="Player level"></button>
+                <div class="home-tiles">
+                  <button class="htile" type="button" data-go="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4a7 7 0 0 1-14 0zM9 18h6v3H9zM11 14h2v4h-2z" fill="#f2c94c"/></svg><b id="homeBest">0</b><small>Best on this setup</small></button>
+                  <button class="htile" type="button" data-go="unlocks"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 3.5L16 11H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg><b id="homeGot">0</b><small>Rewards unlocked</small></button>
+                </div>
+                <button class="home-next" id="homeNext" type="button" data-go="unlocks"></button>
+              </div>
+            </section>
 
-          <div class="panels" id="panels">
-            <section class="panel" role="tabpanel" data-panel="modes">
+            <section class="panel" role="tabpanel" data-panel="modes" hidden>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Game mode</span></h3>
                 <div class="mode-grid" id="modeGrid"></div>
               </div>
@@ -100,32 +132,30 @@
               </div>
             </section>
 
-            <section class="panel" role="tabpanel" data-panel="snake" hidden>
-              <div class="unlock-sum" id="unlockSum"></div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.4-4-8.2-9-8.2z"/><circle cx="7.5" cy="11" r="1.4" fill="#16201b"/><circle cx="10" cy="7" r="1.4" fill="#16201b"/><circle cx="14.5" cy="7" r="1.4" fill="#16201b"/></svg><span>Colour</span></h3>
-                <div class="swatches" id="optColor"></div>
+            <section class="panel panel-snake" role="tabpanel" data-panel="snake" hidden>
+              <div class="ward-stage">
+                <div class="pv-slot"></div>
+                <button class="pbtn" id="shuffleBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3.5c5 0 6 10 11 10H21M3 17h3.5c1.8 0 3-1.300 4.200-3M21 7h-3.500c-1.800 0-3 1.300-4.200 3M18.500 4.500 21 7l-2.500 2.500M18.500 14.500 21 17l-2.500 2.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Surprise me</button>
+              </div>
+              <div class="ward-body" id="wardrobe">
+                <div class="cat-tabs" id="catTabs"></div>
+                <div class="cat-head"><span><b id="catTitle"></b><small id="catNow"></small></span><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></div>
+                <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
+                <div class="cat" data-cat="color"><div class="swatches" id="optColor"></div>
                 <div class="custom-pick" id="customPick" hidden>
                   <label class="cp-row"><span class="cp-well"><input type="color" id="customInput" value="#00c2a8" aria-label="Pick your custom colour"></span>
                     <span class="cp-text"><b>Your own colour</b><small id="customStatus">Pick any colour that isn't already in the game.</small></span></label>
                 </div>
+                </div>
+                <div class="cat" data-cat="pattern" hidden><div class="chips" id="optPattern"></div></div>
+                <div class="cat" data-cat="shape" hidden><div class="chips" id="optShape"></div></div>
+                <div class="cat" data-cat="eyes" hidden><div class="chips" id="optEyes"></div></div>
+                <div class="cat" data-cat="hat" hidden><div class="chips" id="optHat"></div></div>
+                <div class="cat" data-cat="burst" hidden><div class="chips" id="optBurst"></div></div>
+                <div class="cat" data-cat="trail" hidden><div class="chips" id="optTrail"></div></div>
+                <div class="cat" data-cat="food" hidden><div class="chips" id="optFood"></div></div>
+                <div class="cat" data-cat="boardSkin" hidden><div class="chips" id="optBoardSkin"></div></div>
               </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="1.4"/></svg><span>Pattern</span></h3>
-                <div class="chips" id="optPattern"></div>
-                <div class="field"><span class="label">Tail</span><div class="chips" id="optShape"></div></div>
-              </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.6" fill="#16201b"/><circle cx="15" cy="10" r="1.6" fill="#16201b"/><path d="M8.5 14.5c2 2 5 2 7 0" stroke="#16201b" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg><span>Face</span></h3>
-                <div class="field"><span class="label">Eyes</span><div class="chips" id="optEyes"></div></div>
-                <div class="field"><span class="label">Hat</span><div class="chips" id="optHat"></div></div>
-              </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="1.4"/></svg><span>Effects</span></h3>
-                <div class="field"><span class="label">Eat effect</span><div class="chips" id="optBurst"></div></div>
-                <div class="field"><span class="label">Trail</span><div class="chips" id="optTrail"></div></div>
-              </div>
-              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" stroke="#16201b" stroke-width="1.4" fill="none"/></svg><span>World</span></h3>
-                <div class="field"><span class="label">Food</span><div class="chips" id="optFood"></div></div>
-                <div class="field"><span class="label">Board</span><div class="chips" id="optBoardSkin"></div></div>
-              </div>
-              <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
             </section>
 
             <section class="panel" role="tabpanel" data-panel="unlocks" hidden>
@@ -175,22 +205,8 @@
                 <div class="best-list" id="bestList"></div>
               </div>
             </section>
-          </div>
-
-          <div class="menu-foot">
-            <button id="playBtn" class="play" type="button">Play</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
-  <div class="dpad" id="dpad" hidden aria-label="Direction pad">
-    <button type="button" data-dir="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M12 6l7 9H5z"/></svg></button>
-    <button type="button" data-dir="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M6 12l9-7v14z"/></svg></button>
-    <button type="button" data-dir="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M18 12l-9 7V5z"/></svg></button>
-    <button type="button" data-dir="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M12 18l-7-9h14z"/></svg></button>
-  </div>
-</main>
+</div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 

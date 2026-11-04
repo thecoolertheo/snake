@@ -10,7 +10,7 @@
   };
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   // Touches that start on these are left alone (buttons, menu, sliders).
-  const INTERACTIVE = 'button, a, input, select, label, .overlay, .dpad';
+  const INTERACTIVE = 'button, a, input, select, label, .overlay, .shell, .dpad';
 
   let H = null;
   const pads = {};   // gamepad index -> previous button/axis state

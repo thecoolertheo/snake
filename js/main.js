@@ -144,6 +144,7 @@
 
   function turn(nx, ny) {
     if (state === 'dying') return;
+    if (ui.pageOpen() && ui.tab !== 'home') return;   // arrow keys don't start a game from Modes, Settings, ...
     if (state === 'menu' || state === 'over' || state === 'paused') {
       start();   // a direction from the menu starts the countdown and sets your first move
       if (state === 'countdown' && game.turn(nx, ny, 1)) A.sfx.turn();
@@ -263,7 +264,7 @@
     const quiet = settings.unlockToasts === false;
     const missed = quiet && (r.unlocked.length || liveLevel || lvlUp) ? { items: r.unlocked, level: Math.max(liveLevel, lvlUp) } : null;
     if (missed) badge = r.isBest ? 'New best!' : '';   // the card already lists unlocks and level-ups
-    showMenu(title, 'Play again', { badge, next: ui.nextGoal(), missed });
+    showMenu(title, 'Play again', { over: true, badge, next: ui.nextGoal(), missed });
     if (missed) { A.sfx.unlock(); const box = document.getElementById('missed').getBoundingClientRect(); confetti.pop(box.left + box.width / 2, box.top + 20, 36); }
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
     if (r.unlocked.length > liveUnlocked.length) A.sfx.unlock();   // end-of-game unlocks (e.g. games played)
@@ -282,7 +283,7 @@
     const w = Math.floor(cell * view.cols), h = Math.floor(cell * view.rows);
     E.wrap.style.width = w + 'px';
     view.resize(w, h);
-    if (ui.menuOpen() && E.pv.offsetParent) { const pw = E.pv.clientWidth || 200; pvView.resize(pw, Math.round(pw * PV_ROWS / PV_COLS)); }
+    if (ui.menuOpen() && E.pv.offsetParent) { const pw = E.pv.parentElement.clientWidth || 200; pvView.resize(pw, Math.round(pw * PV_ROWS / PV_COLS)); }
     if (confetti.active) confetti.resize();
   }
 
@@ -442,6 +443,7 @@
     }
     eats.length = w; fx.nBulges = w;
 
+    if (!ui.pageOpen()) {   // a full page covers the board, so there's no need to draw it
     const g = view.begin(shake ? (Math.random() * 2 - 1) * shake : 0, shake ? (Math.random() * 2 - 1) * shake : 0);
     ambient.draw(g, t, fdt);
     R.drawWalls(g, game, t);
@@ -454,6 +456,7 @@
     if (state === 'countdown') {
       const ce = t - countT, n = Math.min(2, Math.floor(ce / COUNT_MS));
       R.drawCountdown(g, game.cols, game.rows, String(3 - n), (ce - n * COUNT_MS) / COUNT_MS);
+    }
     }
 
     if (ui.menuOpen() && pvView.cv.offsetParent) drawPreview(t, Math.min(dt, 100));
@@ -471,13 +474,12 @@
     openBest: () => {
       if (state === 'dying') return;
       if (state === 'play' || state === 'countdown') pause();
-      if (!ui.menuOpen()) showMenu(GAME_NAME, 'Play');
-      ui.expand(); ui.setTab('stats', true);
+      ui.openPage('stats');
     },
     gameChanged: () => {
       store.save();
       if (state === 'paused') { pendingNew = true; ui.setPlayLabel('New game'); }
-      else if (state === 'menu' || state === 'over') { newGame(); state = 'menu'; ui.setPlayLabel('Play'); }
+      else if (state === 'menu' || state === 'over') { newGame(); state = 'menu'; ui.closeCard(); ui.setPlayLabel('Play'); }
       ui.el.mBest.textContent = currentBest();
       ui.refresh();
     },
@@ -489,6 +491,7 @@
       if (key === 'speed' || key === 'ramp') ui.refresh();
     },
     click: () => A.sfx.click(),
+    layout: () => fit(),
     // Pause card: restart counts the current game, then starts a fresh one with a countdown.
     restart: () => {
       if (state !== 'paused') return;
@@ -497,9 +500,9 @@
       newGame(); state = 'menu'; start();
     },
     home: () => {
-      if (state !== 'paused') return;
+      if (state !== 'paused' && state !== 'over') return;
       A.sfx.click();
-      if (game.steps > 0) endGame();
+      if (state === 'paused' && game.steps > 0) endGame();
       newGame(); state = 'menu';
       showMenu(GAME_NAME, 'Play');
     }

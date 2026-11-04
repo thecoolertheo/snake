@@ -24,7 +24,8 @@
   const BOARD_NAMES = { s: 'Small', m: 'Medium', l: 'Large', f: 'Fill screen' };
   const BOARD_KEYS = ['s', 'm', 'l', 'f'];
 
-  const ui = S.ui = { tab: 'modes' };
+  const ui = S.ui = { tab: 'home', cat: 'color' };
+  const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
   let st, h, store;   // settings, handlers, store
 
   const svg = (inner, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true">' + inner + '</svg>';
@@ -37,7 +38,7 @@
     ui.el = {
       score: $('score'), best: $('best'), bestBtn: $('bestBtn'), overlay: $('overlay'), title: $('ovTitle'),
       mScore: $('mScore'), mBest: $('mBest'), mBestBtn: $('mBestBtn'), play: $('playBtn'), mute: $('muteBtn'), menu: $('menuBtn'),
-      stage: $('stage'), wrap: $('wrap'), bar: $('bar'), pv: $('pv'), app: $('app'), dpad: $('dpad'),
+      shell: $('shell'), stage: $('stage'), wrap: $('wrap'), bar: $('bar'), pv: $('pv'), app: $('app'), dpad: $('dpad'),
       badge: $('badge'), modeLine: $('modeLine'), modeTag: $('modeTag'), panels: $('panels'), lockNote: $('lockNote'), lockText: $('lockText'), nextGoal: $('nextGoal')
     };
     const E = ui.el;
@@ -46,7 +47,7 @@
     ui.el.panels.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) { ui.setTab(b.dataset.go); h.click(); } });
     $('missedList').addEventListener('click', useMissed);
     $('missedClose').addEventListener('click', () => { $('missed').hidden = true; h.click(); });
-    $('lvl').addEventListener('click', () => { ui.setTab('unlocks'); h.click(); });
+    $('lvl').addEventListener('click', () => { ui.openPage('unlocks'); h.click(); });
     $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { ui.setTab(b.dataset.tab); h.click(); } });
 
     // Modes
@@ -64,7 +65,7 @@
       });
       grid.appendChild(b);
     }
-    ui.modeDesc = el('p', 'mode-desc'); grid.after(ui.modeDesc);
+    ui.modeDesc = el('p', 'mode-desc'); grid.before(ui.modeDesc);
     ui.modeLock = el('div', 'lock-note'); ui.modeLock.hidden = true;
     ui.modeLock.innerHTML = '<span></span><button type="button" class="link">See it on the roadmap</button>';
     ui.modeLock.querySelector('button').addEventListener('click', () => { ui.showOnRoad(ui.modeLockFocus); h.click(); });
@@ -118,13 +119,15 @@
 
     // Bar + header buttons
     E.play.addEventListener('click', h.play);
+    $('playTop').addEventListener('click', h.play);
+    $('againBtn').addEventListener('click', h.play);
+    $('overHome').addEventListener('click', h.home);
     E.menu.addEventListener('click', h.pause);
     E.bestBtn.addEventListener('click', h.openBest);
-    E.mBestBtn.addEventListener('click', () => { ui.setTab('stats', true); h.click(); });
+    E.mBestBtn.addEventListener('click', () => { ui.openPage('stats'); h.click(); });
     E.mute.addEventListener('click', () => { st.muted = !st.muted; ui.renderMute(); h.settingsChanged('muted'); if (!st.muted) h.click(); });
     ui.renderMute();
     ui.refresh();
-    root.addEventListener('resize', () => ui.moveInk());
   };
 
   function seg(id, items, key, isGame) {
@@ -205,8 +208,56 @@
     chips('optTrail', 'trail', SK.TRAILS, 'trail');
     chips('optFood', 'food', SK.FOODS, 'food');
     chips('optBoardSkin', 'boardSkin', SK.BOARDS, 'board');
+    buildWardrobe();
   }
-  function showLock(u) { ui.lockFocus = u; ui.el.lockText.textContent = lockText(u) + ' '; ui.el.lockNote.hidden = false; ui.el.lockNote.scrollIntoView({ block: 'nearest', behavior: S.render.reduced ? 'auto' : 'smooth' }); h.click(); }
+  // Customize page: one category at a time, next to the live preview.
+  const cats = () => [
+    ['color', 'Colour', 'color', SK.COLORS.map(c => c[0])], ['pattern', 'Pattern', 'pattern', SK.PATTERNS], ['shape', 'Tail', null, SK.SHAPES],
+    ['eyes', 'Eyes', 'eyes', SK.EYES], ['hat', 'Hat', 'hat', SK.HATS], ['burst', 'Eat effect', 'burst', SK.BURSTS],
+    ['trail', 'Trail', 'trail', SK.TRAILS], ['food', 'Food', 'food', SK.FOODS], ['boardSkin', 'Board', 'board', SK.BOARDS]
+  ];
+  const openIn = (kind, n) => { let c = 0; for (let i = 0; i < n; i++) if (!kind || !lockedItem(kind, i)) c++; return c; };
+  function buildWardrobe() {
+    const box = $('catTabs');
+    for (const [id, name] of cats()) {
+      const b = el('button', 'cat-tab', '<span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
+      b.addEventListener('click', () => { ui.setCat(id); h.click(); });
+      box.appendChild(b);
+    }
+    $('catFilter').addEventListener('click', e => {
+      const on = $('wardrobe').classList.toggle('hide-locked');
+      e.currentTarget.setAttribute('aria-pressed', on); hideLock(); h.click();
+    });
+    $('shuffleBtn').addEventListener('click', shuffleLook);
+  }
+  ui.setCat = function (id) {
+    ui.cat = id; hideLock();
+    for (const c of $('wardrobe').querySelectorAll('.cat')) c.hidden = c.dataset.cat !== id;
+    renderCats();
+    const tab = $('catTabs').querySelector('[data-cat="' + id + '"]');
+    if (tab.scrollIntoView) tab.scrollIntoView({ block: 'nearest', inline: 'center', behavior: S.render.reduced ? 'auto' : 'smooth' });
+  };
+  function renderCats() {
+    for (const [id, name, kind, items] of cats()) {
+      const b = $('catTabs').querySelector('[data-cat="' + id + '"]');
+      b.setAttribute('aria-pressed', id === ui.cat);
+      b.querySelector('small').textContent = openIn(kind, items.length) + '/' + items.length;
+      if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; }
+    }
+  }
+  // Puts together a random look from what you've unlocked.
+  function shuffleLook() {
+    for (const [id, , kind, items] of cats()) {
+      const open = [];
+      for (let i = 0; i < items.length; i++) if ((!kind || !lockedItem(kind, i)) && !(id === 'color' && i === SK.CUSTOM && !st.customColor)) open.push(i);
+      st[id] = open[Math.floor(Math.random() * open.length)];
+      h.settingsChanged(id);
+    }
+    $('customPick').hidden = st.color !== SK.CUSTOM;
+    h.click(); renderSkins(); ui.bump(ui.el.pv);
+  }
+
+  function showLock(u) { ui.lockFocus = u; ui.el.lockText.textContent = lockText(u) + ' '; ui.el.lockNote.hidden = false; h.click(); }
   function hideLock() { ui.el.lockNote.hidden = true; }
 
   function renderSkins() {
@@ -232,20 +283,19 @@
     });
     chipsRender('optPattern', 'pattern', SK.PATTERNS, 'pattern');
     chipsRender('optEyes', 'eyes', SK.EYES, 'eyes');
-    const got = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length;
-    $('unlockSum').innerHTML = '<span class="us-ring" style="--p:' + (got / SK.UNLOCKS.length * 100).toFixed(1) + '%"></span><span><b>' + got + ' of ' + SK.UNLOCKS.length + '</b> rewards unlocked<br><button type="button" class="link" data-go="unlocks">See the roadmap</button></span>';
     chipsRender('optShape', 'shape', SK.SHAPES);
     chipsRender('optHat', 'hat', SK.HATS, 'hat');
     chipsRender('optBurst', 'burst', SK.BURSTS, 'burst');
     chipsRender('optTrail', 'trail', SK.TRAILS, 'trail');
     chipsRender('optFood', 'food', SK.FOODS, 'food');
     chipsRender('optBoardSkin', 'boardSkin', SK.BOARDS, 'board');
+    renderCats();
   }
 
   function showModeLock(u) {
     ui.modeLockFocus = u;
     ui.modeLock.querySelector('span').textContent = 'Locked: ' + SK.itemName(u) + '. ' + S.MODE[u.index].desc + ' To unlock: ' + lockText(u).split('. ').slice(1).join('. ') + ' ';
-    ui.modeLock.hidden = false; ui.modeLock.scrollIntoView({ block: 'nearest', behavior: S.render.reduced ? 'auto' : 'smooth' }); h.click();
+    ui.modeLock.hidden = false; h.click();
   }
   function hideModeLock() { if (ui.modeLock) ui.modeLock.hidden = true; }
 
@@ -455,9 +505,16 @@
   };
   ui.renderRoadmap = () => renderRoadmap();
 
+  function renderHome() {
+    $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
+    $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
+    const ng = ui.nextGoal(), nx = $('homeNext');
+    nx.hidden = !ng; nx.textContent = ng;
+  }
+
   // Re-render everything that depends on settings or saved data.
   ui.refresh = function () {
-    renderModes(); renderSkins(); ui.renderLevel();
+    renderModes(); renderSkins(); ui.renderLevel(); renderHome();
     if (ui.tab === 'stats') renderStats();
     const m = S.MODE[st.mode];
     const line = m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
@@ -465,31 +522,31 @@
     ui.el.modeTag.textContent = m.name;
   };
 
+  // Pages: one full-screen page at a time. The preview canvas moves to whichever page shows it.
   ui.setTab = function (name, scrollToBest) {
     ui.tab = name;
+    ui.el.shell.dataset.page = name;
+    $('pageTitle').textContent = PAGE_TITLES[name];
     for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === name);
-    ui.moveInk();
     for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
+    const slot = document.querySelector('[data-panel="' + name + '"] .pv-slot');
+    if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock();
+    if (name === 'home') renderHome();
     if (name === 'stats') renderStats();
     if (name === 'unlocks') renderRoadmap();
     if (name === 'settings') ui.renderSync();
     ui.el.panels.scrollTop = 0;
     if (scrollToBest) { const hd = $('bestHeading'); ui.el.panels.scrollTop = hd.offsetTop - ui.el.panels.offsetTop - 8; }
   };
-
-  // Sliding highlight behind the active tab.
-  ui.moveInk = () => {
-    const b = $('tabs').querySelector('[aria-selected="true"]'), ink = $('tabInk');
-    if (!b || !b.offsetWidth) return;
-    ink.style.width = b.offsetWidth + 'px'; ink.style.transform = 'translateX(' + b.offsetLeft + 'px)';
-  };
+  // Opens a page from the game (the card underneath stays for when you come back to it).
+  ui.openPage = function (name) { ui.el.shell.hidden = false; ui.setTab(name, name === 'stats'); };
 
   // Player level + XP bar in the menu header.
   ui.renderLevel = function () {
     const xp = store.data.stats.xp, L = SK.levelOf(xp), a = SK.xpForLevel(L), b = SK.xpForLevel(L + 1);
     const pct = L >= 100 ? 100 : Math.min(100, (xp - a) / (b - a) * 100);
-    $('lvl').innerHTML = '<span class="lv-n">' + L + '</span><span class="lv-t"><b>' + SK.titleOf(L) + '</b><small>' +
+    $('lvl').innerHTML = $('homeLvl').innerHTML = '<span class="lv-n">' + L + '</span><span class="lv-t"><b>' + SK.titleOf(L) + '</b><small>' +
       (L >= 100 ? 'Max level!' : (b - xp) + ' XP to level ' + (L + 1)) + '</small></span><i class="lv-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i>';
   };
   ui.toastLevel = function (L, title) {
@@ -514,7 +571,7 @@
   function useMissed(e) {
     const b = e.target.closest('.ms-item[data-id]'); if (!b) return;
     const u = SK.UNLOCKS.find(x => x.id === b.dataset.id);
-    if (u.kind === 'color' && u.index === SK.CUSTOM && !st.customColor) { ui.setTab('snake'); $('customPick').hidden = false; h.click(); return; }
+    if (u.kind === 'color' && u.index === SK.CUSTOM && !st.customColor) { ui.openPage('snake'); ui.setCat('color'); $('customPick').hidden = false; h.click(); return; }
     st[SK.settingKey(u.kind)] = u.index; h.click();
     if (u.kind === 'mode') h.gameChanged(); else h.settingsChanged(u.kind);
     ui.refresh(); ui.bump(ui.el.pv);
@@ -542,30 +599,28 @@
     ui.el.best.textContent = n;
     ui.el.bestBtn.classList.toggle('passed', !!passed);
   };
-  ui.menuOpen = () => !ui.el.overlay.hidden;
-  // o = { title, score, best, btn, badge, tab }
+  ui.pageOpen = () => !ui.el.shell.hidden;
+  ui.menuOpen = () => ui.pageOpen() || !ui.el.overlay.hidden;
+  // o = { title, score, best, btn, badge, next, missed, tab, compact, over }
+  // compact (paused) and over (game over) show a card on the board; anything else shows the pages.
   ui.showMenu = o => {
-    const E = ui.el;
-    E.title.textContent = o.title; E.mScore.textContent = o.score; E.mBest.textContent = o.best; E.play.textContent = o.btn;
+    const E = ui.el, card = !!(o.compact || o.over);
+    E.title.textContent = o.title; E.mScore.textContent = o.score; E.mBest.textContent = o.best;
+    ui.setPlayLabel(o.btn);
     E.badge.hidden = !o.badge; if (o.badge) E.badge.textContent = o.badge;
     renderMissed(o.missed);
     E.nextGoal.hidden = !o.next; if (o.next) E.nextGoal.textContent = o.next;
-    E.overlay.hidden = false;
-    requestAnimationFrame(ui.moveInk);
-    // Pause shows a compact card (no tabs, never scrolls); everything else shows the full menu.
-    $('menu').classList.toggle('compact', !!o.compact); $('pauseBox').hidden = !o.compact;
+    E.overlay.hidden = !card; E.shell.hidden = card;
+    $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
     ui.renderMute();
     ui.refresh();
-    if (o.tab) ui.setTab(o.tab, o.tab === 'stats');
-    else if (ui.tab === 'stats') renderStats();
-    else if (ui.tab === 'unlocks') renderRoadmap();
-    (o.compact ? $('resumeBtn') : E.play).focus({ preventScroll: true });
+    if (!card) ui.setTab(o.tab || 'home', o.tab === 'stats');
+    (o.compact ? $('resumeBtn') : o.over ? $('againBtn') : E.play).focus({ preventScroll: true });
   };
-  // Open the full tabbed menu from the pause card.
-  ui.expand = () => { $('menu').classList.remove('compact'); $('pauseBox').hidden = true; requestAnimationFrame(ui.moveInk); };
-  ui.setPlayLabel = t => { ui.el.play.textContent = t; };
+  ui.closeCard = () => { ui.el.overlay.hidden = true; };
+  ui.setPlayLabel = t => { ui.el.play.textContent = t; $('playTop').textContent = t; };
   ui.hideMenu = () => {
-    ui.el.overlay.hidden = true;
+    ui.el.overlay.hidden = true; ui.el.shell.hidden = true;
     const a = document.activeElement; if (a && a.blur) a.blur();
   };
   ui.bump = (node, big) => {

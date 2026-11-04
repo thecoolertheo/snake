@@ -834,3 +834,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
    --ft keeps a stuck preview solid: the fade starts underneath it. */
 .fade-y { -webkit-mask-image: linear-gradient(to bottom, #000 var(--ft, 0px), transparent var(--ft, 0px), #000 calc(var(--ft, 0px) + var(--fa, 0px)), #000 calc(100% - var(--fb, 0px)), transparent 100%); mask-image: linear-gradient(to bottom, #000 var(--ft, 0px), transparent var(--ft, 0px), #000 calc(var(--ft, 0px) + var(--fa, 0px)), #000 calc(100% - var(--fb, 0px)), transparent 100%); }
 .fade-x { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fa, 0px), #000 calc(100% - var(--fb, 0px)), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 var(--fa, 0px), #000 calc(100% - var(--fb, 0px)), transparent 100%); }
+/* Big screens: Settings flows into columns, so the page scrolls rather than the column box (which would spill sideways). */
+@media (min-width: 1000px) and (min-height: 560px) {
+  .shell[data-page="settings"] .panels { display: block; overflow-y: auto; }
+  .panel[data-panel="settings"] { height: auto; overflow: visible; padding-right: 0; }
+}

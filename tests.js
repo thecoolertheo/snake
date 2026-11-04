@@ -491,8 +491,9 @@
     eq(head(a), { x: 8, y: 8 }, 'came out the other end'); eq(a.apples === list && b.apples === list, true, 'still shared');
     eq(new Set(a.apples.map(x => x.pair)).size, 1, 'one new pair');
   });
-  test('two-player: every mode but Peaceful and Dark plays out without breaking the board', () => {
-    for (const mode of ['classic', 'borderless', 'walls', 'portal', 'poison', 'turbo', 'mirror', 'gold', 'hunger', 'runaway']) {
+  test('two-player: every mode plays out without breaking the board', () => {
+    for (const m of S.MODES) {
+      const mode = m.id;
       const r = S.util.rng(5);
       for (let round = 0; round < 25; round++) {
         const o = { cols: 12, rows: 11, apples: 3, grace: false, waitApples: true, mode, rng: r };
@@ -507,6 +508,34 @@
         }
       }
     }
+  });
+
+  test('two-player Peaceful: snakes pass through each other, even head on', () => {
+    const [a, b] = duel('peaceful');
+    place(a, [[3, 4], [2, 4], [1, 4]], [1, 0]); place(b, [[4, 4], [5, 4], [6, 4]], [-1, 0]);
+    S.duelStep(a, b); eq(a.alive && b.alive, true, 'swapped places'); eq(head(a), { x: 4, y: 4 });
+    place(a, [[3, 2], [2, 2], [1, 2]], [1, 0]); place(b, [[5, 2], [6, 2], [7, 2]], [-1, 0]);
+    S.duelStep(a, b); eq(a.alive && b.alive, true, 'same tile'); eq(head(a), head(b), 'sharing a tile');
+    let n = 0; for (const v of a.occ) n += v;
+    eq(n, a.cells.length + b.cells.length, 'occupied tiles');
+  });
+  test('two-player Peaceful: a shared apple goes to one snake, and either can get it', () => {
+    const wins = [0, 0];
+    for (let i = 0; i < 200; i++) {
+      const [a, b] = duel('peaceful'), r = S.util.rng(i + 1);
+      a.rng = r; a.apples.length = 0; a.apples.push({ x: 4, y: 4, kind: 'apple' });
+      place(a, [[3, 4], [2, 4], [1, 4]], [1, 0]); place(b, [[5, 4], [6, 4], [7, 4]], [-1, 0]);
+      S.duelStep(a, b);
+      eq(a.score + b.score, 1, 'one apple, one point'); wins[a.score ? 0 : 1]++;
+    }
+    if (wins[0] < 70 || wins[1] < 70) throw new Error('not fair: ' + wins);
+  });
+  test('two-player Peaceful: first to the goal wins, and together is a draw', () => {
+    const [a, b] = duel('peaceful'), G = S.PEACE_GOAL;
+    a.score = G - 1; b.score = G - 1; eq(S.duelRace(a, b), null, 'race still on');
+    a.score = G; eq(S.duelRace(a, b), 0, 'player 1');
+    a.score = 3; b.score = G; eq(S.duelRace(a, b), 1, 'player 2');
+    a.score = G; eq(S.duelRace(a, b), -1, 'both');
   });
 
   // ---------- leaderboard replays ----------

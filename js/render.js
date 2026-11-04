@@ -1129,6 +1129,31 @@
     }
   }
 
+  // Dark with two snakes: one pool of light each. A single gradient can only cut one hole, so the darkness
+  // is drawn on a small layer of its own, holes are erased from it, and the layer is scaled up over the board.
+  const darkLayer = document.createElement('canvas');
+  function drawDarkTwo(g, cols, rows, lights, apples, t) {
+    const W = cols * CELL, H = rows * CELL, r0 = CELL * 1.6, r1 = CELL * 4.2, s = 0.25, m = darkLayer;
+    const w = Math.ceil((W + CELL * 2) * s), h = Math.ceil((H + CELL * 2) * s);
+    if (m.width !== w || m.height !== h) { m.width = w; m.height = h; }
+    const c = m.getContext('2d');
+    c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, w, h);
+    c.fillStyle = 'rgba(6,9,7,0.97)'; c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = 'destination-out';
+    for (const [x, y] of lights) {
+      const lx = (x + CELL) * s, ly = (y + CELL) * s, gr = c.createRadialGradient(lx, ly, r0 * s, lx, ly, r1 * s);
+      gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    }
+    g.drawImage(m, -CELL, -CELL, w / s, h / s);
+    g.fillStyle = 'rgba(255,120,100,0.35)';
+    for (const a of apples) {
+      const ax = a.x * CELL + CELL / 2, ay = a.y * CELL + CELL / 2;
+      if (lights.some(([x, y]) => Math.hypot(ax - x, ay - y) < r1)) continue;
+      dot(g, ax, ay, 2.5 + (R.reduced ? 0 : Math.sin(t / 300 + a.x) * 0.8));
+    }
+  }
+
   // Mirror preview: a quick arrow beside the head showing which way the player "swiped".
   R.drawSwipeHint = function (g, cols, rows, hx, hy, dx, dy, a) {
     const W = cols * CELL, H = rows * CELL, r = CELL * 0.42;
@@ -1260,6 +1285,6 @@
     return (icons[key] = c.toDataURL());
   };
 
-  Object.assign(R, { SnakeDrawer, View, Confetti, Ambient, HungerBar, drawApple, drawWalls, drawBoard, drawCountdown, drawDark });
+  Object.assign(R, { SnakeDrawer, View, Confetti, Ambient, HungerBar, drawApple, drawWalls, drawBoard, drawCountdown, drawDark, drawDarkTwo });
   S.render = R;
 })(window);

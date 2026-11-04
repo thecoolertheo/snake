@@ -24,6 +24,7 @@
     { id: 'hunger',     name: 'Hunger',     desc: 'Keep eating! You shrink when hungry and starve at length 1.', hunger: true },
     { id: 'runaway',    name: 'Runaway',    desc: 'Apples hop away when you get close.', runaway: true }
   ];
+  const PEACE_GOAL = 15;   // two-player Peaceful is a race: first to this many apples takes the round
   const HUNGER_START = 30, HUNGER_EVERY = 8;   // steps without food before shrinking, then one cell per 8 steps
   const GOLD_CHANCE = 0.3, GOLD_LIFE = 45;   // steps a golden apple stays before turning normal
   const MODE = {}; for (const m of MODES) MODE[m.id] = m;
@@ -339,12 +340,24 @@
   S.duelStep = function (a, b) {
     const ta = a.peek(), tb = b.peek(), ha = a.cells[0], hb = b.cells[0];
     const at = (p, c) => p.x === c.x && p.y === c.y;
+    // Nothing can crash in Peaceful, so they pass through each other. If both reach an apple on the same step, a coin toss decides it.
+    if (a.rules.ghost) {
+      const flip = at(ta, tb) && a.rng() < 0.5;
+      (flip ? b : a).step(); (flip ? a : b).step();
+      return;
+    }
     const tailA = a.cells[a.cells.length - 1], tailB = b.cells[b.cells.length - 1];
     const aOnTail = at(ta, tailB), bOnTail = at(tb, tailA);
     if (at(ta, tb)) { a.clash(ta.x, ta.y, true); b.clash(tb.x, tb.y, true); return; }   // both went for the same tile
     if ((at(ta, hb) && at(tb, ha)) || (aOnTail && bOnTail)) { a.clash(ta.x, ta.y); b.clash(tb.x, tb.y); return; }   // head to head, or chasing each other's tails
     // Whoever is following the other's tail moves second, so that tail has already moved out of the way.
     if (aOnTail) { b.step(); a.step(); } else { a.step(); b.step(); }
+  };
+
+  // Two-player Peaceful: null while the race is on, otherwise 0 or 1 for the winner, or -1 if both got there together.
+  S.duelRace = function (a, b) {
+    const p = a.score >= PEACE_GOAL, q = b.score >= PEACE_GOAL;
+    return p && q ? -1 : p ? 0 : q ? 1 : null;
   };
 
   // 0..1: how close a Hunger snake is to its next shrink (0 = just ate).
@@ -387,4 +400,5 @@
   S.Game = Game;
   S.MODES = MODES;
   S.MODE = MODE;
+  S.PEACE_GOAL = PEACE_GOAL;
 })(typeof window !== 'undefined' ? window : globalThis);

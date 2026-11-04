@@ -9,7 +9,6 @@
   const AUTO_DEATH_MS = 650;   // how long a crash plays out when a new game starts by itself
   const XP_APPLE = 10, XP_GAME = 15, XP_BEST = 50;
   const ROUNDS_TO_WIN = 3;       // two-player: first to this many rounds takes the match
-  const SOLO_ONLY = { peaceful: 1, dark: 1 };   // nobody can lose in Peaceful, and Dark only has one pool of light
   // Trails: a couple of particles from the tail end on every step.
   function emitTrail(v, g) {
     const name = SK.TRAILS[settings.trail]; if (!name || name === 'None') return;
@@ -49,7 +48,7 @@
   // What kind of game this is. solo: your own setup. daily: today's challenge. duel: two players, one screen.
   let pick = settings.duel ? 'duel' : 'solo', run = { kind: 'solo' }, match = null, foe = null, duelTold = false;
   const basePick = () => (settings.duel ? 'duel' : 'solo');
-  if (!S.MODE[settings.duelMode] || SOLO_ONLY[settings.duelMode]) settings.duelMode = 'classic';
+  if (!S.MODE[settings.duelMode]) settings.duelMode = 'classic';
   // Everything needed to animate one snake. The head runs on into whatever it hit (reach), and
   // the crash only happens when it gets there. eats = gameTime of recent apples, for the lump.
   const newPlayer = () => {
@@ -70,6 +69,7 @@
   const ambient = new R.Ambient();
   me.drawer = view.snake;
   const rival = newPlayer(); rival.drawer = new R.SnakeDrawer();
+  const lights = [[0, 0], [0, 0]];   // two-player Dark: where each head is
   const liveUnlocked = [];   // rewards unlocked during the current game
   let liveLevel = 0;         // level reached during the current game (0 = no level-up)
   let liveCheckT = 0;
@@ -178,10 +178,13 @@
     bestBefore = currentBest(); passedBest = false;
     ui.setDuel(!!foe);
     ui.setScore(foe ? match.wins[0] : 0); ui.setBest(bestBefore);
-    ui.setRunTag(run.kind === 'daily' ? (run.scored ? 'Daily' : 'Daily practice') : foe ? S.MODE[match.mode].name : '');
+    ui.setRunTag(run.kind === 'daily' ? (run.scored ? 'Daily' : 'Daily practice') : foe ? duelTag() : '');
     liveUnlocked.length = 0; liveLevel = 0;
     applyTheme(); fit();
   }
+
+  // The bar's mode label. In a Peaceful race it also keeps the apple count.
+  const duelTag = () => S.MODE[match.mode].name + (game.rules.ghost ? ' ' + game.score + '–' + foe.g.score + ' of ' + S.PEACE_GOAL : '');
 
   // Starts a Daily Challenge from the menu.
   function launch(kind) {
@@ -332,11 +335,17 @@
       }
       q.g.events.length = 0;
     }
+    if (game.rules.ghost) {   // Peaceful: nobody crashes, so the round ends when someone reaches the apple goal
+      ui.setRunTag(duelTag());
+      const w = S.duelRace(game, foe.g);
+      if (w !== null) { state = 'over'; A.sfx.passBest(); finishRound(w); }
+      return;
+    }
     if (!game.alive || !foe.g.alive) { state = 'dying'; crashing = true; }
   }
 
-  function finishRound() {
-    const out = q => !q.g.alive && !q.g.won, a = out(me), b = out(foe), w = a === b ? -1 : a ? 1 : 0;
+  function finishRound(race) {
+    const out = q => !q.g.alive && !q.g.won, a = out(me), b = out(foe), w = race !== undefined ? race : a === b ? -1 : a ? 1 : 0;
     if (w >= 0) match.wins[w]++;
     const done = match.wins.some(n => n >= ROUNDS_TO_WIN), who = 'Player ' + (w + 1);
     ui.setScore(match.wins[0]); ui.setBest(match.wins[1]);
@@ -486,9 +495,19 @@
   let pvTry = null, pvTarget = null, pvHint = null;
   const pvModeId = () => pvTry || (settings.duel ? settings.duelMode : settings.mode);
   function pvTheme() { pvAmbient.reset(pvView.setTheme(pvModeId(), settings.boardSkin).amb, PV_COLS, PV_ROWS); }
+  // With Two players on, a second snake plays too, on the same little board and in player 2's colours.
+  let pvFoe = null, pvAvoid = -1;
+  const pv2 = { drawer: new R.SnakeDrawer(), skin: settings, eats: [], trim: 0, bar: new R.HungerBar(), fx: { mouth: 0, blink: 0, bulges: new Float32Array(16), nBulges: 0, squash: 0 } };
+  const pvWantsTwo = () => !!settings.duel && !pvTry;
   function pvNew() {
-    pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), grace: false });
-    pvShrinking = false; pvTrim = 0; pvEats.length = 0; pvHint = null; R.resetWalls(); pvHunger.reset(); pvGild(pvGame);
+    const o = { cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), grace: false };
+    pvFoe = null;
+    if (pvWantsTwo()) {
+      pvGame = new S.Game(Object.assign({ waitApples: true, start: { x: 2, y: 1, dx: 1 } }, o));
+      pvFoe = new S.Game(Object.assign({ waitApples: true, start: { x: PV_COLS - 3, y: 2, dx: -1 }, share: pvGame }, o));
+      pvGame.fillApples(); pv2.skin = rivalLook();
+    } else pvGame = new S.Game(o);
+    pvShrinking = false; pvTrim = 0; pv2.trim = 0; pvEats.length = 0; pv2.eats.length = 0; pv2.bar.reset(); pvHint = null; R.resetWalls(); pvHunger.reset(); pvGild(pvGame);
   }
   // Gold Rush: golden apples are rare in a real game, so show them often here.
   function pvGild(g) {
@@ -503,7 +522,7 @@
   }
   // Can the snake step onto tile i? The tail tile is fine because it moves away.
   function pvOpen(g, i) {
-    if (g.wall[i]) return false;
+    if (g.wall[i] || i === pvAvoid) return false;
     const x = i % g.cols, y = (i / g.cols) | 0, ai = g.appleAt(x, y);
     if (ai >= 0 && g.apples[ai] !== pvTarget && (g.apples[ai].kind === 'poison' || g.apples[ai].kind === 'portal')) return false;
     if (g.rules.ghost) return true;
@@ -566,6 +585,7 @@
     return pool[(Math.random() * pool.length) | 0].d;
   }
   function pvStep() {
+    if (pvFoe) return pvStepTwo();
     const g = pvGame, d = pvChoose(g);
     if (!d) { pvNew(); return; }
     // Mirror flips every turn, so it swipes the opposite way; the arrow shows that swipe.
@@ -574,12 +594,36 @@
     g.turn(d.x * flip, d.y * flip, 1); g.step();
     if (!g.alive) { pvNew(); return; }
     emitTrail(pvView, g);
+    pvEffects(g, pvEats, pvHunger);
+    pvGild(g);
+    if (g.wallCount >= 7) { pvNew(); return; }   // the mini board fills up fast: clear it and go again
+    if (g.cells.length >= PV_MAX && !pvShrinking) { pvShrinking = true; pvShrinkT = 0; }
+  }
+  // Both snakes choose, then step together. The second steers clear of the tile the first is heading for.
+  function pvStepTwo() {
+    const a = pvGame, b = pvFoe, da = pvChoose(a);
+    if (!da) { pvNew(); return; }
+    const flip = a.rules.mirror ? -1 : 1;
+    pvAvoid = a.rules.ghost ? -1 : pvNext(a, a.cells[0].x, a.cells[0].y, da);
+    const db = pvChoose(b);
+    pvAvoid = -1;
+    if (!db) { pvNew(); return; }
+    a.turn(da.x * flip, da.y * flip, 1); b.turn(db.x * flip, db.y * flip, 1);
+    S.duelStep(a, b);
+    if (!a.alive || !b.alive) { pvNew(); return; }
+    emitTrail(pvView, a); emitTrail(pvView, b);
+    pvEffects(a, pvEats, pvHunger); pvEffects(b, pv2.eats, pv2.bar);
+    pvGild(a);
+    if (a.wallCount + b.wallCount >= 7) { pvNew(); return; }
+    if (a.cells.length + b.cells.length >= PV_MAX + 6 && !pvShrinking) { pvShrinking = true; pvShrinkT = 0; }
+  }
+  function pvEffects(g, eaten, bar) {
     const now = performance.now();
     for (const e of g.events) {
       const cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
       if (e.type === 'eat') {
-        pvHunger.fed(now);
-        for (let k = 0; k < (e.worth || 1); k++) pvEats.push(pvTime.t - k * baseMs() * 0.6);
+        bar.fed(now);
+        for (let k = 0; k < (e.worth || 1); k++) eaten.push(pvTime.t - k * baseMs() * 0.6);
         if (e.kind === 'gold') pvView.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22);
         else if (e.kind !== 'portal') {
           const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
@@ -589,29 +633,32 @@
         const c = R.PORTAL_COLORS[e.pair % R.PORTAL_COLORS.length];
         pvView.fx.ring(cx, cy, now, c); pvView.fx.burst(e.tx * CELL + CELL / 2, e.ty * CELL + CELL / 2, now, [c, '#ffffff', c], 10);
       } else if (e.type === 'poison') pvView.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']);
-      else if (e.type === 'shrink') { pvView.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); pvHunger.hit(now); }
+      else if (e.type === 'shrink') { pvView.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); bar.hit(now); }
       else if (e.type === 'expire') pvView.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6);
     }
     g.events.length = 0;
-    pvGild(g);
-    if (g.wallCount >= 7) { pvNew(); return; }   // the mini board fills up fast: clear it and go again
-    if (g.cells.length >= PV_MAX && !pvShrinking) { pvShrinking = true; pvShrinkT = 0; }
   }
   // Too long for the mini board: the tail reels in smoothly, quick at first and easing off as it gets short.
-  function pvShrink(g, dt) {
-    pvShrinkT += dt;
-    pvTrim += dt / 1000 * (3 + (g.cells.length - 3) * 0.75) * Math.min(1, pvShrinkT / 350);
-    for (;;) {
+  function pvReel(g, trim, dt) {
+    trim += dt / 1000 * (3 + (g.cells.length - 3) * 0.75) * Math.min(1, pvShrinkT / 350);
+    while (g.cells.length > 3) {
       // Going off one edge and back on the other adds a cell's length of path, so that stretch counts double.
       const next = g.cells[g.cells.length - 2], size = next.ja && (next.jb.x !== next.x || next.jb.y !== next.y) ? 2 : 1;
-      if (pvTrim < size) break;
-      pvTrim -= size;
-      if (!g.trimTail() || g.cells.length <= 3) { pvShrinking = false; pvTrim = 0; g.score = 0; break; }
+      if (trim < size) return trim;
+      trim -= size;
+      g.trimTail();
     }
+    return 0;
+  }
+  function pvShrink(g, dt) {
+    pvShrinkT += dt;
+    pvTrim = pvReel(g, pvTrim, dt);
+    if (pvFoe) pv2.trim = pvReel(pvFoe, pv2.trim, dt);
+    if (g.cells.length <= 3 && (!pvFoe || pvFoe.cells.length <= 3)) { pvShrinking = false; pvTrim = pv2.trim = 0; g.score = 0; if (pvFoe) pvFoe.score = 0; }
   }
   const pvStepMs = g => baseMs() * (g.rules.turbo ? Math.max(0.35, 0.7 * Math.pow(0.92, g.score)) : 1);
   function drawPreview(t, dt) {
-    if (!pvGame || pvGame.mode !== pvModeId() || pvGame.appleCount !== settings.apples) pvNew();
+    if (!pvGame || pvGame.mode !== pvModeId() || pvGame.appleCount !== settings.apples || !!pvFoe !== pvWantsTwo()) pvNew();
     pvAcc += dt; pvTime.t += dt;
     let ms = pvStepMs(pvGame);
     while (pvAcc >= ms) { pvAcc -= ms; pvStep(); ms = pvStepMs(pvGame); }
@@ -632,10 +679,29 @@
     for (const a of g.apples) R.drawApple(gc, a, t, g, p);
     const ang = U.lerpAng(U.angOf(g.prevDir.x, g.prevDir.y), U.angOf(g.dir.x, g.dir.y), U.ease(Math.min(1, p / 0.7)));
     pvSnake.draw(gc, g.cells, g.prevTail, p, CELL, ang, settings, pvFx);
-    const P = pvSnake.path, hx = P.x[P.n - 1], hy = P.y[P.n - 1];
-    if (g.rules.hunger) pvHunger.draw(gc, g.cols, g.rows, g.hungerLevel(p), t, fdt);
+    const P = pvSnake.path, hx = P.x[P.n - 1], hy = P.y[P.n - 1], f = pvFoe;
+    if (f) {
+      const F = pv2.fx;
+      F.trim = pv2.trim * CELL; F.blink = fx.blink;
+      let k = 0;
+      for (let i = 0; i < pv2.eats.length; i++) {
+        const d = (pvTime.t - pv2.eats[i]) / ms * CELL * 1.6;
+        if (d < f.cells.length * CELL + CELL && k < F.bulges.length) { pv2.eats[k] = pv2.eats[i]; F.bulges[k++] = d; }
+      }
+      pv2.eats.length = k; F.nBulges = k;
+      const a2 = U.lerpAng(U.angOf(f.prevDir.x, f.prevDir.y), U.angOf(f.dir.x, f.dir.y), U.ease(Math.min(1, p / 0.7)));
+      pv2.drawer.draw(gc, f.cells, f.prevTail, p, CELL, a2, pv2.skin, F);
+    }
+    if (g.rules.hunger) {
+      pvHunger.draw(gc, g.cols, g.rows, g.hungerLevel(p), t, fdt);
+      if (f) pv2.bar.draw(gc, g.cols, g.rows, f.hungerLevel(p), t, fdt, true);
+    }
     pvView.fx.draw(gc, t, fdt);
-    if (g.rules.dark) R.drawDark(gc, g.cols, g.rows, hx, hy, g.apples, t);   // over the effects, so they stay hidden in the dark too
+    // Over the effects, so they stay hidden in the dark too.
+    if (g.rules.dark) {
+      if (f) { const Q = pv2.drawer.path; lights[0][0] = hx; lights[0][1] = hy; lights[1][0] = Q.x[Q.n - 1]; lights[1][1] = Q.y[Q.n - 1]; R.drawDarkTwo(gc, g.cols, g.rows, lights, g.apples, t); }
+      else R.drawDark(gc, g.cols, g.rows, hx, hy, g.apples, t);
+    }
     if (pvHint) {
       const age = (performance.now() - pvHint.t) / 650;
       if (age >= 1) pvHint = null; else R.drawSwipeHint(gc, g.cols, g.rows, hx, hy, pvHint.x, pvHint.y, 1 - age);
@@ -728,7 +794,10 @@
     }
     if (game.rules.hunger && state !== 'menu') for (const q of players) q.bar.draw(g, game.cols, game.rows, q.g.hungerLevel(state === 'play' ? p : 0), t, fdt, q === foe, foe ? U.rgb(U.hexRgb(SK.colorHex(q.skin))) : null);
     view.fx.draw(g, t, fdt);
-    if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }   // over the effects, so they stay hidden in the dark too
+    if (game.rules.dark) {
+      if (foe) { const P = view.snake.path, Q = foe.drawer.path; lights[0][0] = P.x[P.n - 1]; lights[0][1] = P.y[P.n - 1]; lights[1][0] = Q.x[Q.n - 1]; lights[1][1] = Q.y[Q.n - 1]; R.drawDarkTwo(g, game.cols, game.rows, lights, game.apples, t); }
+      else { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }
+    }   // over the effects, so they stay hidden in the dark too
     if (state === 'countdown') {
       const ce = t - countT, n = Math.min(2, Math.floor(ce / COUNT_MS));
       R.drawCountdown(g, game.cols, game.rows, String(3 - n), (ce - n * COUNT_MS) / COUNT_MS);
@@ -766,6 +835,7 @@
     tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
       store.save(); applyAudio();
+      if (pvFoe) pv2.skin = rivalLook();   // player 2 stays different from whatever you've just put on
       R.noConfetti = !settings.confetti;
       if (key === 'color' || key === 'pattern' || key === 'customGrad') applyAccent();
       if (key === 'board' || key === 'boardSkin') { applyTheme(); fit(); }
@@ -832,5 +902,5 @@
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // Handy for debugging and automated checks.
-  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get foe() { return foe && foe.g; }, get run() { return run; }, get match() { return match; }, get preview() { return pvGame; }, get previewPath() { return pvSnake.path; } };
+  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get foe() { return foe && foe.g; }, get run() { return run; }, get match() { return match; }, get preview() { return pvGame; }, get previewFoe() { return pvFoe; }, get previewPath() { return pvSnake.path; } };
 })(window);

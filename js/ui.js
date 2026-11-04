@@ -34,7 +34,8 @@
 
   const D = S.daily;
   const FROM_HOME = { daily: 1, weekly: 1 };   // detail pages with no tab of their own: they open from Home and go back to it
-  const SOLO_ONLY = { peaceful: 1, dark: 1 };   // the modes that can't work with two snakes
+  // Two-player says more than the solo line for these two, because they play differently.
+  const duelDesc = id => ({ peaceful: 'You can’t crash. First to ' + S.PEACE_GOAL + ' apples takes the round.', dark: 'You each have your own light, so you can’t see each other until you get close.' }[id] || S.MODE[id].desc);
   const svg = (inner, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true">' + inner + '</svg>';
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const pressed = (box, fn) => [...box.children].forEach((c, i) => c.setAttribute('aria-pressed', fn(c, i)));
@@ -68,7 +69,6 @@
       b.innerHTML = '<span class="mc-ic">' + svg(MODE_ICONS[m.id]) + '</span><b>' + m.name + '</b><small></small>';
       b.addEventListener('click', () => {
         if (st.duel) {   // two players get every mode, locked or not, and keep your solo mode as it was
-          if (SOLO_ONLY[m.id]) return;
           st.duelMode = m.id; h.gameChanged(); h.click();
           return;
         }
@@ -471,11 +471,11 @@
     for (const b of cards) {
       const id = b.dataset.mode;
       b.setAttribute('aria-pressed', (st.duel ? st.duelMode : st.mode) === id);
-      const u = !st.duel && lockedItem('mode', id), off = st.duel && SOLO_ONLY[id];
-      b.classList.toggle('locked', !!u || !!off);
-      b.querySelector('small').innerHTML = off ? 'Solo only' : st.duel ? 'Two players' : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
+      const u = !st.duel && lockedItem('mode', id);
+      b.classList.toggle('locked', !!u);
+      b.querySelector('small').innerHTML = st.duel ? (id === 'peaceful' ? 'First to ' + S.PEACE_GOAL : 'Two players') : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
     }
-    ui.modeDesc.textContent = S.MODE[st.duel ? st.duelMode : st.mode].desc;
+    ui.modeDesc.textContent = st.duel ? duelDesc(st.duelMode) : S.MODE[st.mode].desc;
     $('swDuel').setAttribute('aria-checked', !!st.duel);
     ui._seg_board(); ui._seg_apples(); ui._seg_speed();
     $('swRamp').setAttribute('aria-checked', !!st.ramp);

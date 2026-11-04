@@ -91,6 +91,7 @@
     }
     busy = false;
     if (again) { again = false; schedule(400); }
+    else if (sync.state === 'error' && navigator.onLine !== false) schedule(1500);   // try again soon, not at the next regular check
   }
 
   sync.init = function (_store, handlers) {

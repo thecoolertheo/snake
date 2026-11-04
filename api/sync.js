@@ -6,17 +6,26 @@ const core = require('../js/sync-core.js');
 
 const DB = process.env.DATABASE_URL;
 const MAX_BODY = 64 * 1024;
+const DB_TIMEOUT = 3000;
 
-async function sql(query, params) {
+async function query1(query, params) {
   const host = new URL(DB).hostname.replace(/^[^.]+\./, 'api.');
   const r = await fetch('https://' + host + '/sql', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Neon-Connection-String': DB, 'Neon-Raw-Text-Output': 'true', 'Neon-Array-Mode': 'true' },
-    body: JSON.stringify({ query, params: params || [] })
+    body: JSON.stringify({ query, params: params || [] }),
+    signal: AbortSignal.timeout(DB_TIMEOUT)
   });
   const j = await r.json().catch(() => null);
   if (!r.ok || !j) throw new Error('db ' + r.status + ' ' + (j && j.message));
   return j.rows || [];
+}
+// A stuck database connection shouldn't hold the request up, so give up on it quickly and try again.
+async function sql(query, params) {
+  for (let i = 0; ; i++) {
+    try { return await query1(query, params); }
+    catch (e) { if (e.name !== 'TimeoutError' || i >= 2) throw e; console.error('db call timed out, retrying'); }
+  }
 }
 
 let ready = null;

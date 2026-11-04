@@ -308,11 +308,29 @@
       eq(C.mergeDocs(old, nu).settings, { color: 7, hat: 0 });
       const t = Date.now(); eq(C.mergeDocs({ settings: { color: 1 }, settingsAt: t }, { settings: { color: 2 }, settingsAt: t + 1 }).settings.color, 2, 'real timestamps'); eq(C.mergeDocs(nu, old).settings, { color: 7, hat: 0 }); eq(C.mergeDocs(nu, old).settingsAt, 200);
     });
-    test('sync: saved looks are kept and checked', () => {
-      const look = { color: 1, pattern: 2, shape: 0, eyes: 3, hat: 4, burst: 5, trail: 6, food: 7, boardSkin: 8, customColor: '#123456' };
-      const m = C.mergeDocs({ settings: {}, settingsAt: 1 }, { settings: { combos: [look, null, { color: 'x' }, null, null] }, settingsAt: 2 });
-      eq(m.settings.combos, [look, null, null, null, null]);
-      eq('combos' in C.sanitize({ settings: { combos: [look] } }).settings, false, 'wrong length');
+    const LOOK = { color: 1, pattern: 2, shape: 0, eyes: 3, hat: 4, burst: 5, trail: 6, food: 7, boardSkin: 8, customColor: '#123456' };
+    const slots = o => [0, 1, 2, 3, 4].map(i => o[i] || { look: null, at: 0 });
+    test('sync: saved looks merge slot by slot', () => {
+      const a = { combos: slots({ 0: { look: LOOK, at: 5 } }) }, b = { combos: slots({ 3: { look: Object.assign({}, LOOK, { hat: 9 }), at: 2 } }) };
+      const m = C.mergeDocs(a, b);
+      eq(m.combos[0].look.hat, 4, 'slot from one device'); eq(m.combos[3].look.hat, 9, 'slot from the other');
+      eq(C.mergeDocs(b, a).combos[0].at, 5, 'either way round');
+    });
+    test('sync: changing your look never touches saved looks', () => {
+      const a = { settings: { color: 1 }, settingsAt: 1, combos: slots({ 2: { look: LOOK, at: 1 } }) };
+      const m = C.mergeDocs(a, { settings: { color: 9 }, settingsAt: 99 });   // e.g. an older version that doesn't know saved looks
+      eq(m.settings.color, 9); eq(m.combos[2].look, LOOK);
+    });
+    test('sync: clearing a slot spreads, and bad slots are dropped', () => {
+      const m = C.mergeDocs({ combos: slots({ 1: { look: LOOK, at: 5 } }) }, { combos: slots({ 1: { look: null, at: 6 } }) });
+      eq(m.combos[1], { look: null, at: 6 });
+      eq(C.sanitize({ combos: slots({ 0: { look: { color: 'x' }, at: 3 } }) }).combos[0].look, null);
+      eq(C.sanitize({ combos: [1, 2] }).combos.length, 5, 'wrong length');
+    });
+    test('sync: saves from before slots had their own times carry over', () => {
+      const old = C.sanitize({ settings: { combos: [LOOK, null, null, null, null] }, settingsAt: 7 });
+      eq(old.combos[0], { look: LOOK, at: 7 }); eq(old.combos[1], { look: null, at: 0 }, 'empty means unused'); eq('combos' in old.settings, false);
+      eq(C.mergeDocs(old, { combos: slots({ 1: { look: LOOK, at: 1 } }) }).combos[1].at, 1, 'an unused slot takes a look');
     });
     test('sync: bad data is dropped', () => {
       const m = C.sanitize({ devices: { A: { games: -5, xp: 'lots', apples: 1 / 0 }, '': { games: 3 } }, best: { k: -1, j: 'x', ok: 4 }, unlocked: [1, 'a', 'a', null],

@@ -50,6 +50,7 @@
     // Tabs
     ui.el.panels.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) { ui.setTab(b.dataset.go); h.click(); } });
     $('missedList').addEventListener('click', useMissed);
+    $('nextGoal').addEventListener('click', () => { ui.openPage('unlocks'); h.click(); });
     $('missedClose').addEventListener('click', () => { $('missed').hidden = true; h.click(); });
     $('lvl').addEventListener('click', () => { ui.openPage('unlocks'); h.click(); });
     $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { ui.setTab(b.dataset.tab); h.click(); } });
@@ -249,6 +250,7 @@
   }
   ui.setCat = function (id) {
     ui.cat = id; hideLock();
+    if (id === 'combos' && S.sync && S.sync.ready) S.sync.pull();
     for (const c of $('wardrobe').querySelectorAll('.cat')) c.hidden = c.dataset.cat !== id;
     renderCats();
     const tab = $('catTabs').querySelector('[data-cat="' + id + '"]');
@@ -282,7 +284,9 @@
         '<button type="button" class="combo-x" data-clear="' + i + '" aria-label="Clear saved look ' + (i + 1) + '">×</button></div>';
     });
     box.innerHTML = html;
-    $('comboHint').textContent = st.combos.some(c => !c) ? 'Tap an empty slot to save your current look. Tap a saved one to wear it.' : 'Tap a saved look to wear it. Use × to clear a slot and save over it.';
+    const linked = S.sync && S.sync.ready && S.sync.code();
+    $('comboHint').textContent = (st.combos.some(c => !c) ? 'Tap an empty slot to save your current look. Tap a saved one to wear it.' : 'Tap a saved look to wear it. Use × to clear a slot and save over it.') +
+      (linked ? ' These sync to your other devices.' : ' Turn on Sync in Settings to share them with your other devices.');
   }
   function onCombo(e) {
     const x = e.target.closest('[data-clear]');
@@ -580,8 +584,38 @@
   function renderHome() {
     $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
     $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
-    const ng = ui.nextGoal(), nx = $('homeNext');
-    nx.hidden = !ng; nx.textContent = ng;
+    renderNext($('homeNext'), 3);
+  }
+
+  // The rewards you're closest to, at most one per path.
+  function topGoals(n) {
+    const p = store.progress(), best = {};
+    for (const u of SK.UNLOCKS) {
+      if (store.isUnlocked(u.id)) continue;
+      const v = Math.min(u.value(p), u.goal), ratio = v / u.goal, cur = best[u.track.id];
+      if (!cur || ratio > cur.ratio) best[u.track.id] = { u, v, ratio };
+    }
+    return Object.values(best).sort((a, b) => b.ratio - a.ratio).slice(0, n);
+  }
+  // Next-unlock card: the reward in a progress ring, a filling bar, and how far you've got.
+  // The bar and ring grow from where they last were, so a finished game visibly moves them.
+  let lastNext = { id: '', pct: 0 };
+  function renderNext(box, count) {
+    const goals = topGoals(count), g = goals[0];
+    box.hidden = !g; if (!g) return;
+    const t = g.u.track, pct = Math.floor(g.ratio * 100), from = lastNext.id === g.u.id ? Math.min(lastNext.pct, pct) : 0;
+    const done = t.id === 'level' ? 'Level ' + g.v + ' of ' + g.u.goal : g.v + ' of ' + g.u.goal + ' ' + t.unit;
+    const mini = goals.slice(1).map(o => {
+      const q = Math.floor(o.ratio * 100);
+      return '<span class="nx-mini" title="' + SK.itemName(o.u) + ': ' + o.u.text + '"><span class="nx-ring" style="--p:' + q + '%">' + rewardPreview(o.u) + '</span><span><b>' + SK.itemName(o.u) + '</b><small>' + q + '%</small></span></span>';
+    }).join('');
+    box.innerHTML = '<span class="nx-main"><span class="nx-ring" style="--p:' + from + '%">' + rewardPreview(g.u) + '</span>' +
+      '<span class="nx-body"><small class="nx-k">Next unlock</small><span class="nx-top"><b>' + SK.itemName(g.u) + '</b><em>' + pct + '%</em></span>' +
+      '<i class="nx-bar"><i style="width:' + from + '%"></i></i><small class="nx-how"><span>' + done + '</span><span>' + (g.u.goal - g.v) + ' to go</span></small></span></span>' +
+      (mini ? '<span class="nx-more">' + mini + '</span>' : '');
+    const bar = box.querySelector('.nx-bar i'), ring = box.querySelector('.nx-ring');
+    if (from !== pct) { void bar.offsetWidth; bar.style.width = pct + '%'; ring.style.setProperty('--p', pct + '%'); }
+    lastNext = { id: g.u.id, pct };
   }
 
   // Re-render everything that depends on settings or saved data.
@@ -688,8 +722,8 @@
     ui.setPlayLabel(o.btn);
     E.badge.hidden = !o.badge; if (o.badge) E.badge.textContent = o.badge;
     renderMissed(o.missed);
-    E.nextGoal.hidden = !o.next; if (o.next) E.nextGoal.textContent = o.next;
     E.overlay.hidden = !card; E.shell.hidden = card;
+    if (o.next) renderNext(E.nextGoal, 1); else E.nextGoal.hidden = true;
     $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
     ui.renderMute();
     ui.refresh();

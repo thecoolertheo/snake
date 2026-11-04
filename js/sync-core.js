@@ -4,11 +4,13 @@
 //   best:       { "mode|board|apples": score }
 //   unlocked:   [ reward ids ]
 //   settings:   the look of your snake (SYNCED keys only), with settingsAt = when it last changed
+//   combos:     the 5 saved looks, each { look, at } with its own change time
 // Merging never loses progress: counters are kept per device and only go up (totals are the sum),
-// bests take the higher score, unlocks are combined, and the newest look wins.
+// bests take the higher score, unlocks are combined, the newest look wins, and each saved-look
+// slot is merged by itself, so changing one thing on one device never touches the others.
 (function (root) {
   'use strict';
-  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts', 'combos'];
+  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts'];
   const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
   const COUNTS = ['games', 'apples', 'timeMs', 'xp'];
   const ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // no 0/O or 1/I/L, so codes are easy to read out
@@ -40,7 +42,8 @@
     return o;
   }
 
-  function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0 }; }
+  function emptyCombos() { return [0, 1, 2, 3, 4].map(() => ({ look: null, at: 0 })); }
+  function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0, combos: emptyCombos() }; }
 
   // Keeps only well-formed data, so a bad or hostile request can't break anyone's save.
   function sanitize(d) {
@@ -66,16 +69,18 @@
     if (d.settings && typeof d.settings === 'object') {
       for (const k of SYNCED) {
         const v = d.settings[k];
-        if (k === 'combos') {
-          if (Array.isArray(v) && v.length === 5) out.settings[k] = v.map(cleanLook);
-          continue;
-        }
         if (typeof v === 'number' && isFinite(v) && v >= 0 && v < 1000) out.settings[k] = Math.floor(v);
         else if (typeof v === 'boolean') out.settings[k] = v;
         else if (k === 'customColor' && (v === null || okHex(v))) out.settings[k] = v;
       }
     }
     out.settingsAt = num(d.settingsAt);
+    if (Array.isArray(d.combos) && d.combos.length === 5) {
+      out.combos = d.combos.map(c => (c && typeof c === 'object' ? { look: cleanLook(c.look), at: num(c.at) } : { look: null, at: 0 }));
+    } else if (d.settings && Array.isArray(d.settings.combos) && d.settings.combos.length === 5) {
+      // Saves from before slots had their own times. An empty slot here means "never used", not "cleared".
+      out.combos = d.settings.combos.map(c => { const look = cleanLook(c); return { look, at: look ? out.settingsAt : 0 }; });
+    }
     return out;
   }
 
@@ -92,6 +97,7 @@
     }
     const newer = b.settingsAt > a.settingsAt ? b : a;
     out.settings = Object.assign({}, newer.settings); out.settingsAt = newer.settingsAt;
+    out.combos = a.combos.map((x, i) => { const y = b.combos[i]; return y.at > x.at ? y : x; });
     return out;
   }
 

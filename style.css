@@ -208,7 +208,6 @@ input[type=range] { width: 100%; accent-color: var(--c-accent); height: 28px; }
 .pause-hint { margin: 0; text-align: center; font-size: var(--fs-xs); color: var(--c-muted); }
 
 /* ---------- unlock roadmap ---------- */
-.next-goal { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); text-align: center; }
 .link { border: 0; background: none; padding: 0; color: var(--c-accent); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .lock-note { display: grid; gap: var(--sp-1); justify-items: start; }
 .road-intro { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); }
@@ -546,8 +545,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .htile svg { width: 26px; height: 26px; grid-row: span 2; color: var(--mode-accent); }
 .htile b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .htile small { font-size: var(--fs-xs); color: var(--c-muted); }
-.home-next { padding: var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-md); background: none; color: var(--c-muted); font-size: var(--fs-sm); line-height: 1.45; text-align: left; cursor: pointer; }
-.home-next:hover { color: var(--c-fg); }
 
 .panel[data-panel="modes"] > .pv-slot { grid-column: 1 / -1; position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); }
 
@@ -632,7 +629,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .shell[data-page="home"] .page-head { display: none; }
   .panel-home { max-width: none; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 1fr); align-items: center; gap: var(--sp-4); }
   .play-hero { padding: 10px var(--sp-5); font-size: var(--fs-lg); }
-  .home-next { display: none; }
+  .home-next .nx-more { display: none; }
 }
 .shell[data-page="home"] .panels { display: grid; align-content: start; align-content: safe center; }
 
@@ -750,3 +747,36 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .combo-x { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 1px solid var(--c-line); border-radius: 50%; background: #0b100d; color: var(--c-muted); font-size: 14px; line-height: 1; cursor: pointer; }
 .combo-x:hover { color: var(--c-fg); }
 @media (max-height: 520px) { .brand.logo { display: none; } }
+
+/* Next unlock: the reward in a progress ring, with a bar that fills */
+@property --p { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+.home-next { display: grid; gap: var(--sp-2); width: 100%; padding: var(--sp-3); text-align: left; border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--mode-accent) 28%, var(--c-line));
+  background: linear-gradient(120deg, color-mix(in srgb, var(--mode-accent) 14%, var(--c-surface)), var(--c-surface) 70%); cursor: pointer; transition: border-color var(--t-fast), transform var(--t-fast); }
+.home-next:hover { border-color: var(--mode-accent); }
+.home-next:active { transform: scale(.985); }
+.nx-main { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); align-items: center; }
+.nx-ring { --p: 0%; display: grid; place-items: center; width: 62px; height: 62px; flex: none; border-radius: 50%; background: conic-gradient(var(--mode-accent) var(--p), rgba(255, 255, 255, .09) 0); box-shadow: 0 0 16px -4px var(--mode-accent); transition: --p .8s var(--ease); }
+.nx-ring .rw { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background-color: #0b100d; font-style: normal; box-shadow: 0 0 0 2px var(--c-bg) !important; }
+.nx-ring .rw img { width: 50px; height: 50px; }
+.nx-ring .rw svg { width: 30px; height: 30px; }
+.nx-body { display: grid; gap: 4px; min-width: 0; }
+.nx-k { color: var(--mode-accent); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.nx-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.nx-top b { font-size: var(--fs-md); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-top em { flex: none; font-style: normal; font-weight: 700; font-size: var(--fs-md); font-variant-numeric: tabular-nums; color: var(--mode-accent); }
+.nx-bar { position: relative; display: block; height: 10px; border-radius: var(--r-pill); overflow: hidden; background: rgba(0, 0, 0, .4); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .5); }
+.nx-bar > i { position: relative; display: block; height: 100%; min-width: 10px; overflow: hidden; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--mode-accent) 70%, #000), var(--mode-accent) 55%, color-mix(in srgb, var(--mode-accent) 65%, #fff)); transition: width .8s var(--ease); }
+.nx-bar > i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 70%); transform: translateX(-100%); animation: nx-sheen 2.8s ease-in-out infinite; }
+@keyframes nx-sheen { 60%, 100% { transform: translateX(100%); } }
+.nx-how { display: flex; justify-content: space-between; gap: var(--sp-2); color: var(--c-muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.nx-how span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-more { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); padding-top: var(--sp-2); border-top: 1px solid var(--c-line); }
+.nx-mini { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.nx-mini > span:last-child { display: grid; min-width: 0; }
+.nx-mini .nx-ring { width: 34px; height: 34px; box-shadow: none; transition: none; }
+.nx-mini .nx-ring .rw { width: 27px; height: 27px; }
+.nx-mini .nx-ring .rw img { width: 27px; height: 27px; }
+.nx-mini .nx-ring .rw svg { width: 17px; height: 17px; }
+.nx-mini b { font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-mini small { font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.menu .home-next { width: min(100%, 300px); }

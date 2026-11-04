@@ -1,6 +1,6 @@
 // Live sync between devices with a sync code (Settings → Sync).
 // Each device keeps playing on its own local save and swaps changes with the sync server:
-// after every game, when the app comes back to the front, every 20 s in the menu, and when it goes to the background.
+// after every game, when the app comes back to the front, every 8 s in the menu, and when it goes to the background.
 // The merge rules live in sync-core.js. Counters (games, apples, time, XP) are tracked per device:
 //   your total = what other devices have added (sync.others) + what this device has added.
 (function (root) {
@@ -12,7 +12,7 @@
   const zeros = () => ({ games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 });
   const randomId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
-  let store, h, timer = 0, busy = false, again = false, lastLook = '', rawSave = null;
+  let store, h, timer = 0, busy = false, again = false, lastLook = '', lastCombos = [], rawSave = null;
   const sync = S.sync = { state: 'off', at: 0, devices: 0, msg: '' };
   const sd = () => store.data.sync;
   const look = () => { const o = {}; for (const k of C.SYNCED) o[k] = store.data.settings[k]; return o; };
@@ -23,13 +23,15 @@
   function localDoc() {
     const d = store.data, s = d.stats, y = sd(), mine = { longest: s.longest, at: Date.now() };
     for (const k of C.COUNTS) mine[k] = Math.max(0, s[k] - (y.others[k] || 0));
-    return { devices: { [y.device]: mine }, best: d.best, unlocked: d.unlocked, settings: look(), settingsAt: y.settingsAt };
+    return { devices: { [y.device]: mine }, best: d.best, unlocked: d.unlocked, settings: look(), settingsAt: y.settingsAt,
+      combos: d.settings.combos.map((c, i) => ({ look: c, at: y.comboAt[i] || 0 })) };
   }
 
   // Takes the merged save from the server. Returns what changed, or null.
   function apply(doc) {
     const d = store.data, s = d.stats, y = sd(), me = y.device;
-    const before = JSON.stringify([s, d.best, d.unlocked.length, look()]);
+    const state = () => JSON.stringify([s, d.best, d.unlocked.length, look(), d.settings.combos]);
+    const before = state();
     const rec = doc.devices[me] || {}, others = C.totals(doc, me);
     for (const k of C.COUNTS) {
       const mine = Math.max(0, s[k] - (y.others[k] || 0));   // includes games finished while the request was out
@@ -45,8 +47,11 @@
       y.settingsAt = doc.settingsAt;
       lastLook = JSON.stringify(look());
     }
+    doc.combos.forEach((c, i) => {
+      if (c.at > (y.comboAt[i] || 0)) { d.settings.combos[i] = c.look; y.comboAt[i] = c.at; lastCombos[i] = JSON.stringify(c.look); }
+    });
     sync.devices = Object.keys(doc.devices).length;
-    return before !== JSON.stringify([s, d.best, d.unlocked.length, look()]) ? { look: lookChanged } : null;
+    return before !== state() ? { look: lookChanged } : null;
   }
 
   async function post(body, keepalive) {
@@ -85,27 +90,38 @@
   }
 
   sync.init = function (_store, handlers) {
-    store = _store; h = handlers;
+    store = _store; h = handlers; sync.ready = true;
     const y = store.data.sync;
     if (!y.device) y.device = randomId();
     y.others = Object.assign(zeros(), y.others);
+    if (!Array.isArray(y.comboAt) || y.comboAt.length !== 5) y.comboAt = [0, 0, 0, 0, 0];
+    // Looks saved before slots had their own times count as changed now, so they reach your other devices.
+    store.data.settings.combos.forEach((c, i) => { if (c && !y.comboAt[i]) y.comboAt[i] = Date.now(); });
     lastLook = JSON.stringify(look());
+    lastCombos = store.data.settings.combos.map(c => JSON.stringify(c));
     sync.at = y.at || 0;
     // Every save notes when your look last changed, then queues a sync.
     rawSave = store.save.bind(store);
     store.save = function () {
       const j = JSON.stringify(look());
-      if (j !== lastLook) { lastLook = j; sd().settingsAt = Date.now(); }
+      const q = sd();
+      // +1 means a change here always beats what this device last saw, even if its clock runs behind.
+      if (j !== lastLook) { lastLook = j; q.settingsAt = Math.max(Date.now(), q.settingsAt + 1); }
+      store.data.settings.combos.forEach((c, i) => {
+        const k = JSON.stringify(c);
+        if (k !== lastCombos[i]) { lastCombos[i] = k; q.comboAt[i] = Math.max(Date.now(), (q.comboAt[i] || 0) + 1); }
+      });
       rawSave();
       schedule(2500);
     };
     document.addEventListener('visibilitychange', () => { if (document.hidden) run(true); else schedule(300); });
     root.addEventListener('online', () => schedule(300));
-    setInterval(() => { if (!document.hidden) schedule(0); }, 20000);
+    setInterval(() => { if (!document.hidden) schedule(0); }, 8000);
     if (y.code) { sync.state = 'ok'; schedule(600); }
   };
 
   sync.code = () => sd().code;
+  sync.pull = () => schedule(0);
   sync.show = () => C.showCode(sd().code);
   sync.now = () => { clearTimeout(timer); setState('syncing'); return run(false); };
 

@@ -229,7 +229,6 @@ input[type=range] { width: 100%; accent-color: var(--c-accent); height: 28px; }
 .pause-hint { margin: 0; text-align: center; font-size: var(--fs-xs); color: var(--c-muted); }
 
 /* ---------- unlock roadmap ---------- */
-.next-goal { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); text-align: center; }
 .link { border: 0; background: none; padding: 0; color: var(--c-accent); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .lock-note { display: grid; gap: var(--sp-1); justify-items: start; }
 .road-intro { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); }
@@ -567,8 +566,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .htile svg { width: 26px; height: 26px; grid-row: span 2; color: var(--mode-accent); }
 .htile b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .htile small { font-size: var(--fs-xs); color: var(--c-muted); }
-.home-next { padding: var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-md); background: none; color: var(--c-muted); font-size: var(--fs-sm); line-height: 1.45; text-align: left; cursor: pointer; }
-.home-next:hover { color: var(--c-fg); }
 
 .panel[data-panel="modes"] > .pv-slot { grid-column: 1 / -1; position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); }
 
@@ -653,7 +650,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .shell[data-page="home"] .page-head { display: none; }
   .panel-home { max-width: none; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 1fr); align-items: center; gap: var(--sp-4); }
   .play-hero { padding: 10px var(--sp-5); font-size: var(--fs-lg); }
-  .home-next { display: none; }
+  .home-next .nx-more { display: none; }
 }
 .shell[data-page="home"] .panels { display: grid; align-content: start; align-content: safe center; }
 
@@ -771,6 +768,39 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .combo-x { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 1px solid var(--c-line); border-radius: 50%; background: #0b100d; color: var(--c-muted); font-size: 14px; line-height: 1; cursor: pointer; }
 .combo-x:hover { color: var(--c-fg); }
 @media (max-height: 520px) { .brand.logo { display: none; } }
+
+/* Next unlock: the reward in a progress ring, with a bar that fills */
+@property --p { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+.home-next { display: grid; gap: var(--sp-2); width: 100%; padding: var(--sp-3); text-align: left; border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--mode-accent) 28%, var(--c-line));
+  background: linear-gradient(120deg, color-mix(in srgb, var(--mode-accent) 14%, var(--c-surface)), var(--c-surface) 70%); cursor: pointer; transition: border-color var(--t-fast), transform var(--t-fast); }
+.home-next:hover { border-color: var(--mode-accent); }
+.home-next:active { transform: scale(.985); }
+.nx-main { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); align-items: center; }
+.nx-ring { --p: 0%; display: grid; place-items: center; width: 62px; height: 62px; flex: none; border-radius: 50%; background: conic-gradient(var(--mode-accent) var(--p), rgba(255, 255, 255, .09) 0); box-shadow: 0 0 16px -4px var(--mode-accent); transition: --p .8s var(--ease); }
+.nx-ring .rw { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background-color: #0b100d; font-style: normal; box-shadow: 0 0 0 2px var(--c-bg) !important; }
+.nx-ring .rw img { width: 50px; height: 50px; }
+.nx-ring .rw svg { width: 30px; height: 30px; }
+.nx-body { display: grid; gap: 4px; min-width: 0; }
+.nx-k { color: var(--mode-accent); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.nx-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.nx-top b { font-size: var(--fs-md); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-top em { flex: none; font-style: normal; font-weight: 700; font-size: var(--fs-md); font-variant-numeric: tabular-nums; color: var(--mode-accent); }
+.nx-bar { position: relative; display: block; height: 10px; border-radius: var(--r-pill); overflow: hidden; background: rgba(0, 0, 0, .4); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .5); }
+.nx-bar > i { position: relative; display: block; height: 100%; min-width: 10px; overflow: hidden; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--mode-accent) 70%, #000), var(--mode-accent) 55%, color-mix(in srgb, var(--mode-accent) 65%, #fff)); transition: width .8s var(--ease); }
+.nx-bar > i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 70%); transform: translateX(-100%); animation: nx-sheen 2.8s ease-in-out infinite; }
+@keyframes nx-sheen { 60%, 100% { transform: translateX(100%); } }
+.nx-how { display: flex; justify-content: space-between; gap: var(--sp-2); color: var(--c-muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.nx-how span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-more { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); padding-top: var(--sp-2); border-top: 1px solid var(--c-line); }
+.nx-mini { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.nx-mini > span:last-child { display: grid; min-width: 0; }
+.nx-mini .nx-ring { width: 34px; height: 34px; box-shadow: none; transition: none; }
+.nx-mini .nx-ring .rw { width: 27px; height: 27px; }
+.nx-mini .nx-ring .rw img { width: 27px; height: 27px; }
+.nx-mini .nx-ring .rw svg { width: 17px; height: 17px; }
+.nx-mini b { font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-mini small { font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.menu .home-next { width: min(100%, 300px); }
 </style>
 </head>
 <body>
@@ -812,7 +842,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
               <div class="ms-h"><b>What you missed</b><small>Unlocked this game. Tap one to use it.</small><button type="button" class="ms-x" id="missedClose" aria-label="Close">×</button></div>
               <div class="ms-list" id="missedList"></div>
             </div>
-            <p class="next-goal" id="nextGoal" hidden></p>
+            <button class="home-next" id="nextGoal" type="button" hidden></button>
           </div>
 
           <div class="pause-box" id="pauseBox" hidden>
@@ -1365,7 +1395,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, xpInit: false },
       unlocked: [],
       // Live sync (js/sync.js): code in use, this device's id, and what the other devices have added.
-      sync: { code: '', last: '', device: '', others: { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 }, settingsAt: 0, at: 0 }
+      sync: { code: '', last: '', device: '', others: { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 }, settingsAt: 0, comboAt: [0, 0, 0, 0, 0], at: 0 }
     };
   }
 
@@ -3023,6 +3053,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     // Tabs
     ui.el.panels.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) { ui.setTab(b.dataset.go); h.click(); } });
     $('missedList').addEventListener('click', useMissed);
+    $('nextGoal').addEventListener('click', () => { ui.openPage('unlocks'); h.click(); });
     $('missedClose').addEventListener('click', () => { $('missed').hidden = true; h.click(); });
     $('lvl').addEventListener('click', () => { ui.openPage('unlocks'); h.click(); });
     $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { ui.setTab(b.dataset.tab); h.click(); } });
@@ -3222,6 +3253,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   }
   ui.setCat = function (id) {
     ui.cat = id; hideLock();
+    if (id === 'combos' && S.sync && S.sync.ready) S.sync.pull();
     for (const c of $('wardrobe').querySelectorAll('.cat')) c.hidden = c.dataset.cat !== id;
     renderCats();
     const tab = $('catTabs').querySelector('[data-cat="' + id + '"]');
@@ -3255,7 +3287,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         '<button type="button" class="combo-x" data-clear="' + i + '" aria-label="Clear saved look ' + (i + 1) + '">×</button></div>';
     });
     box.innerHTML = html;
-    $('comboHint').textContent = st.combos.some(c => !c) ? 'Tap an empty slot to save your current look. Tap a saved one to wear it.' : 'Tap a saved look to wear it. Use × to clear a slot and save over it.';
+    const linked = S.sync && S.sync.ready && S.sync.code();
+    $('comboHint').textContent = (st.combos.some(c => !c) ? 'Tap an empty slot to save your current look. Tap a saved one to wear it.' : 'Tap a saved look to wear it. Use × to clear a slot and save over it.') +
+      (linked ? ' These sync to your other devices.' : ' Turn on Sync in Settings to share them with your other devices.');
   }
   function onCombo(e) {
     const x = e.target.closest('[data-clear]');
@@ -3553,8 +3587,38 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   function renderHome() {
     $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
     $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
-    const ng = ui.nextGoal(), nx = $('homeNext');
-    nx.hidden = !ng; nx.textContent = ng;
+    renderNext($('homeNext'), 3);
+  }
+
+  // The rewards you're closest to, at most one per path.
+  function topGoals(n) {
+    const p = store.progress(), best = {};
+    for (const u of SK.UNLOCKS) {
+      if (store.isUnlocked(u.id)) continue;
+      const v = Math.min(u.value(p), u.goal), ratio = v / u.goal, cur = best[u.track.id];
+      if (!cur || ratio > cur.ratio) best[u.track.id] = { u, v, ratio };
+    }
+    return Object.values(best).sort((a, b) => b.ratio - a.ratio).slice(0, n);
+  }
+  // Next-unlock card: the reward in a progress ring, a filling bar, and how far you've got.
+  // The bar and ring grow from where they last were, so a finished game visibly moves them.
+  let lastNext = { id: '', pct: 0 };
+  function renderNext(box, count) {
+    const goals = topGoals(count), g = goals[0];
+    box.hidden = !g; if (!g) return;
+    const t = g.u.track, pct = Math.floor(g.ratio * 100), from = lastNext.id === g.u.id ? Math.min(lastNext.pct, pct) : 0;
+    const done = t.id === 'level' ? 'Level ' + g.v + ' of ' + g.u.goal : g.v + ' of ' + g.u.goal + ' ' + t.unit;
+    const mini = goals.slice(1).map(o => {
+      const q = Math.floor(o.ratio * 100);
+      return '<span class="nx-mini" title="' + SK.itemName(o.u) + ': ' + o.u.text + '"><span class="nx-ring" style="--p:' + q + '%">' + rewardPreview(o.u) + '</span><span><b>' + SK.itemName(o.u) + '</b><small>' + q + '%</small></span></span>';
+    }).join('');
+    box.innerHTML = '<span class="nx-main"><span class="nx-ring" style="--p:' + from + '%">' + rewardPreview(g.u) + '</span>' +
+      '<span class="nx-body"><small class="nx-k">Next unlock</small><span class="nx-top"><b>' + SK.itemName(g.u) + '</b><em>' + pct + '%</em></span>' +
+      '<i class="nx-bar"><i style="width:' + from + '%"></i></i><small class="nx-how"><span>' + done + '</span><span>' + (g.u.goal - g.v) + ' to go</span></small></span></span>' +
+      (mini ? '<span class="nx-more">' + mini + '</span>' : '');
+    const bar = box.querySelector('.nx-bar i'), ring = box.querySelector('.nx-ring');
+    if (from !== pct) { void bar.offsetWidth; bar.style.width = pct + '%'; ring.style.setProperty('--p', pct + '%'); }
+    lastNext = { id: g.u.id, pct };
   }
 
   // Re-render everything that depends on settings or saved data.
@@ -3661,8 +3725,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ui.setPlayLabel(o.btn);
     E.badge.hidden = !o.badge; if (o.badge) E.badge.textContent = o.badge;
     renderMissed(o.missed);
-    E.nextGoal.hidden = !o.next; if (o.next) E.nextGoal.textContent = o.next;
     E.overlay.hidden = !card; E.shell.hidden = card;
+    if (o.next) renderNext(E.nextGoal, 1); else E.nextGoal.hidden = true;
     $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
     ui.renderMute();
     ui.refresh();
@@ -3688,11 +3752,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 //   best:       { "mode|board|apples": score }
 //   unlocked:   [ reward ids ]
 //   settings:   the look of your snake (SYNCED keys only), with settingsAt = when it last changed
+//   combos:     the 5 saved looks, each { look, at } with its own change time
 // Merging never loses progress: counters are kept per device and only go up (totals are the sum),
-// bests take the higher score, unlocks are combined, and the newest look wins.
+// bests take the higher score, unlocks are combined, the newest look wins, and each saved-look
+// slot is merged by itself, so changing one thing on one device never touches the others.
 (function (root) {
   'use strict';
-  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts', 'combos'];
+  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts'];
   const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
   const COUNTS = ['games', 'apples', 'timeMs', 'xp'];
   const ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // no 0/O or 1/I/L, so codes are easy to read out
@@ -3724,7 +3790,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     return o;
   }
 
-  function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0 }; }
+  function emptyCombos() { return [0, 1, 2, 3, 4].map(() => ({ look: null, at: 0 })); }
+  function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0, combos: emptyCombos() }; }
 
   // Keeps only well-formed data, so a bad or hostile request can't break anyone's save.
   function sanitize(d) {
@@ -3750,16 +3817,18 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (d.settings && typeof d.settings === 'object') {
       for (const k of SYNCED) {
         const v = d.settings[k];
-        if (k === 'combos') {
-          if (Array.isArray(v) && v.length === 5) out.settings[k] = v.map(cleanLook);
-          continue;
-        }
         if (typeof v === 'number' && isFinite(v) && v >= 0 && v < 1000) out.settings[k] = Math.floor(v);
         else if (typeof v === 'boolean') out.settings[k] = v;
         else if (k === 'customColor' && (v === null || okHex(v))) out.settings[k] = v;
       }
     }
     out.settingsAt = num(d.settingsAt);
+    if (Array.isArray(d.combos) && d.combos.length === 5) {
+      out.combos = d.combos.map(c => (c && typeof c === 'object' ? { look: cleanLook(c.look), at: num(c.at) } : { look: null, at: 0 }));
+    } else if (d.settings && Array.isArray(d.settings.combos) && d.settings.combos.length === 5) {
+      // Saves from before slots had their own times. An empty slot here means "never used", not "cleared".
+      out.combos = d.settings.combos.map(c => { const look = cleanLook(c); return { look, at: look ? out.settingsAt : 0 }; });
+    }
     return out;
   }
 
@@ -3776,6 +3845,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     }
     const newer = b.settingsAt > a.settingsAt ? b : a;
     out.settings = Object.assign({}, newer.settings); out.settingsAt = newer.settingsAt;
+    out.combos = a.combos.map((x, i) => { const y = b.combos[i]; return y.at > x.at ? y : x; });
     return out;
   }
 
@@ -3799,7 +3869,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 <script>
 // Live sync between devices with a sync code (Settings → Sync).
 // Each device keeps playing on its own local save and swaps changes with the sync server:
-// after every game, when the app comes back to the front, every 20 s in the menu, and when it goes to the background.
+// after every game, when the app comes back to the front, every 8 s in the menu, and when it goes to the background.
 // The merge rules live in sync-core.js. Counters (games, apples, time, XP) are tracked per device:
 //   your total = what other devices have added (sync.others) + what this device has added.
 (function (root) {
@@ -3811,7 +3881,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const zeros = () => ({ games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0 });
   const randomId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
-  let store, h, timer = 0, busy = false, again = false, lastLook = '', rawSave = null;
+  let store, h, timer = 0, busy = false, again = false, lastLook = '', lastCombos = [], rawSave = null;
   const sync = S.sync = { state: 'off', at: 0, devices: 0, msg: '' };
   const sd = () => store.data.sync;
   const look = () => { const o = {}; for (const k of C.SYNCED) o[k] = store.data.settings[k]; return o; };
@@ -3822,13 +3892,15 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   function localDoc() {
     const d = store.data, s = d.stats, y = sd(), mine = { longest: s.longest, at: Date.now() };
     for (const k of C.COUNTS) mine[k] = Math.max(0, s[k] - (y.others[k] || 0));
-    return { devices: { [y.device]: mine }, best: d.best, unlocked: d.unlocked, settings: look(), settingsAt: y.settingsAt };
+    return { devices: { [y.device]: mine }, best: d.best, unlocked: d.unlocked, settings: look(), settingsAt: y.settingsAt,
+      combos: d.settings.combos.map((c, i) => ({ look: c, at: y.comboAt[i] || 0 })) };
   }
 
   // Takes the merged save from the server. Returns what changed, or null.
   function apply(doc) {
     const d = store.data, s = d.stats, y = sd(), me = y.device;
-    const before = JSON.stringify([s, d.best, d.unlocked.length, look()]);
+    const state = () => JSON.stringify([s, d.best, d.unlocked.length, look(), d.settings.combos]);
+    const before = state();
     const rec = doc.devices[me] || {}, others = C.totals(doc, me);
     for (const k of C.COUNTS) {
       const mine = Math.max(0, s[k] - (y.others[k] || 0));   // includes games finished while the request was out
@@ -3844,8 +3916,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       y.settingsAt = doc.settingsAt;
       lastLook = JSON.stringify(look());
     }
+    doc.combos.forEach((c, i) => {
+      if (c.at > (y.comboAt[i] || 0)) { d.settings.combos[i] = c.look; y.comboAt[i] = c.at; lastCombos[i] = JSON.stringify(c.look); }
+    });
     sync.devices = Object.keys(doc.devices).length;
-    return before !== JSON.stringify([s, d.best, d.unlocked.length, look()]) ? { look: lookChanged } : null;
+    return before !== state() ? { look: lookChanged } : null;
   }
 
   async function post(body, keepalive) {
@@ -3884,27 +3959,38 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   }
 
   sync.init = function (_store, handlers) {
-    store = _store; h = handlers;
+    store = _store; h = handlers; sync.ready = true;
     const y = store.data.sync;
     if (!y.device) y.device = randomId();
     y.others = Object.assign(zeros(), y.others);
+    if (!Array.isArray(y.comboAt) || y.comboAt.length !== 5) y.comboAt = [0, 0, 0, 0, 0];
+    // Looks saved before slots had their own times count as changed now, so they reach your other devices.
+    store.data.settings.combos.forEach((c, i) => { if (c && !y.comboAt[i]) y.comboAt[i] = Date.now(); });
     lastLook = JSON.stringify(look());
+    lastCombos = store.data.settings.combos.map(c => JSON.stringify(c));
     sync.at = y.at || 0;
     // Every save notes when your look last changed, then queues a sync.
     rawSave = store.save.bind(store);
     store.save = function () {
       const j = JSON.stringify(look());
-      if (j !== lastLook) { lastLook = j; sd().settingsAt = Date.now(); }
+      const q = sd();
+      // +1 means a change here always beats what this device last saw, even if its clock runs behind.
+      if (j !== lastLook) { lastLook = j; q.settingsAt = Math.max(Date.now(), q.settingsAt + 1); }
+      store.data.settings.combos.forEach((c, i) => {
+        const k = JSON.stringify(c);
+        if (k !== lastCombos[i]) { lastCombos[i] = k; q.comboAt[i] = Math.max(Date.now(), (q.comboAt[i] || 0) + 1); }
+      });
       rawSave();
       schedule(2500);
     };
     document.addEventListener('visibilitychange', () => { if (document.hidden) run(true); else schedule(300); });
     root.addEventListener('online', () => schedule(300));
-    setInterval(() => { if (!document.hidden) schedule(0); }, 20000);
+    setInterval(() => { if (!document.hidden) schedule(0); }, 8000);
     if (y.code) { sync.state = 'ok'; schedule(600); }
   };
 
   sync.code = () => sd().code;
+  sync.pull = () => schedule(0);
   sync.show = () => C.showCode(sd().code);
   sync.now = () => { clearTimeout(timer); setState('syncing'); return run(false); };
 

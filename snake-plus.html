@@ -708,6 +708,60 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .htile svg { width: 32px; height: 32px; }
   .switch-row { padding-block: var(--sp-2); }
 }
+
+/* =====================================================================
+   Logo: SNAKE in tube letters, the same colour as your snake, PLUS in gold
+   ===================================================================== */
+.logo { margin: 0; display: block; line-height: 0; font-size: 0; }
+.logo svg { display: block; width: 100%; height: auto; overflow: visible; }
+.logo-hero { width: min(100%, 440px); margin: 0 auto; filter: drop-shadow(0 8px 20px color-mix(in srgb, var(--mode-accent) 38%, transparent)); }
+.lg-shade { stroke: rgba(0, 0, 0, .5); stroke-width: 23; transform: translateY(5px); }
+.lg-edge { stroke: color-mix(in srgb, var(--mode-accent) 42%, #000); stroke-width: 22; }
+.lg-body { stroke: var(--mode-accent); stroke-width: 16.5; }
+.lg-gloss { stroke: color-mix(in srgb, var(--mode-accent) 45%, #fff); stroke-width: 4; opacity: .85; transform: translate(-2px, -3px); }
+.lg-glint { stroke: #fff; stroke-width: 6; stroke-dasharray: .05 2; stroke-dashoffset: .05; opacity: .9; animation: lg-glint 6s linear infinite; animation-delay: calc(var(--i) * .22s); }
+.lg-head-edge { fill: color-mix(in srgb, var(--mode-accent) 42%, #000); }
+.lg-head { fill: var(--mode-accent); }
+.lg-head-gloss { fill: color-mix(in srgb, var(--mode-accent) 45%, #fff); opacity: .7; }
+.lg-eyes { transform-box: fill-box; transform-origin: center; animation: lg-blink 5s ease-in-out infinite; }
+.lg-tongue path { stroke: #ff4d5e; stroke-width: 3; }
+.lg-tongue { animation: lg-tongue 4s ease-in-out infinite; }
+.lg-rule { stroke: #f2c94c; stroke-width: 3; opacity: .55; }
+.lg-plus-edge { stroke: #7a5a0c; stroke-width: 11; }
+.lg-plus-body { stroke: #f2c94c; stroke-width: 7; }
+.logo-hero.intro .lg-shade, .logo-hero.intro .lg-edge, .logo-hero.intro .lg-body, .logo-hero.intro .lg-gloss { stroke-dasharray: 1; animation: lg-draw .7s var(--ease) backwards; animation-delay: calc(var(--i) * .12s); }
+.logo-hero.intro .lg-plus, .logo-hero.intro .lg-rule { animation: fade .5s var(--ease) .75s backwards; }
+@keyframes lg-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes lg-glint { 0%, 18% { stroke-dashoffset: .05; } 50%, 100% { stroke-dashoffset: -1.05; } }
+@keyframes lg-blink { 0%, 95%, 100% { transform: scaleY(1); } 97.500% { transform: scaleY(.08); } }
+@keyframes lg-tongue { 0%, 70%, 100% { transform: translateX(-14px); } 76%, 88% { transform: translateX(0); } }
+.brand.logo { display: none; }
+@media (min-width: 820px) { .brand.logo { display: block; width: 150px; padding: 0; margin: var(--sp-1) var(--sp-3) var(--sp-3); } }
+.shell[data-page="home"] .brand { visibility: hidden; }
+.shell[data-page="home"] .page-head { display: none; }
+.shell[data-page="home"] .panels { padding-top: max(var(--sp-4), env(safe-area-inset-top)); }
+@media (min-width: 1000px) and (min-height: 560px) { .logo-hero { width: min(100%, 520px); } }
+@media (max-height: 700px) { .logo-hero { width: min(100%, 300px); } }
+@media (max-height: 520px) and (min-width: 560px) { .logo-hero { width: min(100%, 220px); } .home-hero { gap: var(--sp-2); } }
+@media (max-height: 400px) { .logo-hero { width: min(100%, 170px); } }
+
+/* Saved looks */
+.ct-save { width: 22px; height: 22px; fill: currentColor; }
+.combos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-2); max-width: 620px; }
+#comboHint { margin: 0; line-height: 1.45; }
+.combo-slot { position: relative; min-width: 0; }
+.combo { width: 100%; aspect-ratio: 1; display: grid; place-items: center; align-content: center; padding: 0; position: relative; overflow: hidden; border-radius: var(--r-md); border: 1px solid rgba(255, 255, 255, .07); background: var(--c-surface-2); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .22); cursor: pointer; transition: transform var(--t-fast); }
+.combo:hover { transform: translateY(-1px); }
+.combo:active { transform: scale(.94); }
+.combo img { width: 78%; height: 78%; margin-top: -8%; }
+.combo i { position: absolute; left: 0; right: 0; bottom: 0; height: 16%; }
+.combo.empty { border-style: dashed; border-color: rgba(255, 255, 255, .2); background: none; box-shadow: none; color: var(--c-muted); }
+.combo.empty b { font-size: var(--fs-xl); font-weight: 500; line-height: 1; }
+.combo.empty small { font-size: var(--fs-xs); }
+.combo[aria-pressed="true"] { outline: 2px solid #fff; border-color: transparent; box-shadow: 0 0 14px -2px var(--mode-accent); }
+.combo-x { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 1px solid var(--c-line); border-radius: 50%; background: #0b100d; color: var(--c-muted); font-size: 14px; line-height: 1; cursor: pointer; }
+.combo-x:hover { color: var(--c-fg); }
+@media (max-height: 520px) { .brand.logo { display: none; } }
 </style>
 </head>
 <body>
@@ -781,7 +835,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 </main>
 <div class="shell" id="shell" data-page="home">
   <aside class="side-nav">
-    <div class="brand">Snake Plus</div>
+    <div class="brand logo" role="img" aria-label="Snake Plus"></div>
     <nav class="tabs" role="tablist" id="tabs" aria-label="Menu">
             <button role="tab" type="button" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
             <button role="tab" type="button" data-tab="modes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
@@ -795,6 +849,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   <div class="panels" id="panels">
             <section class="panel panel-home" role="tabpanel" data-panel="home">
               <div class="home-hero">
+                <h1 class="logo logo-hero" role="img" aria-label="Snake Plus"></h1>
                 <div class="pv-slot"><canvas id="pv" aria-hidden="true"></canvas></div>
                 <button class="setup" type="button" data-go="modes" aria-label="Change mode and board"><span class="mode-line" id="modeLine"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 <button id="playBtn" class="play play-hero" type="button">Play</button>
@@ -838,6 +893,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                     <span class="cp-text"><b>Your own colour</b><small id="customStatus">Pick any colour that isn't already in the game.</small></span></label>
                 </div>
                 </div>
+                <div class="cat" data-cat="combos" hidden><div class="combos" id="optCombos"></div><p class="hint" id="comboHint"></p></div>
                 <div class="cat" data-cat="pattern" hidden><div class="chips" id="optPattern"></div></div>
                 <div class="cat" data-cat="shape" hidden><div class="chips" id="optShape"></div></div>
                 <div class="cat" data-cat="eyes" hidden><div class="chips" id="optEyes"></div></div>
@@ -1233,10 +1289,10 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   }
 
   // 0..1: how close a Hunger snake is to its next shrink (0 = just ate).
-  Game.prototype.hungerLevel = function () {
+  // p = how far through the current step we are, so the meter can fill smoothly between steps.
+  Game.prototype.hungerLevel = function (p = 0) {
     if (!this.rules.hunger) return 0;
-    if (this.hungry < HUNGER_START) return this.hungry / HUNGER_START;
-    return 1;
+    return Math.min(1, (this.hungry + p) / HUNGER_START);
   };
 
   // Runaway: apples near your head hop to a neighbouring free tile that's further from you.
@@ -1294,7 +1350,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       v: VERSION,
       settings: { color: 0, pattern: 0, eyes: 0, shape: 0, speed: 1, muted: false,
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
-                  volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, unlockToasts: true },
+                  volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, unlockToasts: true,
+                  combos: [null, null, null, null, null] },
       best: {},        // "mode|board|apples" -> best score
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, xpInit: false },
       unlocked: [],
@@ -2679,14 +2736,57 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     g.restore();
   };
 
-  // Hunger mode: a thin meter along the bottom edge that fills and turns red as you get hungry.
-  function drawHunger(g, cols, rows, level, t) {
-    const W = cols * CELL, H = rows * CELL, h = 6, x = W * 0.2, w = W * 0.6, y = H - h - 8;
-    g.fillStyle = 'rgba(0,0,0,0.45)'; roundRect(g, x - 2, y - 2, w + 4, h + 4, 5); g.fill();
-    const c = level < 0.6 ? '#4cc35b' : level < 0.85 ? '#f2cd3f' : '#ff5a4e';
-    g.globalAlpha = level >= 1 && !R.reduced ? 0.55 + 0.45 * Math.abs(Math.sin(t / 150)) : 1;
-    g.fillStyle = c; roundRect(g, x, y, Math.max(h, w * Math.min(1, level)), h, 3); g.fill();
-    g.globalAlpha = 1;
+  // Hunger mode: a meter along the bottom edge that drains your patience smoothly. It glides between
+  // game steps, slides back with a pop when you eat, and shakes and glows red as you get close to starving.
+  class HungerBar {
+    constructor() { this.grad = null; this.gradFor = null; this.reset(); }
+    reset() { this.v = 0; this.fedT = -1e9; this.hitT = -1e9; }
+    fed(t) { this.fedT = t; }
+    hit(t) { this.hitT = t; }
+    draw(g, cols, rows, target, t, dt) {
+      this.v += (target - this.v) * Math.min(1, dt / (target > this.v ? 70 : 170));
+      const L = this.v, W = cols * CELL, H = rows * CELL, w = W * 0.62, h = 14, x = (W - w) / 2, y = H - h - 12;
+      const rm = R.reduced, danger = U.clamp((L - 0.6) / 0.4, 0, 1), still = rm ? 0 : 1;
+      const fedAge = U.clamp((t - this.fedT) / 340, 0, 1), hitAge = U.clamp((t - this.hitT) / 280, 0, 1);
+      const pulse = 0.5 + 0.5 * Math.sin(t / (210 - 130 * danger));
+      const pop = 1 + still * 0.14 * (1 - fedAge) * (1 - fedAge);
+      const sx = still * (Math.sin(t / 34) * danger * danger * 1.6 + Math.sin(t / 19) * (1 - hitAge) * 5);
+      g.save();
+      g.translate(W / 2 + sx, y + h / 2); g.scale(pop, pop); g.translate(-W / 2, -(y + h / 2));
+      if (danger > 0) {   // red glow around the bar
+        g.globalAlpha = danger * (0.25 + 0.4 * pulse); g.fillStyle = '#ff3b30';
+        roundRect(g, x - 7, y - 7, w + 14, h + 14, (h + 14) / 2); g.fill(); g.globalAlpha = 1;
+      }
+      g.fillStyle = 'rgba(6,10,8,.8)'; roundRect(g, x - 3, y - 3, w + 6, h + 6, (h + 6) / 2); g.fill();
+      if (this.gradFor !== g || this.gradW !== x) {   // green → yellow → red across the whole track
+        const c = g.createLinearGradient(x, 0, x + w, 0);
+        c.addColorStop(0, '#4cc35b'); c.addColorStop(0.5, '#f2cd3f'); c.addColorStop(0.78, '#ff9838'); c.addColorStop(1, '#ff3b30');
+        this.grad = c; this.gradFor = g; this.gradW = x;
+      }
+      const fw = Math.max(h, w * U.clamp(L, 0, 1));
+      g.save(); roundRect(g, x, y, fw, h, h / 2); g.clip();
+      g.fillStyle = this.grad; g.fillRect(x, y, w, h);
+      // Stripes that run faster the hungrier you get.
+      g.fillStyle = 'rgba(255,255,255,.17)';
+      const off = rm ? 0 : (t * (0.018 + 0.05 * L)) % 22;
+      for (let sxp = x - 22 + off; sxp < x + fw; sxp += 22) {
+        g.beginPath(); g.moveTo(sxp, y + h); g.lineTo(sxp + 8, y); g.lineTo(sxp + 17, y); g.lineTo(sxp + 9, y + h); g.closePath(); g.fill();
+      }
+      g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(x, y + 1.5, fw, h * 0.26);
+      if (fedAge < 1) { g.globalAlpha = 1 - fedAge; g.fillStyle = '#fff'; g.fillRect(x, y, w, h); g.globalAlpha = 1; }
+      g.restore();
+      // Bright tip on the moving end.
+      g.fillStyle = '#fff'; g.globalAlpha = 0.65 + 0.35 * pulse;
+      dot(g, x + fw - h / 2, y + h / 2, h * (0.26 + 0.08 * pulse)); g.globalAlpha = 1;
+      // A little apple that wobbles more as you starve.
+      const ax = x - 20, ay = y + h / 2, tilt = still * Math.sin(t / 70) * (0.08 + 0.4 * danger), as = 1 + 0.16 * pulse * danger;
+      g.save(); g.translate(ax, ay); g.rotate(tilt); g.scale(as, as);
+      g.fillStyle = 'rgba(6,10,8,.8)'; dot(g, 0, 0, 13);
+      g.fillStyle = '#ff5a4e'; dot(g, 0, 1, 8);
+      g.strokeStyle = '#5fd16a'; g.lineWidth = 2.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(0, -6); g.quadraticCurveTo(1, -10, 5, -11); g.stroke();
+      g.restore();
+      g.restore();
+    }
   }
 
   // Big "3 2 1" in the middle of the board. f = 0..1 through the current number.
@@ -2752,7 +2852,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     return (icons[key] = c.toDataURL());
   };
 
-  Object.assign(R, { SnakeDrawer, View, Confetti, Ambient, drawApple, drawWalls, drawBoard, drawCountdown, drawDark, drawHunger });
+  Object.assign(R, { SnakeDrawer, View, Confetti, Ambient, HungerBar, drawApple, drawWalls, drawBoard, drawCountdown, drawDark });
   S.render = R;
 })(window);
 </script>
@@ -2994,6 +3094,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     E.bestBtn.addEventListener('click', h.openBest);
     E.mBestBtn.addEventListener('click', () => { ui.openPage('stats'); h.click(); });
     E.mute.addEventListener('click', () => { st.muted = !st.muted; ui.renderMute(); h.settingsChanged('muted'); if (!st.muted) h.click(); });
+    for (const l of document.querySelectorAll('.logo')) l.innerHTML = LOGO;
+    const hero = document.querySelector('.logo-hero');
+    hero.classList.add('intro'); setTimeout(() => hero.classList.remove('intro'), 1800);
     ui.renderMute();
     ui.refresh();
     applyWide();
@@ -3093,6 +3196,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     dice.type = 'button'; dice.id = 'randomBtn'; dice.title = 'Pick a random colour, pattern, tail, eyes, hat, effects, food and board';
     dice.addEventListener('click', shuffleLook);
     box.appendChild(dice);
+    const saved = el('button', 'cat-tab', '<i class="ct-ic">' + svg('<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/>', 'ct-save') + '</i><span>Saved</span>');
+    saved.type = 'button'; saved.dataset.cat = 'combos';
+    saved.addEventListener('click', () => { ui.setCat('combos'); h.click(); });
+    box.appendChild(saved);
+    $('optCombos').addEventListener('click', onCombo);
     for (const [id, name] of cats()) {
       const b = el('button', 'cat-tab', '<i class="ct-ic"></i><span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
       b.addEventListener('click', () => { ui.setCat(id); h.click(); });
@@ -3119,7 +3227,45 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       b.querySelector('.ct-ic').innerHTML = id === 'color' ? '<i class="ci" style="background:' + SK.colorHex(st) + '"></i>' : chipIcon(kind || id, st[id]);   // what you're wearing
       if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; $('catCount').textContent = count; }
     }
+    const sv = $('catTabs').querySelector('[data-cat="combos"]');
+    sv.setAttribute('aria-pressed', ui.cat === 'combos');
+    $('catFilter').hidden = ui.cat === 'combos';
+    if (ui.cat === 'combos') { $('catTitle').textContent = 'Saved looks'; $('catNow').textContent = ''; $('catCount').textContent = st.combos.filter(Boolean).length + '/5'; }
+    renderCombos();
   }
+  // Saved looks: 5 slots that each remember every type of customization.
+  const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
+  const sameLook = c => LOOK_KEYS.every(k => c[k] === st[k]) && (st.color !== SK.CUSTOM || c.customColor === st.customColor);
+  function renderCombos() {
+    const box = $('optCombos');
+    let html = '';
+    st.combos.forEach((c, i) => {
+      if (!c) { html += '<div class="combo-slot"><button type="button" class="combo empty" data-slot="' + i + '" aria-label="Save current look in slot ' + (i + 1) + '"><b>+</b><small>Save</small></button></div>'; return; }
+      html += '<div class="combo-slot"><button type="button" class="combo" data-slot="' + i + '" aria-pressed="' + sameLook(c) + '" aria-label="Wear saved look ' + (i + 1) + '">' +
+        '<img alt="" src="' + S.render.icon('hat', c.hat, SK.colorHex(c)) + '"><i style="background:' + patternSwatch(c.pattern) + '"></i></button>' +
+        '<button type="button" class="combo-x" data-clear="' + i + '" aria-label="Clear saved look ' + (i + 1) + '">×</button></div>';
+    });
+    box.innerHTML = html;
+    $('comboHint').textContent = st.combos.some(c => !c) ? 'Tap an empty slot to save your current look. Tap a saved one to wear it.' : 'Tap a saved look to wear it. Use × to clear a slot and save over it.';
+  }
+  function onCombo(e) {
+    const x = e.target.closest('[data-clear]');
+    if (x) { st.combos[+x.dataset.clear] = null; h.settingsChanged('combos'); h.click(); renderCats(); return; }
+    const b = e.target.closest('[data-slot]'); if (!b) return;
+    const i = +b.dataset.slot, c = st.combos[i];
+    if (!c) {
+      const look = { customColor: st.customColor };
+      for (const k of LOOK_KEYS) look[k] = st[k];
+      st.combos[i] = look; h.settingsChanged('combos');
+    } else {
+      st.customColor = c.customColor;
+      for (const k of LOOK_KEYS) { st[k] = c[k]; h.settingsChanged(k); }
+      $('customPick').hidden = st.color !== SK.CUSTOM;
+      ui.bump(ui.el.pv);
+    }
+    h.click(); renderSkins();
+  }
+
   // Randomize: a random pick for every type of customization, from what you've unlocked.
   function shuffleLook() {
     for (const [id, , kind, items] of cats()) {
@@ -3381,6 +3527,20 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   };
   ui.renderRoadmap = () => renderRoadmap();
 
+  // The logo: SNAKE in tube letters like the snake's body (the S has a head), with PLUS in gold beneath.
+  const LOGO = (function () {
+    const letters = ['M66 20H36A15 15 0 0 0 36 50H52A15 15 0 0 1 52 80H20', 'M97 80V20L137 80V20', 'M157 80L181 20L205 80M167 58H195', 'M225 20V80M261 20L227 50L261 80', 'M317 20H283V80H317M283 50H311'];
+    const plus = ['M119 134V106H129A7.500 7.500 0 0 1 129 121H119', 'M147 106V134H162', 'M174 106V124A8 8 0 0 0 190 124V106', 'M217 109H207A6.500 6.500 0 0 0 207 120H212A6.500 6.500 0 0 1 212 131H200'];
+    const layer = (cls, list) => list.map((d, i) => '<path class="' + cls + '" pathLength="1" style="--i:' + i + '" d="' + d + '"/>').join('');
+    return '<svg viewBox="0 0 336 146" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path class="lg-rule" d="M20 120H101"/><path class="lg-rule" d="M235 120H316"/>' +
+      '<g class="lg-tube">' + layer('lg-shade', letters) + layer('lg-edge', letters) + layer('lg-body', letters) + layer('lg-gloss', letters) + layer('lg-glint', letters) + '</g>' +
+      '<g class="lg-tongue"><path d="M78 20H90M90 20L96 16M90 20L96 24"/></g>' +
+      '<circle class="lg-head-edge" cx="68" cy="20" r="16"/><circle class="lg-head" cx="68" cy="20" r="14"/><ellipse class="lg-head-gloss" cx="64" cy="13" rx="7" ry="3"/>' +
+      '<g class="lg-eyes"><circle cx="70" cy="13" r="5" fill="#fff"/><circle cx="70" cy="27" r="5" fill="#fff"/><circle cx="72" cy="13" r="2.600" fill="#0f1512"/><circle cx="72" cy="27" r="2.600" fill="#0f1512"/></g>' +
+      '<g class="lg-plus">' + layer('lg-plus-edge', plus) + layer('lg-plus-body', plus) + '</g></svg>';
+  })();
+
   function renderHome() {
     $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
     $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
@@ -3523,7 +3683,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 // bests take the higher score, unlocks are combined, and the newest look wins.
 (function (root) {
   'use strict';
-  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts'];
+  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts', 'combos'];
+  const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
   const COUNTS = ['games', 'apples', 'timeMs', 'xp'];
   const ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // no 0/O or 1/I/L, so codes are easy to read out
   const CODE_LEN = 8;
@@ -3542,6 +3703,16 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     let c = '';
     for (let i = 0; i < CODE_LEN; i++) c += ALPHA[Math.floor(rand() * ALPHA.length) % ALPHA.length];
     return c;
+  }
+
+  const okHex = v => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
+  // One saved look: every part must be a small whole number, or the slot is dropped.
+  function cleanLook(c) {
+    if (!c || typeof c !== 'object') return null;
+    const o = {};
+    for (const k of LOOK_KEYS) { if (!Number.isInteger(c[k]) || c[k] < 0 || c[k] >= 1000) return null; o[k] = c[k]; }
+    o.customColor = okHex(c.customColor) ? c.customColor : null;
+    return o;
   }
 
   function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0 }; }
@@ -3570,9 +3741,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (d.settings && typeof d.settings === 'object') {
       for (const k of SYNCED) {
         const v = d.settings[k];
+        if (k === 'combos') {
+          if (Array.isArray(v) && v.length === 5) out.settings[k] = v.map(cleanLook);
+          continue;
+        }
         if (typeof v === 'number' && isFinite(v) && v >= 0 && v < 1000) out.settings[k] = Math.floor(v);
         else if (typeof v === 'boolean') out.settings[k] = v;
-        else if (k === 'customColor' && (v === null || (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)))) out.settings[k] = v;
+        else if (k === 'customColor' && (v === null || okHex(v))) out.settings[k] = v;
       }
     }
     out.settingsAt = num(d.settingsAt);
@@ -3834,6 +4009,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const pvView = new R.View($('pv'), PV_COLS, PV_ROWS, true);
   const pvSnake = new R.SnakeDrawer();
   const pvAmbient = new R.Ambient();
+  const hunger = new R.HungerBar(), pvHunger = new R.HungerBar();
   const confetti = new R.Confetti($('confetti'));
   const ambient = new R.Ambient();
   const liveUnlocked = [];   // rewards unlocked during the current game
@@ -3898,7 +4074,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const [cols, rows] = board();
     game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode });
     if (view.cols !== cols || view.rows !== rows) { view.setBoard(cols, rows); fit(); }
-    acc = 0; deathT = 0; mouth = 0; gameTime = 0; eats.length = 0; view.fx.clear(); R.resetWalls();
+    acc = 0; deathT = 0; mouth = 0; gameTime = 0; eats.length = 0; view.fx.clear(); R.resetWalls(); hunger.reset();
     lastDir = game.dir; pendingNew = false;
     bestBefore = currentBest(); passedBest = false;
     ui.setScore(0); ui.setBest(bestBefore);
@@ -3945,7 +4121,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       const e = evs[i], cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
       switch (e.type) {
         case 'eat': {
-          ui.setScore(game.score, true);
+          ui.setScore(game.score, true); hunger.fed(now);
           if (e.kind === 'gold') { view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22); A.sfx.gold(); }
           else if (e.kind !== 'portal') {
             const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
@@ -3965,7 +4141,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
           break;
         }
         case 'poison': view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); vibrate([10, 40, 10]); break;
-        case 'shrink': view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); break;
+        case 'shrink': view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); hunger.hit(now); break;
         case 'wall': A.sfx.wall(); break;
         case 'grace': squashT = now; A.sfx.grace(); vibrate(8); break;
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
@@ -4085,7 +4261,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   function pvTheme() { pvAmbient.reset(pvView.setTheme(pvModeId(), settings.boardSkin).amb, PV_COLS, PV_ROWS); }
   function pvNew() {
     pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: 1, mode: pvModeId(), grace: false });
-    pvShrinking = false; pvEats.length = 0; pvHint = null; R.resetWalls(); pvGild(pvGame);
+    pvShrinking = false; pvEats.length = 0; pvHint = null; R.resetWalls(); pvHunger.reset(); pvGild(pvGame);
   }
   // Gold Rush: golden apples are rare in a real game, so show them often here.
   function pvGild(g) {
@@ -4175,6 +4351,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     for (const e of g.events) {
       const cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
       if (e.type === 'eat') {
+        pvHunger.fed(now);
         for (let k = 0; k < (e.worth || 1); k++) pvEats.push(pvTime.t - k * baseMs() * 0.6);
         if (e.kind === 'gold') pvView.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22);
         else if (e.kind !== 'portal') {
@@ -4185,7 +4362,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         const c = R.PORTAL_COLORS[e.pair % R.PORTAL_COLORS.length];
         pvView.fx.ring(cx, cy, now, c); pvView.fx.burst(e.tx * CELL + CELL / 2, e.ty * CELL + CELL / 2, now, [c, '#ffffff', c], 10);
       } else if (e.type === 'poison') pvView.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']);
-      else if (e.type === 'shrink') pvView.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5);
+      else if (e.type === 'shrink') { pvView.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); pvHunger.hit(now); }
       else if (e.type === 'expire') pvView.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6);
     }
     g.events.length = 0;
@@ -4216,7 +4393,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const ang = U.lerpAng(U.angOf(g.prevDir.x, g.prevDir.y), U.angOf(g.dir.x, g.dir.y), U.ease(Math.min(1, p / 0.7)));
     pvSnake.draw(gc, g.cells, g.prevTail, p, CELL, ang, settings, pvFx);
     const P = pvSnake.path, hx = P.x[P.n - 1], hy = P.y[P.n - 1];
-    if (g.rules.hunger) R.drawHunger(gc, g.cols, g.rows, g.hungerLevel(), t);
+    if (g.rules.hunger) pvHunger.draw(gc, g.cols, g.rows, g.hungerLevel(p), t, fdt);
     if (g.rules.dark) R.drawDark(gc, g.cols, g.rows, hx, hy, g.apples, t);
     pvView.fx.draw(gc, t, fdt);
     if (pvHint) {
@@ -4292,7 +4469,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     for (const ap of game.apples) R.drawApple(g, ap, t, game, p);
     const a = U.lerpAng(U.angOf(game.prevDir.x, game.prevDir.y), U.angOf(game.dir.x, game.dir.y), U.ease(Math.min(1, p / 0.7)));
     view.snake.draw(g, game.cells, game.prevTail, p, CELL, a, settings, fx);
-    if (game.rules.hunger && state !== 'menu') R.drawHunger(g, game.cols, game.rows, game.hungerLevel(), t);
+    if (game.rules.hunger && state !== 'menu') hunger.draw(g, game.cols, game.rows, game.hungerLevel(state === 'play' ? p : 0), t, fdt);
     if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }
     view.fx.draw(g, t, fdt);
     if (state === 'countdown') {

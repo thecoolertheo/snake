@@ -90,7 +90,7 @@
 </main>
 <div class="shell" id="shell" data-page="home">
   <aside class="side-nav">
-    <div class="brand">Snake Plus</div>
+    <div class="brand logo" role="img" aria-label="Snake Plus"></div>
     <nav class="tabs" role="tablist" id="tabs" aria-label="Menu">
             <button role="tab" type="button" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
             <button role="tab" type="button" data-tab="modes" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Modes</span></button>
@@ -104,6 +104,7 @@
   <div class="panels" id="panels">
             <section class="panel panel-home" role="tabpanel" data-panel="home">
               <div class="home-hero">
+                <h1 class="logo logo-hero" role="img" aria-label="Snake Plus"></h1>
                 <div class="pv-slot"><canvas id="pv" aria-hidden="true"></canvas></div>
                 <button class="setup" type="button" data-go="modes" aria-label="Change mode and board"><span class="mode-line" id="modeLine"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 <button id="playBtn" class="play play-hero" type="button">Play</button>
@@ -147,6 +148,7 @@
                     <span class="cp-text"><b>Your own colour</b><small id="customStatus">Pick any colour that isn't already in the game.</small></span></label>
                 </div>
                 </div>
+                <div class="cat" data-cat="combos" hidden><div class="combos" id="optCombos"></div><p class="hint" id="comboHint"></p></div>
                 <div class="cat" data-cat="pattern" hidden><div class="chips" id="optPattern"></div></div>
                 <div class="cat" data-cat="shape" hidden><div class="chips" id="optShape"></div></div>
                 <div class="cat" data-cat="eyes" hidden><div class="chips" id="optEyes"></div></div>

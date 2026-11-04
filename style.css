@@ -687,3 +687,57 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .htile svg { width: 32px; height: 32px; }
   .switch-row { padding-block: var(--sp-2); }
 }
+
+/* =====================================================================
+   Logo: SNAKE in tube letters, the same colour as your snake, PLUS in gold
+   ===================================================================== */
+.logo { margin: 0; display: block; line-height: 0; font-size: 0; }
+.logo svg { display: block; width: 100%; height: auto; overflow: visible; }
+.logo-hero { width: min(100%, 440px); margin: 0 auto; filter: drop-shadow(0 8px 20px color-mix(in srgb, var(--mode-accent) 38%, transparent)); }
+.lg-shade { stroke: rgba(0, 0, 0, .5); stroke-width: 23; transform: translateY(5px); }
+.lg-edge { stroke: color-mix(in srgb, var(--mode-accent) 42%, #000); stroke-width: 22; }
+.lg-body { stroke: var(--mode-accent); stroke-width: 16.5; }
+.lg-gloss { stroke: color-mix(in srgb, var(--mode-accent) 45%, #fff); stroke-width: 4; opacity: .85; transform: translate(-2px, -3px); }
+.lg-glint { stroke: #fff; stroke-width: 6; stroke-dasharray: .05 2; stroke-dashoffset: .05; opacity: .9; animation: lg-glint 6s linear infinite; animation-delay: calc(var(--i) * .22s); }
+.lg-head-edge { fill: color-mix(in srgb, var(--mode-accent) 42%, #000); }
+.lg-head { fill: var(--mode-accent); }
+.lg-head-gloss { fill: color-mix(in srgb, var(--mode-accent) 45%, #fff); opacity: .7; }
+.lg-eyes { transform-box: fill-box; transform-origin: center; animation: lg-blink 5s ease-in-out infinite; }
+.lg-tongue path { stroke: #ff4d5e; stroke-width: 3; }
+.lg-tongue { animation: lg-tongue 4s ease-in-out infinite; }
+.lg-rule { stroke: #f2c94c; stroke-width: 3; opacity: .55; }
+.lg-plus-edge { stroke: #7a5a0c; stroke-width: 11; }
+.lg-plus-body { stroke: #f2c94c; stroke-width: 7; }
+.logo-hero.intro .lg-shade, .logo-hero.intro .lg-edge, .logo-hero.intro .lg-body, .logo-hero.intro .lg-gloss { stroke-dasharray: 1; animation: lg-draw .7s var(--ease) backwards; animation-delay: calc(var(--i) * .12s); }
+.logo-hero.intro .lg-plus, .logo-hero.intro .lg-rule { animation: fade .5s var(--ease) .75s backwards; }
+@keyframes lg-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes lg-glint { 0%, 18% { stroke-dashoffset: .05; } 50%, 100% { stroke-dashoffset: -1.05; } }
+@keyframes lg-blink { 0%, 95%, 100% { transform: scaleY(1); } 97.500% { transform: scaleY(.08); } }
+@keyframes lg-tongue { 0%, 70%, 100% { transform: translateX(-14px); } 76%, 88% { transform: translateX(0); } }
+.brand.logo { display: none; }
+@media (min-width: 820px) { .brand.logo { display: block; width: 150px; padding: 0; margin: var(--sp-1) var(--sp-3) var(--sp-3); } }
+.shell[data-page="home"] .brand { visibility: hidden; }
+.shell[data-page="home"] .page-head { display: none; }
+.shell[data-page="home"] .panels { padding-top: max(var(--sp-4), env(safe-area-inset-top)); }
+@media (min-width: 1000px) and (min-height: 560px) { .logo-hero { width: min(100%, 520px); } }
+@media (max-height: 700px) { .logo-hero { width: min(100%, 300px); } }
+@media (max-height: 520px) and (min-width: 560px) { .logo-hero { width: min(100%, 220px); } .home-hero { gap: var(--sp-2); } }
+@media (max-height: 400px) { .logo-hero { width: min(100%, 170px); } }
+
+/* Saved looks */
+.ct-save { width: 22px; height: 22px; fill: currentColor; }
+.combos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-2); max-width: 620px; }
+#comboHint { margin: 0; line-height: 1.45; }
+.combo-slot { position: relative; min-width: 0; }
+.combo { width: 100%; aspect-ratio: 1; display: grid; place-items: center; align-content: center; padding: 0; position: relative; overflow: hidden; border-radius: var(--r-md); border: 1px solid rgba(255, 255, 255, .07); background: var(--c-surface-2); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .22); cursor: pointer; transition: transform var(--t-fast); }
+.combo:hover { transform: translateY(-1px); }
+.combo:active { transform: scale(.94); }
+.combo img { width: 78%; height: 78%; margin-top: -8%; }
+.combo i { position: absolute; left: 0; right: 0; bottom: 0; height: 16%; }
+.combo.empty { border-style: dashed; border-color: rgba(255, 255, 255, .2); background: none; box-shadow: none; color: var(--c-muted); }
+.combo.empty b { font-size: var(--fs-xl); font-weight: 500; line-height: 1; }
+.combo.empty small { font-size: var(--fs-xs); }
+.combo[aria-pressed="true"] { outline: 2px solid #fff; border-color: transparent; box-shadow: 0 0 14px -2px var(--mode-accent); }
+.combo-x { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 1px solid var(--c-line); border-radius: 50%; background: #0b100d; color: var(--c-muted); font-size: 14px; line-height: 1; cursor: pointer; }
+.combo-x:hover { color: var(--c-fg); }
+@media (max-height: 520px) { .brand.logo { display: none; } }

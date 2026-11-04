@@ -52,6 +52,7 @@
   const pvView = new R.View($('pv'), PV_COLS, PV_ROWS, true);
   const pvSnake = new R.SnakeDrawer();
   const pvAmbient = new R.Ambient();
+  const hunger = new R.HungerBar(), pvHunger = new R.HungerBar();
   const confetti = new R.Confetti($('confetti'));
   const ambient = new R.Ambient();
   const liveUnlocked = [];   // rewards unlocked during the current game
@@ -116,7 +117,7 @@
     const [cols, rows] = board();
     game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode });
     if (view.cols !== cols || view.rows !== rows) { view.setBoard(cols, rows); fit(); }
-    acc = 0; deathT = 0; mouth = 0; gameTime = 0; eats.length = 0; view.fx.clear(); R.resetWalls();
+    acc = 0; deathT = 0; mouth = 0; gameTime = 0; eats.length = 0; view.fx.clear(); R.resetWalls(); hunger.reset();
     lastDir = game.dir; pendingNew = false;
     bestBefore = currentBest(); passedBest = false;
     ui.setScore(0); ui.setBest(bestBefore);
@@ -163,7 +164,7 @@
       const e = evs[i], cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
       switch (e.type) {
         case 'eat': {
-          ui.setScore(game.score, true);
+          ui.setScore(game.score, true); hunger.fed(now);
           if (e.kind === 'gold') { view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22); A.sfx.gold(); }
           else if (e.kind !== 'portal') {
             const B = SK.BURST_STYLES[SK.BURSTS[settings.burst]] || SK.BURST_STYLES.Classic;
@@ -183,7 +184,7 @@
           break;
         }
         case 'poison': view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); vibrate([10, 40, 10]); break;
-        case 'shrink': view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); break;
+        case 'shrink': view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); hunger.hit(now); break;
         case 'wall': A.sfx.wall(); break;
         case 'grace': squashT = now; A.sfx.grace(); vibrate(8); break;
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
@@ -303,7 +304,7 @@
   function pvTheme() { pvAmbient.reset(pvView.setTheme(pvModeId(), settings.boardSkin).amb, PV_COLS, PV_ROWS); }
   function pvNew() {
     pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: 1, mode: pvModeId(), grace: false });
-    pvShrinking = false; pvEats.length = 0; pvHint = null; R.resetWalls(); pvGild(pvGame);
+    pvShrinking = false; pvEats.length = 0; pvHint = null; R.resetWalls(); pvHunger.reset(); pvGild(pvGame);
   }
   // Gold Rush: golden apples are rare in a real game, so show them often here.
   function pvGild(g) {
@@ -393,6 +394,7 @@
     for (const e of g.events) {
       const cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
       if (e.type === 'eat') {
+        pvHunger.fed(now);
         for (let k = 0; k < (e.worth || 1); k++) pvEats.push(pvTime.t - k * baseMs() * 0.6);
         if (e.kind === 'gold') pvView.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22);
         else if (e.kind !== 'portal') {
@@ -403,7 +405,7 @@
         const c = R.PORTAL_COLORS[e.pair % R.PORTAL_COLORS.length];
         pvView.fx.ring(cx, cy, now, c); pvView.fx.burst(e.tx * CELL + CELL / 2, e.ty * CELL + CELL / 2, now, [c, '#ffffff', c], 10);
       } else if (e.type === 'poison') pvView.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']);
-      else if (e.type === 'shrink') pvView.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5);
+      else if (e.type === 'shrink') { pvView.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); pvHunger.hit(now); }
       else if (e.type === 'expire') pvView.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6);
     }
     g.events.length = 0;
@@ -434,7 +436,7 @@
     const ang = U.lerpAng(U.angOf(g.prevDir.x, g.prevDir.y), U.angOf(g.dir.x, g.dir.y), U.ease(Math.min(1, p / 0.7)));
     pvSnake.draw(gc, g.cells, g.prevTail, p, CELL, ang, settings, pvFx);
     const P = pvSnake.path, hx = P.x[P.n - 1], hy = P.y[P.n - 1];
-    if (g.rules.hunger) R.drawHunger(gc, g.cols, g.rows, g.hungerLevel(), t);
+    if (g.rules.hunger) pvHunger.draw(gc, g.cols, g.rows, g.hungerLevel(p), t, fdt);
     if (g.rules.dark) R.drawDark(gc, g.cols, g.rows, hx, hy, g.apples, t);
     pvView.fx.draw(gc, t, fdt);
     if (pvHint) {
@@ -510,7 +512,7 @@
     for (const ap of game.apples) R.drawApple(g, ap, t, game, p);
     const a = U.lerpAng(U.angOf(game.prevDir.x, game.prevDir.y), U.angOf(game.dir.x, game.dir.y), U.ease(Math.min(1, p / 0.7)));
     view.snake.draw(g, game.cells, game.prevTail, p, CELL, a, settings, fx);
-    if (game.rules.hunger && state !== 'menu') R.drawHunger(g, game.cols, game.rows, game.hungerLevel(), t);
+    if (game.rules.hunger && state !== 'menu') hunger.draw(g, game.cols, game.rows, game.hungerLevel(state === 'play' ? p : 0), t, fdt);
     if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }
     view.fx.draw(g, t, fdt);
     if (state === 'countdown') {

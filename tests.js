@@ -308,6 +308,12 @@
       eq(C.mergeDocs(old, nu).settings, { color: 7, hat: 0 });
       const t = Date.now(); eq(C.mergeDocs({ settings: { color: 1 }, settingsAt: t }, { settings: { color: 2 }, settingsAt: t + 1 }).settings.color, 2, 'real timestamps'); eq(C.mergeDocs(nu, old).settings, { color: 7, hat: 0 }); eq(C.mergeDocs(nu, old).settingsAt, 200);
     });
+    test('sync: saved looks are kept and checked', () => {
+      const look = { color: 1, pattern: 2, shape: 0, eyes: 3, hat: 4, burst: 5, trail: 6, food: 7, boardSkin: 8, customColor: '#123456' };
+      const m = C.mergeDocs({ settings: {}, settingsAt: 1 }, { settings: { combos: [look, null, { color: 'x' }, null, null] }, settingsAt: 2 });
+      eq(m.settings.combos, [look, null, null, null, null]);
+      eq('combos' in C.sanitize({ settings: { combos: [look] } }).settings, false, 'wrong length');
+    });
     test('sync: bad data is dropped', () => {
       const m = C.sanitize({ devices: { A: { games: -5, xp: 'lots', apples: 1 / 0 }, '': { games: 3 } }, best: { k: -1, j: 'x', ok: 4 }, unlocked: [1, 'a', 'a', null],
         settings: { color: 2, mode: 'turbo', customColor: 'red', hat: 1e9 }, settingsAt: -1 });

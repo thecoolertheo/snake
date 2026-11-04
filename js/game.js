@@ -291,10 +291,10 @@
   }
 
   // 0..1: how close a Hunger snake is to its next shrink (0 = just ate).
-  Game.prototype.hungerLevel = function () {
+  // p = how far through the current step we are, so the meter can fill smoothly between steps.
+  Game.prototype.hungerLevel = function (p = 0) {
     if (!this.rules.hunger) return 0;
-    if (this.hungry < HUNGER_START) return this.hungry / HUNGER_START;
-    return 1;
+    return Math.min(1, (this.hungry + p) / HUNGER_START);
   };
 
   // Runaway: apples near your head hop to a neighbouring free tile that's further from you.

@@ -8,7 +8,8 @@
 // bests take the higher score, unlocks are combined, and the newest look wins.
 (function (root) {
   'use strict';
-  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts'];
+  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts', 'combos'];
+  const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
   const COUNTS = ['games', 'apples', 'timeMs', 'xp'];
   const ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // no 0/O or 1/I/L, so codes are easy to read out
   const CODE_LEN = 8;
@@ -27,6 +28,16 @@
     let c = '';
     for (let i = 0; i < CODE_LEN; i++) c += ALPHA[Math.floor(rand() * ALPHA.length) % ALPHA.length];
     return c;
+  }
+
+  const okHex = v => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
+  // One saved look: every part must be a small whole number, or the slot is dropped.
+  function cleanLook(c) {
+    if (!c || typeof c !== 'object') return null;
+    const o = {};
+    for (const k of LOOK_KEYS) { if (!Number.isInteger(c[k]) || c[k] < 0 || c[k] >= 1000) return null; o[k] = c[k]; }
+    o.customColor = okHex(c.customColor) ? c.customColor : null;
+    return o;
   }
 
   function empty() { return { v: 1, devices: {}, best: {}, unlocked: [], settings: {}, settingsAt: 0 }; }
@@ -55,9 +66,13 @@
     if (d.settings && typeof d.settings === 'object') {
       for (const k of SYNCED) {
         const v = d.settings[k];
+        if (k === 'combos') {
+          if (Array.isArray(v) && v.length === 5) out.settings[k] = v.map(cleanLook);
+          continue;
+        }
         if (typeof v === 'number' && isFinite(v) && v >= 0 && v < 1000) out.settings[k] = Math.floor(v);
         else if (typeof v === 'boolean') out.settings[k] = v;
-        else if (k === 'customColor' && (v === null || (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)))) out.settings[k] = v;
+        else if (k === 'customColor' && (v === null || okHex(v))) out.settings[k] = v;
       }
     }
     out.settingsAt = num(d.settingsAt);

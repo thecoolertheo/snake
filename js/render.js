@@ -959,14 +959,57 @@
     g.restore();
   };
 
-  // Hunger mode: a thin meter along the bottom edge that fills and turns red as you get hungry.
-  function drawHunger(g, cols, rows, level, t) {
-    const W = cols * CELL, H = rows * CELL, h = 6, x = W * 0.2, w = W * 0.6, y = H - h - 8;
-    g.fillStyle = 'rgba(0,0,0,0.45)'; roundRect(g, x - 2, y - 2, w + 4, h + 4, 5); g.fill();
-    const c = level < 0.6 ? '#4cc35b' : level < 0.85 ? '#f2cd3f' : '#ff5a4e';
-    g.globalAlpha = level >= 1 && !R.reduced ? 0.55 + 0.45 * Math.abs(Math.sin(t / 150)) : 1;
-    g.fillStyle = c; roundRect(g, x, y, Math.max(h, w * Math.min(1, level)), h, 3); g.fill();
-    g.globalAlpha = 1;
+  // Hunger mode: a meter along the bottom edge that drains your patience smoothly. It glides between
+  // game steps, slides back with a pop when you eat, and shakes and glows red as you get close to starving.
+  class HungerBar {
+    constructor() { this.grad = null; this.gradFor = null; this.reset(); }
+    reset() { this.v = 0; this.fedT = -1e9; this.hitT = -1e9; }
+    fed(t) { this.fedT = t; }
+    hit(t) { this.hitT = t; }
+    draw(g, cols, rows, target, t, dt) {
+      this.v += (target - this.v) * Math.min(1, dt / (target > this.v ? 70 : 170));
+      const L = this.v, W = cols * CELL, H = rows * CELL, w = W * 0.62, h = 14, x = (W - w) / 2, y = H - h - 12;
+      const rm = R.reduced, danger = U.clamp((L - 0.6) / 0.4, 0, 1), still = rm ? 0 : 1;
+      const fedAge = U.clamp((t - this.fedT) / 340, 0, 1), hitAge = U.clamp((t - this.hitT) / 280, 0, 1);
+      const pulse = 0.5 + 0.5 * Math.sin(t / (210 - 130 * danger));
+      const pop = 1 + still * 0.14 * (1 - fedAge) * (1 - fedAge);
+      const sx = still * (Math.sin(t / 34) * danger * danger * 1.6 + Math.sin(t / 19) * (1 - hitAge) * 5);
+      g.save();
+      g.translate(W / 2 + sx, y + h / 2); g.scale(pop, pop); g.translate(-W / 2, -(y + h / 2));
+      if (danger > 0) {   // red glow around the bar
+        g.globalAlpha = danger * (0.25 + 0.4 * pulse); g.fillStyle = '#ff3b30';
+        roundRect(g, x - 7, y - 7, w + 14, h + 14, (h + 14) / 2); g.fill(); g.globalAlpha = 1;
+      }
+      g.fillStyle = 'rgba(6,10,8,.8)'; roundRect(g, x - 3, y - 3, w + 6, h + 6, (h + 6) / 2); g.fill();
+      if (this.gradFor !== g || this.gradW !== x) {   // green → yellow → red across the whole track
+        const c = g.createLinearGradient(x, 0, x + w, 0);
+        c.addColorStop(0, '#4cc35b'); c.addColorStop(0.5, '#f2cd3f'); c.addColorStop(0.78, '#ff9838'); c.addColorStop(1, '#ff3b30');
+        this.grad = c; this.gradFor = g; this.gradW = x;
+      }
+      const fw = Math.max(h, w * U.clamp(L, 0, 1));
+      g.save(); roundRect(g, x, y, fw, h, h / 2); g.clip();
+      g.fillStyle = this.grad; g.fillRect(x, y, w, h);
+      // Stripes that run faster the hungrier you get.
+      g.fillStyle = 'rgba(255,255,255,.17)';
+      const off = rm ? 0 : (t * (0.018 + 0.05 * L)) % 22;
+      for (let sxp = x - 22 + off; sxp < x + fw; sxp += 22) {
+        g.beginPath(); g.moveTo(sxp, y + h); g.lineTo(sxp + 8, y); g.lineTo(sxp + 17, y); g.lineTo(sxp + 9, y + h); g.closePath(); g.fill();
+      }
+      g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(x, y + 1.5, fw, h * 0.26);
+      if (fedAge < 1) { g.globalAlpha = 1 - fedAge; g.fillStyle = '#fff'; g.fillRect(x, y, w, h); g.globalAlpha = 1; }
+      g.restore();
+      // Bright tip on the moving end.
+      g.fillStyle = '#fff'; g.globalAlpha = 0.65 + 0.35 * pulse;
+      dot(g, x + fw - h / 2, y + h / 2, h * (0.26 + 0.08 * pulse)); g.globalAlpha = 1;
+      // A little apple that wobbles more as you starve.
+      const ax = x - 20, ay = y + h / 2, tilt = still * Math.sin(t / 70) * (0.08 + 0.4 * danger), as = 1 + 0.16 * pulse * danger;
+      g.save(); g.translate(ax, ay); g.rotate(tilt); g.scale(as, as);
+      g.fillStyle = 'rgba(6,10,8,.8)'; dot(g, 0, 0, 13);
+      g.fillStyle = '#ff5a4e'; dot(g, 0, 1, 8);
+      g.strokeStyle = '#5fd16a'; g.lineWidth = 2.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(0, -6); g.quadraticCurveTo(1, -10, 5, -11); g.stroke();
+      g.restore();
+      g.restore();
+    }
   }
 
   // Big "3 2 1" in the middle of the board. f = 0..1 through the current number.
@@ -1032,6 +1075,6 @@
     return (icons[key] = c.toDataURL());
   };
 
-  Object.assign(R, { SnakeDrawer, View, Confetti, Ambient, drawApple, drawWalls, drawBoard, drawCountdown, drawDark, drawHunger });
+  Object.assign(R, { SnakeDrawer, View, Confetti, Ambient, HungerBar, drawApple, drawWalls, drawBoard, drawCountdown, drawDark });
   S.render = R;
 })(window);

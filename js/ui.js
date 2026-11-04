@@ -130,6 +130,9 @@
     E.bestBtn.addEventListener('click', h.openBest);
     E.mBestBtn.addEventListener('click', () => { ui.openPage('stats'); h.click(); });
     E.mute.addEventListener('click', () => { st.muted = !st.muted; ui.renderMute(); h.settingsChanged('muted'); if (!st.muted) h.click(); });
+    for (const l of document.querySelectorAll('.logo')) l.innerHTML = LOGO;
+    const hero = document.querySelector('.logo-hero');
+    hero.classList.add('intro'); setTimeout(() => hero.classList.remove('intro'), 1800);
     ui.renderMute();
     ui.refresh();
     applyWide();
@@ -229,6 +232,11 @@
     dice.type = 'button'; dice.id = 'randomBtn'; dice.title = 'Pick a random colour, pattern, tail, eyes, hat, effects, food and board';
     dice.addEventListener('click', shuffleLook);
     box.appendChild(dice);
+    const saved = el('button', 'cat-tab', '<i class="ct-ic">' + svg('<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/>', 'ct-save') + '</i><span>Saved</span>');
+    saved.type = 'button'; saved.dataset.cat = 'combos';
+    saved.addEventListener('click', () => { ui.setCat('combos'); h.click(); });
+    box.appendChild(saved);
+    $('optCombos').addEventListener('click', onCombo);
     for (const [id, name] of cats()) {
       const b = el('button', 'cat-tab', '<i class="ct-ic"></i><span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
       b.addEventListener('click', () => { ui.setCat(id); h.click(); });
@@ -255,7 +263,45 @@
       b.querySelector('.ct-ic').innerHTML = id === 'color' ? '<i class="ci" style="background:' + SK.colorHex(st) + '"></i>' : chipIcon(kind || id, st[id]);   // what you're wearing
       if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; $('catCount').textContent = count; }
     }
+    const sv = $('catTabs').querySelector('[data-cat="combos"]');
+    sv.setAttribute('aria-pressed', ui.cat === 'combos');
+    $('catFilter').hidden = ui.cat === 'combos';
+    if (ui.cat === 'combos') { $('catTitle').textContent = 'Saved looks'; $('catNow').textContent = ''; $('catCount').textContent = st.combos.filter(Boolean).length + '/5'; }
+    renderCombos();
   }
+  // Saved looks: 5 slots that each remember every type of customization.
+  const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
+  const sameLook = c => LOOK_KEYS.every(k => c[k] === st[k]) && (st.color !== SK.CUSTOM || c.customColor === st.customColor);
+  function renderCombos() {
+    const box = $('optCombos');
+    let html = '';
+    st.combos.forEach((c, i) => {
+      if (!c) { html += '<div class="combo-slot"><button type="button" class="combo empty" data-slot="' + i + '" aria-label="Save current look in slot ' + (i + 1) + '"><b>+</b><small>Save</small></button></div>'; return; }
+      html += '<div class="combo-slot"><button type="button" class="combo" data-slot="' + i + '" aria-pressed="' + sameLook(c) + '" aria-label="Wear saved look ' + (i + 1) + '">' +
+        '<img alt="" src="' + S.render.icon('hat', c.hat, SK.colorHex(c)) + '"><i style="background:' + patternSwatch(c.pattern) + '"></i></button>' +
+        '<button type="button" class="combo-x" data-clear="' + i + '" aria-label="Clear saved look ' + (i + 1) + '">×</button></div>';
+    });
+    box.innerHTML = html;
+    $('comboHint').textContent = st.combos.some(c => !c) ? 'Tap an empty slot to save your current look. Tap a saved one to wear it.' : 'Tap a saved look to wear it. Use × to clear a slot and save over it.';
+  }
+  function onCombo(e) {
+    const x = e.target.closest('[data-clear]');
+    if (x) { st.combos[+x.dataset.clear] = null; h.settingsChanged('combos'); h.click(); renderCats(); return; }
+    const b = e.target.closest('[data-slot]'); if (!b) return;
+    const i = +b.dataset.slot, c = st.combos[i];
+    if (!c) {
+      const look = { customColor: st.customColor };
+      for (const k of LOOK_KEYS) look[k] = st[k];
+      st.combos[i] = look; h.settingsChanged('combos');
+    } else {
+      st.customColor = c.customColor;
+      for (const k of LOOK_KEYS) { st[k] = c[k]; h.settingsChanged(k); }
+      $('customPick').hidden = st.color !== SK.CUSTOM;
+      ui.bump(ui.el.pv);
+    }
+    h.click(); renderSkins();
+  }
+
   // Randomize: a random pick for every type of customization, from what you've unlocked.
   function shuffleLook() {
     for (const [id, , kind, items] of cats()) {
@@ -516,6 +562,20 @@
     msg.hidden = !(y.state === 'error' && y.msg); msg.textContent = y.msg;
   };
   ui.renderRoadmap = () => renderRoadmap();
+
+  // The logo: SNAKE in tube letters like the snake's body (the S has a head), with PLUS in gold beneath.
+  const LOGO = (function () {
+    const letters = ['M66 20H36A15 15 0 0 0 36 50H52A15 15 0 0 1 52 80H20', 'M97 80V20L137 80V20', 'M157 80L181 20L205 80M167 58H195', 'M225 20V80M261 20L227 50L261 80', 'M317 20H283V80H317M283 50H311'];
+    const plus = ['M119 134V106H129A7.500 7.500 0 0 1 129 121H119', 'M147 106V134H162', 'M174 106V124A8 8 0 0 0 190 124V106', 'M217 109H207A6.500 6.500 0 0 0 207 120H212A6.500 6.500 0 0 1 212 131H200'];
+    const layer = (cls, list) => list.map((d, i) => '<path class="' + cls + '" pathLength="1" style="--i:' + i + '" d="' + d + '"/>').join('');
+    return '<svg viewBox="0 0 336 146" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path class="lg-rule" d="M20 120H101"/><path class="lg-rule" d="M235 120H316"/>' +
+      '<g class="lg-tube">' + layer('lg-shade', letters) + layer('lg-edge', letters) + layer('lg-body', letters) + layer('lg-gloss', letters) + layer('lg-glint', letters) + '</g>' +
+      '<g class="lg-tongue"><path d="M78 20H90M90 20L96 16M90 20L96 24"/></g>' +
+      '<circle class="lg-head-edge" cx="68" cy="20" r="16"/><circle class="lg-head" cx="68" cy="20" r="14"/><ellipse class="lg-head-gloss" cx="64" cy="13" rx="7" ry="3"/>' +
+      '<g class="lg-eyes"><circle cx="70" cy="13" r="5" fill="#fff"/><circle cx="70" cy="27" r="5" fill="#fff"/><circle cx="72" cy="13" r="2.600" fill="#0f1512"/><circle cx="72" cy="27" r="2.600" fill="#0f1512"/></g>' +
+      '<g class="lg-plus">' + layer('lg-plus-edge', plus) + layer('lg-plus-body', plus) + '</g></svg>';
+  })();
 
   function renderHome() {
     $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);

@@ -964,3 +964,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .board b { font-variant-numeric: tabular-nums; }
 .board-you { margin: 0; font-size: var(--fs-sm); font-weight: 700; }
 #boardRename { justify-self: start; }
+/* Leaderboard name box: the box takes the row and Join stays small. It's a name, not a sync code, so no capitals or wide spacing. */
+.panel-detail .sync-join .play { width: auto; flex: none; padding: 10px var(--sp-4); font-size: var(--fs-md); }
+#boardName { text-transform: none; letter-spacing: 0; text-align: left; font-weight: 500; font-size: var(--fs-md); }

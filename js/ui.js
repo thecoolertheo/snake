@@ -25,6 +25,10 @@
   const BOARD_KEYS = ['s', 'm', 'l', 'f'];
 
   const ui = S.ui = { tab: 'home', cat: 'color' };
+  // Big screens have room to show related pages together.
+  const WIDE = root.matchMedia('(min-width: 1000px) and (min-height: 560px)');
+  const MERGED = { home: ['home', 'modes'], modes: ['home', 'modes'], unlocks: ['unlocks', 'stats'], stats: ['unlocks', 'stats'] };
+  const pagesFor = name => (WIDE.matches && MERGED[name]) || [name];
   const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
   let st, h, store;   // settings, handlers, store
 
@@ -128,6 +132,8 @@
     E.mute.addEventListener('click', () => { st.muted = !st.muted; ui.renderMute(); h.settingsChanged('muted'); if (!st.muted) h.click(); });
     ui.renderMute();
     ui.refresh();
+    applyWide();
+    if (WIDE.addEventListener) WIDE.addEventListener('change', applyWide);
   };
 
   function seg(id, items, key, isGame) {
@@ -220,7 +226,7 @@
   function buildWardrobe() {
     const box = $('catTabs');
     for (const [id, name] of cats()) {
-      const b = el('button', 'cat-tab', '<span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
+      const b = el('button', 'cat-tab', '<i class="ct-ic"></i><span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
       b.addEventListener('click', () => { ui.setCat(id); h.click(); });
       box.appendChild(b);
     }
@@ -241,8 +247,10 @@
     for (const [id, name, kind, items] of cats()) {
       const b = $('catTabs').querySelector('[data-cat="' + id + '"]');
       b.setAttribute('aria-pressed', id === ui.cat);
-      b.querySelector('small').textContent = openIn(kind, items.length) + '/' + items.length;
-      if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; }
+      const count = openIn(kind, items.length) + '/' + items.length;
+      b.querySelector('small').textContent = count;
+      b.querySelector('.ct-ic').innerHTML = id === 'color' ? '<i class="ci" style="background:' + SK.colorHex(st) + '"></i>' : chipIcon(kind || id, st[id]);   // what you're wearing
+      if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; $('catCount').textContent = count; }
     }
   }
   // Puts together a random look from what you've unlocked.
@@ -279,7 +287,8 @@
       const u = kind && lockedItem(kind, i);
       b.classList.toggle('locked', !!u);
       b.innerHTML = chipIcon(kind || key, i) + '<span>' + items[i] + '</span>' + (u ? LOCK : '');
-      b.setAttribute('aria-pressed', st[key] === i);
+      b.setAttribute('aria-pressed', st[key] === i); b.title = items[i];
+      b.setAttribute('aria-label', items[i] + (u ? ' (locked)' : ''));
     });
     chipsRender('optPattern', 'pattern', SK.PATTERNS, 'pattern');
     chipsRender('optEyes', 'eyes', SK.EYES, 'eyes');
@@ -482,7 +491,7 @@
     if (!u) return;
     const stop = $('roadmap').querySelector('[data-id="' + u.id + '"]'); if (!stop) return;
     const tr = stop.closest('.track');
-    ui.el.panels.scrollTop = tr.offsetTop - ui.el.panels.offsetTop - 8;
+    tr.scrollIntoView({ block: 'start' });
     const sc = stop.closest('.road-scroll'); if (sc) sc.scrollLeft = Math.max(0, stop.offsetLeft - sc.clientWidth / 2);
     stop.classList.add('focus'); setTimeout(() => stop.classList.remove('focus'), 1800);
     tr.querySelector('[data-note]').innerHTML = '<b>' + SK.itemName(u) + ':</b> ' + u.text + ' <small>(' + Math.min(u.value(store.progress()), u.goal) + '/' + u.goal + ')</small>';
@@ -515,7 +524,7 @@
   // Re-render everything that depends on settings or saved data.
   ui.refresh = function () {
     renderModes(); renderSkins(); ui.renderLevel(); renderHome();
-    if (ui.tab === 'stats') renderStats();
+    if (ui.shows('stats')) renderStats();
     const m = S.MODE[st.mode];
     const line = m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
     ui.el.modeLine.textContent = line;
@@ -524,21 +533,28 @@
 
   // Pages: one full-screen page at a time. The preview canvas moves to whichever page shows it.
   ui.setTab = function (name, scrollToBest) {
-    ui.tab = name;
-    ui.el.shell.dataset.page = name;
-    $('pageTitle').textContent = PAGE_TITLES[name];
-    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === name);
-    for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
-    const slot = document.querySelector('[data-panel="' + name + '"] .pv-slot');
+    const pages = pagesFor(name), main = pages[0];
+    ui.tab = main;
+    ui.el.shell.dataset.page = main;
+    $('pageTitle').textContent = main === 'unlocks' && pages.length > 1 ? 'Progress' : PAGE_TITLES[main];
+    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === main);
+    for (const p of document.querySelectorAll('[data-panel]')) p.hidden = pages.indexOf(p.dataset.panel) < 0;
+    const slot = document.querySelector('[data-panel="' + main + '"] .pv-slot');
     if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock();
-    if (name === 'home') renderHome();
-    if (name === 'stats') renderStats();
-    if (name === 'unlocks') renderRoadmap();
-    if (name === 'settings') ui.renderSync();
+    if (main === 'home') renderHome();
+    if (ui.shows('stats')) renderStats();
+    if (ui.shows('unlocks')) renderRoadmap();
+    if (main === 'settings') ui.renderSync();
     ui.el.panels.scrollTop = 0;
-    if (scrollToBest) { const hd = $('bestHeading'); ui.el.panels.scrollTop = hd.offsetTop - ui.el.panels.offsetTop - 8; }
+    for (const p of ui.el.panels.children) p.scrollTop = 0;
+    if (scrollToBest) $('bestHeading').scrollIntoView({ block: 'start' });
   };
+  ui.shows = name => !document.querySelector('[data-panel="' + name + '"]').hidden;
+  function applyWide() {
+    $('tabs').querySelector('[data-tab="unlocks"] span').textContent = WIDE.matches ? 'Progress' : 'Unlocks';
+    ui.setTab(ui.tab);
+  }
   // Opens a page from the game (the card underneath stays for when you come back to it).
   ui.openPage = function (name) { ui.el.shell.hidden = false; ui.setTab(name, name === 'stats'); };
 

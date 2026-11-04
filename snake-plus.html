@@ -568,30 +568,53 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .home-next { padding: var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-md); background: none; color: var(--c-muted); font-size: var(--fs-sm); line-height: 1.45; text-align: left; cursor: pointer; }
 .home-next:hover { color: var(--c-fg); }
 
-/* Customize */
+/* Customize: an icon kit. Preview and what you're wearing up top, a dark panel of big tiles below. */
 .panel-snake { gap: var(--sp-3); }
 .ward-stage { display: grid; gap: var(--sp-2); position: sticky; top: calc(var(--sp-2) * -1); z-index: 3; padding: var(--sp-2) 0; background: var(--c-bg); min-width: 0; }
-.ward-stage .pbtn { padding: 9px var(--sp-2); font-size: var(--fs-sm); }
-.ward-stage .pbtn svg { width: 18px; height: 18px; }
-.ward-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); align-content: start; min-width: 0; }
-.cat-tabs { display: flex; gap: var(--sp-1); overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--sp-4) * -1); padding: 2px var(--sp-4); }
+.cat-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--sp-4) * -1); padding: 2px var(--sp-4); }
 .cat-tabs::-webkit-scrollbar { display: none; }
-.cat-tab { flex: none; display: grid; justify-items: center; padding: 6px var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: var(--c-muted); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; transition: color var(--t-fast), border-color var(--t-fast); }
-.cat-tab small { font-size: var(--fs-xs); font-weight: 400; font-variant-numeric: tabular-nums; opacity: .8; }
-.cat-tab[aria-pressed="true"] { color: var(--c-fg); border-color: var(--mode-accent); background: var(--c-surface-2); }
-.cat-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
-.cat-head span { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
-.cat-head b { font-size: var(--fs-lg); font-weight: 700; }
-.cat-head small { color: var(--c-muted); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cat-filter { flex: none; padding: 5px var(--sp-3); border: 1px solid var(--c-line); border-radius: var(--r-pill); background: none; color: var(--c-muted); font-size: var(--fs-xs); font-weight: 500; cursor: pointer; }
+.cat-tab { flex: none; width: 66px; display: grid; justify-items: center; gap: 2px; padding: 6px 2px 5px; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: var(--c-muted); font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; cursor: pointer; transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast); }
+.cat-tab small { display: none; font-size: var(--fs-xs); font-weight: 400; font-variant-numeric: tabular-nums; opacity: .8; }
+.cat-tab:hover { background: var(--c-surface-2); }
+.cat-tab[aria-pressed="true"] { color: var(--c-fg); border-color: var(--mode-accent); background: color-mix(in srgb, var(--mode-accent) 14%, var(--c-surface)); }
+.ct-ic { display: grid; place-items: center; width: 28px; height: 28px; font-style: normal; }
+.ct-ic .ci { width: 22px; height: 22px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); }
+.ct-ic .ci-board { border-radius: 6px; }
+.ct-ic .ci-img { width: 28px; height: 28px; }
+.ct-ic .ci-tail { width: 26px; height: 12px; background: #5b8cff; border-radius: 9px; box-shadow: none; }
+.ct-ic .ci-tail.tapered { clip-path: polygon(0 35%, 100% 0, 100% 100%, 0 65%); border-radius: 0 9px 9px 0; }
+
+.ward-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); align-content: start; min-width: 0; padding: var(--sp-3);
+  border-radius: var(--r-lg); background: rgba(0, 0, 0, .3); border: 1px solid rgba(255, 255, 255, .06); box-shadow: inset 0 2px 10px rgba(0, 0, 0, .35); }
+.cat-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1) var(--sp-3); }
+.cat-name { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.cat-name b { font-size: var(--fs-lg); font-weight: 700; }
+.cat-name small { color: var(--c-muted); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-tools { display: flex; align-items: center; gap: 6px; }
+#catCount { color: var(--c-muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; margin-right: 2px; }
+.cat-filter { display: inline-flex; align-items: center; gap: 4px; flex: none; padding: 5px 10px; border: 1px solid var(--c-line); border-radius: var(--r-pill); background: none; color: var(--c-muted); font-size: var(--fs-xs); font-weight: 500; cursor: pointer; }
+.cat-filter svg { width: 13px; height: 13px; }
+.cat-filter:hover { color: var(--c-fg); }
 .cat-filter[aria-pressed="true"] { color: var(--c-fg); border-color: var(--mode-accent); }
 .hide-locked .locked { display: none; }
 .cat { display: grid; gap: var(--sp-3); min-width: 0; }
-.cat .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 12px 6px; justify-items: center; }
-.cat .sw { width: 38px; height: 38px; }
-.cat .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); }
-.cat .chip { min-height: 44px; justify-content: flex-start; padding: 6px var(--sp-3) 6px 8px; border-radius: var(--r-md); text-align: left; }
-.cat .chip .lock { margin-left: auto; }
+.cat .swatches, .cat .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
+.cat .sw, .cat .chip { width: 100%; height: auto; aspect-ratio: 1; margin: 0; padding: 0; border-radius: var(--r-md); position: relative; display: grid; place-items: center; transition: transform var(--t-fast), box-shadow var(--t-fast); }
+.cat .chip { background: var(--c-surface-2); border: 1px solid rgba(255, 255, 255, .07); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .05); }
+.cat .chip:hover { background: var(--c-surface-3); }
+.cat .sw:hover, .cat .chip:hover { transform: translateY(-1px); }
+.cat .sw:active, .cat .chip:active { transform: scale(.94); }
+.cat .chip > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.cat .chip .ci { width: 58%; height: 58%; }
+.cat .chip .ci-board { width: 66%; height: 66%; border-radius: 8px; }
+.cat .chip .ci-img { width: 84%; height: 84%; margin: 0; }
+.cat .chip .ci-tail { width: 72%; height: 30%; border-radius: 12px; }
+.cat .chip .ci-tail.tapered { border-radius: 0 12px 12px 0; }
+.cat .chip.locked { background: #0b100d; }
+.cat .chip.locked .ci, .cat .chip.locked .ci-img { filter: grayscale(1) brightness(.42); }
+.cat .chip .lock, .cat .sw .lock { position: absolute; inset: auto 5px 5px auto; margin: 0; width: 14px; height: 14px; color: #fff; opacity: .85; }
+.cat .sw[aria-pressed="true"], .cat .chip[aria-pressed="true"] { outline: 2px solid #fff; outline-offset: 0; border-color: transparent; box-shadow: 0 0 14px -2px var(--mode-accent); background-color: color-mix(in srgb, var(--mode-accent) 22%, var(--c-surface-2)); transform: none; }
+.cat .sw[aria-pressed="true"] { background-color: unset; }
 
 /* Sidebar */
 @media (min-width: 820px), (min-width: 560px) and (max-height: 520px) {
@@ -611,12 +634,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .page-head { padding-left: var(--sp-5); padding-right: var(--sp-5); }
   .panel-home { max-width: 960px; grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); align-items: center; gap: var(--sp-6); }
 }
-/* Customize: preview beside the options once there's room */
-@media (min-width: 700px) {
-  .panel-snake { grid-template-columns: minmax(240px, 360px) minmax(0, 1fr); align-items: start; gap: var(--sp-5); }
-  .ward-stage { top: 0; background: none; padding: 0; }
-  .cat-tabs { flex-wrap: wrap; margin: 0; padding: 0; overflow: visible; }
-}
 /* Landscape phones: just enough room for the essentials */
 @media (max-height: 520px) and (min-width: 560px) {
   .side-nav { width: 76px; padding-left: max(var(--sp-1), env(safe-area-inset-left)); padding-right: var(--sp-1); gap: 0; }
@@ -630,7 +647,74 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .play-hero { padding: 10px var(--sp-5); font-size: var(--fs-lg); }
   .home-next { display: none; }
 }
-.shell[data-page="home"] .panels { display: grid; align-content: center; }
+.shell[data-page="home"] .panels { display: grid; align-content: start; align-content: safe center; }
+
+/* Customize: preview and categories beside the kit once there's room */
+@media (min-width: 700px) {
+  .panel-snake { grid-template-columns: minmax(250px, 34%) minmax(0, 1fr); align-items: start; gap: var(--sp-4); }
+  .ward-stage { top: 0; background: none; padding: 0; gap: var(--sp-3); }
+  .cat-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; }
+  .cat-tab { width: auto; padding: var(--sp-2) 2px; }
+  .cat-tab small { display: block; }
+  .ct-ic { width: 36px; height: 36px; }
+  .ct-ic .ci { width: 28px; height: 28px; } .ct-ic .ci-img { width: 36px; height: 36px; }
+  .cat .swatches, .cat .chips { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+}
+/* Short landscape screens: categories go back to one scrolling row */
+@media (max-height: 520px) and (min-width: 560px) {
+  .ward-stage { gap: var(--sp-2); }
+  .cat-tabs { display: flex; overflow-x: auto; }
+  .cat-tab { flex: none; width: 58px; padding: 4px 2px; }
+  .cat-tab small { display: none; }
+  .ct-ic { width: 24px; height: 24px; }
+  .ct-ic .ci { width: 20px; height: 20px; } .ct-ic .ci-img { width: 24px; height: 24px; }
+}
+
+/* =====================================================================
+   Big screens: related pages share the screen (Home + Modes, Unlocks + Stats).
+   Each column scrolls on its own, so the page always fills the window.
+   ===================================================================== */
+@media (min-width: 1000px) and (min-height: 560px) {
+  .tabs [data-tab="modes"], .tabs [data-tab="stats"] { display: none; }
+  .shell[data-page="home"] .page-head { display: none; }
+  .panels { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--sp-5); width: 100%; max-width: 1640px; margin: 0 auto; overflow: hidden; padding-bottom: var(--sp-4); }
+  .shell[data-page="home"] .panels { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-content: stretch; padding-top: var(--sp-4); }
+  .shell[data-page="unlocks"] .panels { grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); }
+  .panel { max-width: none !important; height: 100%; margin: 0; overflow-y: auto; overscroll-behavior: contain; align-content: start; padding-right: 2px; }
+  .panel-home { grid-template-columns: minmax(0, 1fr); align-items: stretch; align-content: start; align-content: safe center; gap: var(--sp-4); }
+  .panel-home .setup { display: none; }
+  .panel[data-panel="modes"] { align-content: start; align-content: safe center; }
+  .mode-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); }
+  .panel[data-panel="stats"] .tiles { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+  .panel[data-panel="settings"] { display: block; columns: 3 420px; column-gap: var(--sp-3); }
+  .panel[data-panel="settings"] > .card { break-inside: avoid; margin-bottom: var(--sp-3); }
+  /* Customize fills the window: categories stretch beside the preview, the kit scrolls inside its panel */
+  .panel-snake { grid-template-columns: minmax(320px, 36%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; align-content: stretch; height: 100%; overflow: hidden; }
+  .ward-stage { position: static; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+  .cat-tabs { grid-auto-rows: minmax(0, 1fr); min-height: 0; }
+  .cat-tab { align-content: center; }
+  .ct-ic { width: 44px; height: 44px; }
+  .ct-ic .ci { width: 34px; height: 34px; } .ct-ic .ci-img { width: 44px; height: 44px; }
+  .ward-body { height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+  .cat .swatches, .cat .chips { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+}
+/* PC-sized windows: everything a size larger, so the pages fill the screen */
+@media (min-width: 1280px) and (min-height: 700px) {
+  .shell { --fs-xs: 12.5px; --fs-sm: 15px; --fs-md: 17px; --fs-lg: 21px; --fs-xl: 30px; --sp-3: 14px; --sp-4: 20px; --sp-5: 30px; }
+  .side-nav { width: 240px; }
+  .tabs button { min-height: 52px; }
+  .tabs button svg { width: 24px; height: 24px; }
+  .mode-card { min-height: 112px; align-content: center; }
+  .ct-ic { width: clamp(44px, 8vh, 76px); height: clamp(44px, 8vh, 76px); }
+  .ct-ic .ci { width: 70%; height: 70%; } .ct-ic .ci-img { width: 100%; height: 100%; }
+  .play-hero { padding: 20px var(--sp-5); font-size: 28px; }
+  .play-pill { padding: 10px 34px; }
+  .home-side .lvl { padding-block: var(--sp-3); }
+  .htile { padding: var(--sp-4) var(--sp-3); }
+  .htile svg { width: 32px; height: 32px; }
+  .cat .swatches, .cat .chips { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
+  .switch-row { padding-block: var(--sp-2); }
+}
 </style>
 </head>
 <body>
@@ -749,11 +833,10 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
             <section class="panel panel-snake" role="tabpanel" data-panel="snake" hidden>
               <div class="ward-stage">
                 <div class="pv-slot"></div>
-                <button class="pbtn" id="shuffleBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3.5c5 0 6 10 11 10H21M3 17h3.5c1.8 0 3-1.300 4.200-3M21 7h-3.500c-1.800 0-3 1.300-4.200 3M18.500 4.500 21 7l-2.500 2.500M18.500 14.500 21 17l-2.500 2.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Surprise me</button>
+                <div class="cat-tabs" id="catTabs"></div>
               </div>
               <div class="ward-body" id="wardrobe">
-                <div class="cat-tabs" id="catTabs"></div>
-                <div class="cat-head"><span><b id="catTitle"></b><small id="catNow"></small></span><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></div>
+                <div class="cat-head"><span class="cat-name"><b id="catTitle"></b><small id="catNow"></small></span><span class="cat-tools"><small id="catCount"></small><button class="cat-filter" id="shuffleBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3.5c5 0 6 10 11 10H21M3 17h3.5c1.8 0 3-1.300 4.200-3M21 7h-3.500c-1.800 0-3 1.300-4.200 3M18.500 4.500 21 7l-2.500 2.500M18.500 14.500 21 17l-2.500 2.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Surprise me</button><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></span></div>
                 <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
                 <div class="cat" data-cat="color"><div class="swatches" id="optColor"></div>
                 <div class="custom-pick" id="customPick" hidden>
@@ -2620,8 +2703,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   R.icon = function (kind, i, color) {
     const key = kind + i + (color || '');
     if (icons[key]) return icons[key];
-    const c = document.createElement('canvas'); c.width = c.height = 72;
-    const g = c.getContext('2d'); g.scale(72 / 40, 72 / 40);
+    const c = document.createElement('canvas'); c.width = c.height = 144;
+    const g = c.getContext('2d'); g.scale(144 / 40, 144 / 40);
     if (kind === 'trail') {
       const T = SK.TRAIL_STYLES[SK.TRAILS[i]];
       g.fillStyle = '#5b8cff'; g.strokeStyle = '#5b8cff'; g.lineCap = 'round'; g.lineWidth = 9;
@@ -2801,6 +2884,10 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const BOARD_KEYS = ['s', 'm', 'l', 'f'];
 
   const ui = S.ui = { tab: 'home', cat: 'color' };
+  // Big screens have room to show related pages together.
+  const WIDE = root.matchMedia('(min-width: 1000px) and (min-height: 560px)');
+  const MERGED = { home: ['home', 'modes'], modes: ['home', 'modes'], unlocks: ['unlocks', 'stats'], stats: ['unlocks', 'stats'] };
+  const pagesFor = name => (WIDE.matches && MERGED[name]) || [name];
   const PAGE_TITLES = { home: 'Snake Plus', modes: 'Modes', snake: 'Customize', unlocks: 'Unlocks', stats: 'Stats', settings: 'Settings' };
   let st, h, store;   // settings, handlers, store
 
@@ -2904,6 +2991,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     E.mute.addEventListener('click', () => { st.muted = !st.muted; ui.renderMute(); h.settingsChanged('muted'); if (!st.muted) h.click(); });
     ui.renderMute();
     ui.refresh();
+    applyWide();
+    if (WIDE.addEventListener) WIDE.addEventListener('change', applyWide);
   };
 
   function seg(id, items, key, isGame) {
@@ -2996,7 +3085,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   function buildWardrobe() {
     const box = $('catTabs');
     for (const [id, name] of cats()) {
-      const b = el('button', 'cat-tab', '<span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
+      const b = el('button', 'cat-tab', '<i class="ct-ic"></i><span>' + name + '</span><small></small>'); b.type = 'button'; b.dataset.cat = id;
       b.addEventListener('click', () => { ui.setCat(id); h.click(); });
       box.appendChild(b);
     }
@@ -3017,8 +3106,10 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     for (const [id, name, kind, items] of cats()) {
       const b = $('catTabs').querySelector('[data-cat="' + id + '"]');
       b.setAttribute('aria-pressed', id === ui.cat);
-      b.querySelector('small').textContent = openIn(kind, items.length) + '/' + items.length;
-      if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; }
+      const count = openIn(kind, items.length) + '/' + items.length;
+      b.querySelector('small').textContent = count;
+      b.querySelector('.ct-ic').innerHTML = id === 'color' ? '<i class="ci" style="background:' + SK.colorHex(st) + '"></i>' : chipIcon(kind || id, st[id]);   // what you're wearing
+      if (id === ui.cat) { $('catTitle').textContent = name; $('catNow').textContent = items[st[id]] || ''; $('catCount').textContent = count; }
     }
   }
   // Puts together a random look from what you've unlocked.
@@ -3055,7 +3146,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       const u = kind && lockedItem(kind, i);
       b.classList.toggle('locked', !!u);
       b.innerHTML = chipIcon(kind || key, i) + '<span>' + items[i] + '</span>' + (u ? LOCK : '');
-      b.setAttribute('aria-pressed', st[key] === i);
+      b.setAttribute('aria-pressed', st[key] === i); b.title = items[i];
+      b.setAttribute('aria-label', items[i] + (u ? ' (locked)' : ''));
     });
     chipsRender('optPattern', 'pattern', SK.PATTERNS, 'pattern');
     chipsRender('optEyes', 'eyes', SK.EYES, 'eyes');
@@ -3258,7 +3350,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (!u) return;
     const stop = $('roadmap').querySelector('[data-id="' + u.id + '"]'); if (!stop) return;
     const tr = stop.closest('.track');
-    ui.el.panels.scrollTop = tr.offsetTop - ui.el.panels.offsetTop - 8;
+    tr.scrollIntoView({ block: 'start' });
     const sc = stop.closest('.road-scroll'); if (sc) sc.scrollLeft = Math.max(0, stop.offsetLeft - sc.clientWidth / 2);
     stop.classList.add('focus'); setTimeout(() => stop.classList.remove('focus'), 1800);
     tr.querySelector('[data-note]').innerHTML = '<b>' + SK.itemName(u) + ':</b> ' + u.text + ' <small>(' + Math.min(u.value(store.progress()), u.goal) + '/' + u.goal + ')</small>';
@@ -3291,7 +3383,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   // Re-render everything that depends on settings or saved data.
   ui.refresh = function () {
     renderModes(); renderSkins(); ui.renderLevel(); renderHome();
-    if (ui.tab === 'stats') renderStats();
+    if (ui.shows('stats')) renderStats();
     const m = S.MODE[st.mode];
     const line = m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
     ui.el.modeLine.textContent = line;
@@ -3300,21 +3392,28 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
   // Pages: one full-screen page at a time. The preview canvas moves to whichever page shows it.
   ui.setTab = function (name, scrollToBest) {
-    ui.tab = name;
-    ui.el.shell.dataset.page = name;
-    $('pageTitle').textContent = PAGE_TITLES[name];
-    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === name);
-    for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
-    const slot = document.querySelector('[data-panel="' + name + '"] .pv-slot');
+    const pages = pagesFor(name), main = pages[0];
+    ui.tab = main;
+    ui.el.shell.dataset.page = main;
+    $('pageTitle').textContent = main === 'unlocks' && pages.length > 1 ? 'Progress' : PAGE_TITLES[main];
+    for (const b of $('tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === main);
+    for (const p of document.querySelectorAll('[data-panel]')) p.hidden = pages.indexOf(p.dataset.panel) < 0;
+    const slot = document.querySelector('[data-panel="' + main + '"] .pv-slot');
     if (slot) { slot.appendChild(ui.el.pv); if (h.layout) h.layout(); }
     hideLock();
-    if (name === 'home') renderHome();
-    if (name === 'stats') renderStats();
-    if (name === 'unlocks') renderRoadmap();
-    if (name === 'settings') ui.renderSync();
+    if (main === 'home') renderHome();
+    if (ui.shows('stats')) renderStats();
+    if (ui.shows('unlocks')) renderRoadmap();
+    if (main === 'settings') ui.renderSync();
     ui.el.panels.scrollTop = 0;
-    if (scrollToBest) { const hd = $('bestHeading'); ui.el.panels.scrollTop = hd.offsetTop - ui.el.panels.offsetTop - 8; }
+    for (const p of ui.el.panels.children) p.scrollTop = 0;
+    if (scrollToBest) $('bestHeading').scrollIntoView({ block: 'start' });
   };
+  ui.shows = name => !document.querySelector('[data-panel="' + name + '"]').hidden;
+  function applyWide() {
+    $('tabs').querySelector('[data-tab="unlocks"] span').textContent = WIDE.matches ? 'Progress' : 'Unlocks';
+    ui.setTab(ui.tab);
+  }
   // Opens a page from the game (the card underneath stays for when you come back to it).
   ui.openPage = function (name) { ui.el.shell.hidden = false; ui.setTab(name, name === 'stats'); };
 
@@ -4192,7 +4291,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       if (ch.look) { applyAccent(); applyTheme(); }
       if (state === 'paused') bestBefore = Math.max(bestBefore, currentBest());
       ui.refresh(); ui.el.mBest.textContent = currentBest(); ui.setBest(state === 'paused' ? Math.max(bestBefore, game.score) : currentBest());
-      if (ui.tab === 'unlocks' && ui.menuOpen()) ui.renderRoadmap();
+      if (ui.shows('unlocks') && ui.menuOpen()) ui.renderRoadmap();
     }
   });
   setInterval(() => { if (ui.tab === 'settings' && ui.menuOpen()) ui.renderSync(); }, 15000);   // keeps "Synced 2 min ago" fresh

@@ -977,8 +977,8 @@
   R.icon = function (kind, i, color) {
     const key = kind + i + (color || '');
     if (icons[key]) return icons[key];
-    const c = document.createElement('canvas'); c.width = c.height = 72;
-    const g = c.getContext('2d'); g.scale(72 / 40, 72 / 40);
+    const c = document.createElement('canvas'); c.width = c.height = 144;
+    const g = c.getContext('2d'); g.scale(144 / 40, 144 / 40);
     if (kind === 'trail') {
       const T = SK.TRAIL_STYLES[SK.TRAILS[i]];
       g.fillStyle = '#5b8cff'; g.strokeStyle = '#5b8cff'; g.lineCap = 'round'; g.lineWidth = 9;

@@ -517,7 +517,7 @@
       if (ch.look) { applyAccent(); applyTheme(); }
       if (state === 'paused') bestBefore = Math.max(bestBefore, currentBest());
       ui.refresh(); ui.el.mBest.textContent = currentBest(); ui.setBest(state === 'paused' ? Math.max(bestBefore, game.score) : currentBest());
-      if (ui.tab === 'unlocks' && ui.menuOpen()) ui.renderRoadmap();
+      if (ui.shows('unlocks') && ui.menuOpen()) ui.renderRoadmap();
     }
   });
   setInterval(() => { if (ui.tab === 'settings' && ui.menuOpen()) ui.renderSync(); }, 15000);   // keeps "Synced 2 min ago" fresh

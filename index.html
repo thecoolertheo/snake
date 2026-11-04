@@ -135,11 +135,10 @@
             <section class="panel panel-snake" role="tabpanel" data-panel="snake" hidden>
               <div class="ward-stage">
                 <div class="pv-slot"></div>
-                <button class="pbtn" id="shuffleBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3.5c5 0 6 10 11 10H21M3 17h3.5c1.8 0 3-1.300 4.200-3M21 7h-3.500c-1.800 0-3 1.300-4.200 3M18.500 4.500 21 7l-2.500 2.500M18.500 14.500 21 17l-2.500 2.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Surprise me</button>
+                <div class="cat-tabs" id="catTabs"></div>
               </div>
               <div class="ward-body" id="wardrobe">
-                <div class="cat-tabs" id="catTabs"></div>
-                <div class="cat-head"><span><b id="catTitle"></b><small id="catNow"></small></span><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></div>
+                <div class="cat-head"><span class="cat-name"><b id="catTitle"></b><small id="catNow"></small></span><span class="cat-tools"><small id="catCount"></small><button class="cat-filter" id="shuffleBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3.5c5 0 6 10 11 10H21M3 17h3.5c1.8 0 3-1.300 4.200-3M21 7h-3.500c-1.800 0-3 1.300-4.200 3M18.500 4.500 21 7l-2.500 2.500M18.500 14.500 21 17l-2.500 2.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Surprise me</button><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></span></div>
                 <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
                 <div class="cat" data-cat="color"><div class="swatches" id="optColor"></div>
                 <div class="custom-pick" id="customPick" hidden>

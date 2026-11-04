@@ -726,9 +726,8 @@
     constructor() {
       this.parts = []; for (let i = 0; i < 120; i++) this.parts.push({ on: false, x: 0, y: 0, vx: 0, vy: 0, r: 0, c: '', born: 0, life: 0, s: 'dot', a: 0, va: 0 });
       this.rings = []; for (let i = 0; i < 10; i++) this.rings.push({ on: false, x: 0, y: 0, born: 0, c: '' });
-      this.lights = []; for (let i = 0; i < 12; i++) this.lights.push({ on: false, x: 0, y: 0, born: 0, life: 0, r: 0, c: '' });
     }
-    clear() { for (const p of this.parts) p.on = false; for (const r of this.rings) r.on = false; for (const l of this.lights) l.on = false; }
+    clear() { for (const p of this.parts) p.on = false; for (const r of this.rings) r.on = false; }
     _free(list) { for (const p of list) if (!p.on) return p; return null; }
     burst(cx, cy, now, colors, count, shape) {
       const n = R.reduced ? 4 : (count || 14);
@@ -741,12 +740,6 @@
         p.born = now; p.life = 380 + Math.random() * 220;
       }
       this.ring(cx, cy, now, '#ffffff');
-      this.light(cx, cy, now, colors[0], CELL * (2 + Math.min(count || 14, 22) * 0.09), 560);
-    }
-    // A short flash of coloured light. Only Dark mode shows it, as a glow that pushes the darkness back.
-    light(x, y, now, c, r, life) {
-      const l = this._free(this.lights);
-      if (l) { l.on = true; l.x = x; l.y = y; l.born = now; l.c = c; l.r = r; l.life = life; }
     }
     // One particle left behind the tail (trails). Slow, soft and short-lived.
     trail(x, y, now, colors, shp) {
@@ -760,7 +753,6 @@
     ring(cx, cy, now, c) {
       const r = this._free(this.rings);
       if (r) { r.on = true; r.x = cx; r.y = cy; r.born = now; r.c = c; }
-      if (c !== '#ffffff') this.light(cx, cy, now, c, CELL * 3, 560);
     }
     draw(g, t, dt) {
       const s = dt / 1000, damp = Math.exp(-5 * s);
@@ -956,77 +948,13 @@
     }
   }
 
-  // Dark mode: everything outside a pool of light around the head is hidden, and effects light up
-  // the dark too. Bursts and flashes glow in their own colour, and every particle carries a small light.
-  // The darkness is a small canvas that lights are cut out of, so any number of them can overlap,
-  // and it is drawn with the board, so it shakes and moves with everything else.
+  // Dark mode: everything outside a pool of light around the head is hidden.
   // Apples show as faint glints so you know roughly where to go.
-  const DARK_PX = 12, POOL_INNER = 1.6 / 4.2, LIGHT_SPRITE = 96;
-  const darkSprites = { pool: null, soft: null, tints: new Map() };
-
-  function lightSprite(inner) {
-    const c = document.createElement('canvas'), m = c.getContext('2d'), r = LIGHT_SPRITE / 2;
-    c.width = c.height = LIGHT_SPRITE;
-    const gr = m.createRadialGradient(r, r, 0, r, r, r);
-    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(inner, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-    m.fillStyle = gr; m.fillRect(0, 0, LIGHT_SPRITE, LIGHT_SPRITE);
-    return c;
-  }
-  function softLight() { return darkSprites.soft || (darkSprites.soft = lightSprite(0.15)); }
-  function tintedLight(color) {
-    const T = darkSprites.tints;
-    let c = T.get(color);
-    if (c) return c;
-    if (T.size >= 32) T.clear();   // custom colours can change, so keep this from growing forever
-    c = lightSprite(0.15);
-    const m = c.getContext('2d');
-    m.globalCompositeOperation = 'source-in'; m.fillStyle = color; m.fillRect(0, 0, LIGHT_SPRITE, LIGHT_SPRITE);
-    T.set(color, c);
-    return c;
-  }
-  // How bright a light is at time t (0 once it has gone), and when it's finished, frees it.
-  function lightLevel(l, t) {
-    const age = t - l.born;
-    if (age >= l.life) { l.on = false; return 0; }
-    const k = 1 - Math.max(0, age) / l.life;
-    return k * k * (3 - 2 * k);
-  }
-  function lightSize(l, a) { return l.r * (R.reduced ? 1 : 1.12 - 0.3 * a); }
-
-  function drawDark(g, fx, cols, rows, hx, hy, apples, t) {
-    const W = cols * CELL, H = rows * CELL, r1 = CELL * 4.2;
-    const mw = (cols + 2) * DARK_PX, mh = (rows + 2) * DARK_PX;   // a cell spare on each side, so a shake never shows an edge
-    if (!fx.mask) { fx.mask = document.createElement('canvas'); fx.maskG = fx.mask.getContext('2d'); }
-    if (fx.mask.width !== mw || fx.mask.height !== mh) { fx.mask.width = mw; fx.mask.height = mh; }
-    const m = fx.maskG, pool = darkSprites.pool || (darkSprites.pool = lightSprite(POOL_INNER)), soft = softLight(), k = DARK_PX / CELL;
-    m.setTransform(1, 0, 0, 1, 0, 0);
-    m.globalCompositeOperation = 'source-over'; m.globalAlpha = 1;
-    m.fillStyle = 'rgb(6,9,7)'; m.fillRect(0, 0, mw, mh);
-    m.setTransform(k, 0, 0, k, DARK_PX, DARK_PX);
-    m.globalCompositeOperation = 'destination-out';
-    m.drawImage(pool, hx - r1, hy - r1, r1 * 2, r1 * 2);
-    for (const l of fx.lights) {
-      if (!l.on) continue;
-      const a = lightLevel(l, t); if (!a) continue;
-      const r = lightSize(l, a);
-      m.globalAlpha = a; m.drawImage(soft, l.x - r, l.y - r, r * 2, r * 2);
-    }
-    for (const p of fx.parts) {
-      if (!p.on) continue;
-      const f = 1 - (t - p.born) / p.life; if (f <= 0) continue;
-      const r = CELL * 0.35 + p.r * CELL * 0.1;
-      m.globalAlpha = Math.min(1, f) * 0.6; m.drawImage(soft, p.x - r, p.y - r, r * 2, r * 2);
-    }
-    g.globalAlpha = 0.97;
-    g.drawImage(fx.mask, -CELL, -CELL, W + CELL * 2, H + CELL * 2);
-    g.globalCompositeOperation = 'lighter';
-    for (const l of fx.lights) {
-      if (!l.on) continue;
-      const a = lightLevel(l, t); if (!a) continue;
-      const r = lightSize(l, a);
-      g.globalAlpha = a * 0.34; g.drawImage(tintedLight(l.c), l.x - r, l.y - r, r * 2, r * 2);
-    }
-    g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  function drawDark(g, cols, rows, hx, hy, apples, t) {
+    const W = cols * CELL, H = rows * CELL, r0 = CELL * 1.6, r1 = CELL * 4.2;
+    const gr = g.createRadialGradient(hx, hy, r0, hx, hy, r1);
+    gr.addColorStop(0, 'rgba(6,9,7,0)'); gr.addColorStop(1, 'rgba(6,9,7,0.97)');
+    g.fillStyle = gr; g.fillRect(-CELL, -CELL, W + CELL * 2, H + CELL * 2);
     g.fillStyle = 'rgba(255,120,100,0.35)';
     for (const a of apples) {
       const ax = a.x * CELL + CELL / 2, ay = a.y * CELL + CELL / 2;

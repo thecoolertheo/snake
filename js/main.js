@@ -202,7 +202,6 @@
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
           state = 'dying'; deathT = now; A.sfx.die(); vibrate([40, 40, 90]);
-          view.fx.light(game.cells[0].x * CELL + CELL / 2, game.cells[0].y * CELL + CELL / 2, now, '#ff6a50', CELL * 6, 900);
           setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, settings.autoRestart ? AUTO_DEATH_MS : 1100);
           break;
         case 'win': state = 'over'; finish('You win!'); break;
@@ -485,8 +484,8 @@
     pvSnake.draw(gc, g.cells, g.prevTail, p, CELL, ang, settings, pvFx);
     const P = pvSnake.path, hx = P.x[P.n - 1], hy = P.y[P.n - 1];
     if (g.rules.hunger) pvHunger.draw(gc, g.cols, g.rows, g.hungerLevel(p), t, fdt);
-    if (g.rules.dark) R.drawDark(gc, pvView.fx, g.cols, g.rows, hx, hy, g.apples, t);
     pvView.fx.draw(gc, t, fdt);
+    if (g.rules.dark) R.drawDark(gc, g.cols, g.rows, hx, hy, g.apples, t);   // over the effects, so they stay hidden in the dark too
     if (pvHint) {
       const age = (performance.now() - pvHint.t) / 650;
       if (age >= 1) pvHint = null; else R.drawSwipeHint(gc, g.cols, g.rows, hx, hy, pvHint.x, pvHint.y, 1 - age);
@@ -561,8 +560,8 @@
     const a = U.lerpAng(U.angOf(game.prevDir.x, game.prevDir.y), U.angOf(game.dir.x, game.dir.y), U.ease(Math.min(1, p / 0.7)));
     view.snake.draw(g, game.cells, game.prevTail, p, CELL, a, settings, fx);
     if (game.rules.hunger && state !== 'menu') hunger.draw(g, game.cols, game.rows, game.hungerLevel(state === 'play' ? p : 0), t, fdt);
-    if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, view.fx, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }
     view.fx.draw(g, t, fdt);
+    if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }   // over the effects, so they stay hidden in the dark too
     if (state === 'countdown') {
       const ce = t - countT, n = Math.min(2, Math.floor(ce / COUNT_MS));
       R.drawCountdown(g, game.cols, game.rows, String(3 - n), (ce - n * COUNT_MS) / COUNT_MS);

@@ -179,16 +179,27 @@
                 </div>
                 <p class="sync-msg" id="syncMsg" hidden></p>
               </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Gameplay</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swAuto" aria-checked="false"><span><b>Keep playing after a crash</b><small>No game over screen. A new game starts by itself, and you leave through the pause menu</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swCountdown" aria-checked="true"><span><b>Countdown</b><small>3, 2, 1 before a new game. Resuming from pause always counts down</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swGrace" aria-checked="true"><span><b>Edge grace</b><small>A brief moment to turn when you’re about to crash</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swWake" aria-checked="true"><span><b>Keep screen awake</b><small>Stops your screen turning off during a game, where supported</small></span><i class="switch"></i></button>
+              </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span>Sound</span></h3>
                 <label class="field"><span class="label">Volume <output id="volOut">80%</output></span>
                   <input type="range" id="volume" min="0" max="100" step="5" value="80"></label>
                 <button class="switch-row" type="button" role="switch" id="swSfx" aria-checked="true"><span><b>Sound effects</b><small>Eating, turning, crashing</small></span><i class="switch"></i></button>
                 <button class="switch-row" type="button" role="switch" id="swMusic" aria-checked="false"><span><b>Background music</b><small>A soft loop while you play</small></span><i class="switch"></i></button>
               </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.800 6.200L20 10l-6.200 1.800L12 18l-1.800-6.200L4 10l6.200-1.800z"/></svg><span>Effects</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swShake" aria-checked="true"><span><b>Screen shake</b><small>The board shakes when you crash</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swConfetti" aria-checked="true"><span><b>Confetti</b><small>Bursts for new bests and unlocks</small></span><i class="switch"></i></button>
+              </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM10 19a2 2 0 0 0 4 0z"/></svg><span>Notifications</span></h3>
                 <button class="switch-row" type="button" role="switch" id="swToasts" aria-checked="true"><span><b>Unlock pop-ups during games</b><small>When off, you'll see everything you unlocked after the game, in “What you missed”</small></span><i class="switch"></i></button>
               </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10a5 5 0 0 1 5 5v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a5 5 0 0 1 5-5z"/><path d="M7 10v4M5 12h4" stroke="#16201b" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.5" cy="11" r="1.1" fill="#16201b"/><circle cx="18.5" cy="13" r="1.1" fill="#16201b"/></svg><span>Controls</span></h3>
+                <div class="field"><span class="label">Swipe sensitivity</span><div class="seg" id="segSwipe"></div></div>
                 <button class="switch-row" type="button" role="switch" id="swDpad" aria-checked="false"><span><b>On-screen D-pad</b><small>Buttons under the board for touch screens</small></span><i class="switch"></i></button>
                 <button class="switch-row" type="button" role="switch" id="swVibrate" aria-checked="true"><span><b>Vibration</b><small id="vibNote">Short buzz when you eat or crash</small></span><i class="switch"></i></button>
                 <div class="help">

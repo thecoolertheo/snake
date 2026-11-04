@@ -433,7 +433,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
 /* Pause card keeps its look but follows the mode accent */
 .pbtn.tog[aria-pressed="true"] { border-color: color-mix(in srgb, var(--mode-accent) 55%, transparent); }
-.road-scroll { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); }
+.road-scroll { }
 
 /* Accent follows the snake's colour (set from JS: --mode-accent, --accent-glow, --mode-ink) */
 :root { --accent-glow: rgba(91, 140, 255, .16); --mode-ink: #fff; }
@@ -495,7 +495,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .ms-item b { font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
 .ms-item small { font-size: var(--fs-xs); color: var(--c-muted); }
 .ms-lvl { cursor: default; }
-.ms-list { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent); padding-right: 18px; }
+.ms-list { padding-right: 18px; }
 
 /* ---------- Sync card ---------- */
 .sync-p { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); line-height: 1.5; }
@@ -850,6 +850,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .mode-desc { padding-block: 3px; }
 .shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .field { gap: 2px; }
 .shell[data-page="home"] .panel[data-panel="modes"] > .pv-slot { display: none; }
+
+/* Scrollable areas fade out at any edge they can still scroll past (see ui.updateFades).
+   --ft keeps a stuck preview solid: the fade starts underneath it. */
+.fade-y { -webkit-mask-image: linear-gradient(to bottom, #000 var(--ft, 0px), transparent var(--ft, 0px), #000 calc(var(--ft, 0px) + var(--fa, 0px)), #000 calc(100% - var(--fb, 0px)), transparent 100%); mask-image: linear-gradient(to bottom, #000 var(--ft, 0px), transparent var(--ft, 0px), #000 calc(var(--ft, 0px) + var(--fa, 0px)), #000 calc(100% - var(--fb, 0px)), transparent 100%); }
+.fade-x { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fa, 0px), #000 calc(100% - var(--fb, 0px)), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 var(--fa, 0px), #000 calc(100% - var(--fb, 0px)), transparent 100%); }
 </style>
 </head>
 <body>
@@ -1012,16 +1017,27 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 </div>
                 <p class="sync-msg" id="syncMsg" hidden></p>
               </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Gameplay</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swAuto" aria-checked="false"><span><b>Keep playing after a crash</b><small>No game over screen. A new game starts by itself, and you leave through the pause menu</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swCountdown" aria-checked="true"><span><b>Countdown</b><small>3, 2, 1 before a new game. Resuming from pause always counts down</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swGrace" aria-checked="true"><span><b>Edge grace</b><small>A brief moment to turn when you’re about to crash</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swWake" aria-checked="true"><span><b>Keep screen awake</b><small>Stops your screen turning off during a game, where supported</small></span><i class="switch"></i></button>
+              </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span>Sound</span></h3>
                 <label class="field"><span class="label">Volume <output id="volOut">80%</output></span>
                   <input type="range" id="volume" min="0" max="100" step="5" value="80"></label>
                 <button class="switch-row" type="button" role="switch" id="swSfx" aria-checked="true"><span><b>Sound effects</b><small>Eating, turning, crashing</small></span><i class="switch"></i></button>
                 <button class="switch-row" type="button" role="switch" id="swMusic" aria-checked="false"><span><b>Background music</b><small>A soft loop while you play</small></span><i class="switch"></i></button>
               </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.800 6.200L20 10l-6.200 1.800L12 18l-1.800-6.200L4 10l6.200-1.800z"/></svg><span>Effects</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swShake" aria-checked="true"><span><b>Screen shake</b><small>The board shakes when you crash</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swConfetti" aria-checked="true"><span><b>Confetti</b><small>Bursts for new bests and unlocks</small></span><i class="switch"></i></button>
+              </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM10 19a2 2 0 0 0 4 0z"/></svg><span>Notifications</span></h3>
                 <button class="switch-row" type="button" role="switch" id="swToasts" aria-checked="true"><span><b>Unlock pop-ups during games</b><small>When off, you'll see everything you unlocked after the game, in “What you missed”</small></span><i class="switch"></i></button>
               </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10a5 5 0 0 1 5 5v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a5 5 0 0 1 5-5z"/><path d="M7 10v4M5 12h4" stroke="#16201b" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.5" cy="11" r="1.1" fill="#16201b"/><circle cx="18.5" cy="13" r="1.1" fill="#16201b"/></svg><span>Controls</span></h3>
+                <div class="field"><span class="label">Swipe sensitivity</span><div class="seg" id="segSwipe"></div></div>
                 <button class="switch-row" type="button" role="switch" id="swDpad" aria-checked="false"><span><b>On-screen D-pad</b><small>Buttons under the board for touch screens</small></span><i class="switch"></i></button>
                 <button class="switch-row" type="button" role="switch" id="swVibrate" aria-checked="true"><span><b>Vibration</b><small id="vibNote">Short buzz when you eat or crash</small></span><i class="switch"></i></button>
                 <div class="help">
@@ -1439,7 +1455,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       settings: { color: 0, pattern: 0, eyes: 0, shape: 0, speed: 1, muted: false,
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
                   volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, unlockToasts: true,
-                  combos: [null, null, null, null, null] },
+                  combos: [null, null, null, null, null],
+                  autoRestart: false, countdown: true, grace: true, wake: true, shake: true, confetti: true, swipe: 1 },
       best: {},        // "mode|board|apples" -> best score
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, xpInit: false },
       unlocked: [],
@@ -2669,6 +2686,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       q.c = this.colors[(Math.random() * this.colors.length) | 0];
     }
     fire() {
+      if (R.noConfetti) return;
       if (R.reduced) return;
       this.resize(); const now = performance.now();
       for (let i = 0; i < 160; i++) {
@@ -2679,6 +2697,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       this.active = true;
     }
     pop(x, y, n) {
+      if (R.noConfetti) return;
       if (R.reduced) return;
       this.resize(); const now = performance.now(); let k = 0;
       for (const q of this.p) {
@@ -2998,7 +3017,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       //  - a new turn needs 40px of travel mostly across the current direction (a real corner);
       //  - the same direction is never sent twice, so no-op turns can't fill the turn buffer.
       let sx = 0, sy = 0, tracking = false, gx = 0, gy = 0;
-      const FIRST = 34, NEXT = 40;
+      const FIRST = 34, NEXT = 40;   // pixels at Normal; the Swipe sensitivity setting scales these
       document.addEventListener('touchstart', e => {
         h.anyInput();
         tracking = !(e.target.closest && e.target.closest(INTERACTIVE));
@@ -3009,18 +3028,18 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         if (!tracking) return;
         e.preventDefault();   // stops page scroll / pull-to-refresh while steering
         if (h.menuOpen()) return;
-        const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+        const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy, scale = h.swipeScale();
         let nx = 0, ny = 0;
         if (!gx && !gy) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) < FIRST) return;
+          if (Math.max(Math.abs(dx), Math.abs(dy)) < FIRST * scale) return;
           if (Math.abs(dx) > Math.abs(dy)) nx = Math.sign(dx); else ny = Math.sign(dy);
         } else {
           const along = dx * gx + dy * gy;            // progress in the current swipe direction
           const across = gx ? dy : dx;                // sideways travel
           if (along >= Math.abs(across)) { sx = t.clientX; sy = t.clientY; return; }   // still going the same way
-          if (Math.abs(across) >= NEXT && Math.abs(across) > Math.abs(along)) {
+          if (Math.abs(across) >= NEXT * scale && Math.abs(across) > Math.abs(along)) {
             if (gx) ny = Math.sign(across); else nx = Math.sign(across);
-          } else if (-along >= NEXT) { nx = -gx; ny = -gy; }   // doubled back
+          } else if (-along >= NEXT * scale) { nx = -gx; ny = -gy; }   // doubled back
           else return;
         }
         h.dir(nx, ny);
@@ -3154,7 +3173,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     vol.addEventListener('input', () => { st.volume = vol.value / 100; volOut.textContent = vol.value + '%'; vol.style.setProperty('--fill', vol.value + '%'); h.settingsChanged('volume'); });
     vol.addEventListener('change', () => h.click());
     toggle('swToasts', 'unlockToasts');
+    for (const [id, key] of [['swAuto', 'autoRestart'], ['swCountdown', 'countdown'], ['swGrace', 'grace'], ['swWake', 'wake'], ['swShake', 'shake'], ['swConfetti', 'confetti']]) toggle(id, key);
+    seg('segSwipe', [[0, 'Low'], [1, 'Normal'], [2, 'High']], 'swipe', false);
+    ui._seg_swipe();
     toggle('swSfx', 'sfx'); toggle('swMusic', 'music'); toggle('swDpad', 'dpad'); toggle('swVibrate', 'vibrate');
+    if (!navigator.wakeLock) $('swWake').hidden = true;
     if (!navigator.vibrate) $('vibNote').textContent = 'Not supported on this device (iPhone and iPad can’t vibrate from a web page)';
 
     // Sync
@@ -3199,6 +3222,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     for (const l of document.querySelectorAll('.logo')) l.innerHTML = LOGO;
     const hero = document.querySelector('.logo-hero');
     hero.classList.add('intro'); setTimeout(() => hero.classList.remove('intro'), 1800);
+    watchFade(ui.el.panels, 'y'); watchFade($('menu'), 'y'); watchFade($('catTabs'), 'x'); watchFade($('missedList'), 'x'); watchFade($('wardrobe'), 'y');
+    for (const p of ui.el.panels.children) watchFade(p, 'y');
+    root.addEventListener('resize', ui.updateFades);
     ui.renderMute();
     ui.refresh();
     applyWide();
@@ -3335,6 +3361,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     $('catFilter').hidden = ui.cat === 'combos';
     if (ui.cat === 'combos') { $('catTitle').textContent = 'Saved looks'; $('catNow').textContent = ''; $('catCount').textContent = st.combos.filter(Boolean).length + '/5'; }
     renderCombos();
+    ui.updateFades();
   }
   // Saved looks: 5 slots that each remember every type of customization.
   const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
@@ -3581,6 +3608,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     box.innerHTML = html;
     // Scroll each path so its next reward is in view, like the current level on a map.
     for (const sc of box.querySelectorAll('.road-scroll')) {
+      watchFade(sc, 'x');
       const nx = sc.querySelector('.stop.next') || sc.querySelector('.stop:last-of-type');
       if (nx) sc.scrollLeft = Math.max(0, nx.offsetLeft - sc.clientWidth * 0.6);
     }
@@ -3613,6 +3641,36 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const sc = stop.closest('.road-scroll'); if (sc) sc.scrollLeft = Math.max(0, stop.offsetLeft - sc.clientWidth / 2);
     stop.classList.add('focus'); setTimeout(() => stop.classList.remove('focus'), 1800);
     tr.querySelector('[data-note]').innerHTML = '<b>' + SK.itemName(u) + ':</b> ' + u.text + ' <small>(' + Math.min(u.value(store.progress()), u.goal) + '/' + u.goal + ')</small>';
+  };
+
+  // Anything that scrolls fades out at the edges it can still scroll past, so content never just gets cut off.
+  const FADE = 28, fades = new Map();
+  function updateFade(e, axis) {
+    const y = axis === 'y', size = y ? e.clientHeight : e.clientWidth, full = y ? e.scrollHeight : e.scrollWidth;
+    const over = getComputedStyle(e)[y ? 'overflowY' : 'overflowX'];
+    const on = (over === 'auto' || over === 'scroll') && size > 0 && full > size + 1;
+    e.classList.toggle(y ? 'fade-y' : 'fade-x', on);
+    if (!on) return;
+    const pos = Math.max(0, y ? e.scrollTop : e.scrollLeft), a = Math.round(Math.min(pos, FADE)), b = Math.round(Math.max(0, Math.min(full - size - pos, FADE)));
+    // A preview that stays stuck to the top isn't scrolling, so the fade starts just below it.
+    let top = 0;
+    if (e === ui.el.panels) { for (const c of e.querySelectorAll('.ward-stage, .panel[data-panel="modes"] > .pv-slot')) if (c.offsetParent && getComputedStyle(c).position === 'sticky') top = c.offsetHeight; }
+    const key = a + '|' + b + '|' + top;
+    if (e._fade === key) return;
+    e._fade = key;
+    e.style.setProperty('--fa', a + 'px'); e.style.setProperty('--fb', b + 'px'); e.style.setProperty('--ft', top + 'px');
+  }
+  function watchFade(e, axis) {
+    if (!e || fades.has(e)) return;
+    fades.set(e, axis);
+    let queued = false;
+    e.addEventListener('scroll', () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; updateFade(e, axis); }); }, { passive: true });
+    updateFade(e, axis);
+  }
+  ui.updateFades = function () {
+    requestAnimationFrame(() => {
+      for (const [e, axis] of fades) { if (!e.isConnected) fades.delete(e); else updateFade(e, axis); }
+    });
   };
 
   // Sync card in Settings.
@@ -3712,6 +3770,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ui.el.panels.scrollTop = 0;
     for (const p of ui.el.panels.children) p.scrollTop = 0;
     if (scrollToBest) $('bestHeading').scrollIntoView({ block: 'start' });
+    ui.updateFades();
   };
   ui.shows = name => !document.querySelector('[data-panel="' + name + '"]').hidden;
   function applyWide() {
@@ -3747,6 +3806,12 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     $('lvl').innerHTML = $('homeLvl').innerHTML = '<span class="lv-n">' + L + '</span><span class="lv-t"><b>' + SK.titleOf(L) + '</b><small>' +
       (L >= 100 ? 'Max level!' : (b - xp) + ' XP to level ' + (L + 1)) + '</small></span><i class="lv-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i>';
   };
+  // "New best" pop-up, for when there's no game over screen to show it.
+  ui.toastBest = function (score) {
+    const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">' + score + '</i><span><small>New best!</small><b>Score ' + score + '</b></span>');
+    $('toasts').appendChild(t);
+    setTimeout(() => t.classList.add('out'), 2200); setTimeout(() => t.remove(), 2700);
+  };
   ui.toastLevel = function (L, title) {
     const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">' + L + '</i><span><small>Level up!</small><b>' + title + '</b></span>');
     $('toasts').appendChild(t);
@@ -3765,6 +3830,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         '</b><small>' + SK.itemName(u).match(/ (colour|pattern|eyes|hat|eat effect|trail|food|board|mode)$/)[1] + '</small></span></button>';
     }
     list.innerHTML = html;
+    ui.updateFades();
   }
   function useMissed(e) {
     const b = e.target.closest('.ms-item[data-id]'); if (!b) return;
@@ -3812,6 +3878,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
     ui.renderMute();
     ui.refresh();
+    ui.updateFades();
     if (!card) ui.setTab(o.tab || 'home', o.tab === 'stats');
     (o.compact ? $('resumeBtn') : o.over ? $('againBtn') : E.play).focus({ preventScroll: true });
   };
@@ -4148,6 +4215,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const BOARDS = { s: [10, 9], m: [17, 15], l: [24, 21] };   // 'f' (fill screen) is worked out from the screen
   const GAME_NAME = 'Snake Plus';
   const COUNT_MS = 420;
+  const AUTO_DEATH_MS = 650;   // how long a crash plays out when a new game starts by itself
   const XP_APPLE = 10, XP_GAME = 15, XP_BEST = 50;
   // Trails: a couple of particles from the tail end on every step.
   function emitTrail(v, g) {
@@ -4257,7 +4325,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
   function newGame() {
     const [cols, rows] = board();
-    game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode });
+    game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, grace: settings.grace });
     if (view.cols !== cols || view.rows !== rows) { view.setBoard(cols, rows); fit(); }
     acc = 0; deathT = 0; mouth = 0; gameTime = 0; eats.length = 0; view.fx.clear(); R.resetWalls(); hunger.reset();
     lastDir = game.dir; pendingNew = false;
@@ -4268,22 +4336,33 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   }
 
   function showMenu(title, btn, extra) {
-    A.set({ duck: true });
+    A.set({ duck: true }); keepAwake(false);
     ui.showMenu(Object.assign({ title, score: game.score, best: currentBest(), btn }, extra || {}));
     fit();
   }
 
   function start() {
     if (state === 'play' || state === 'countdown' || state === 'dying') return;
+    const resuming = state === 'paused' && !pendingNew;
     if (state === 'paused' && pendingNew && game.steps > 0) endGame();      // settings changed mid-game: count it and start fresh
     if (state === 'over' || pendingNew) newGame();
-    state = 'countdown'; countT = performance.now(); countN = -1;
-    ui.hideMenu(); A.set({ duck: false });
+    if (settings.countdown || resuming) { state = 'countdown'; countT = performance.now(); countN = -1; }
+    else { state = 'play'; acc = 0; A.sfx.start(); }
+    ui.hideMenu(); A.set({ duck: false }); keepAwake(true);
+  }
+  // Stops the screen turning off during a game, on browsers that allow it.
+  let wakeLock = null;
+  async function keepAwake(on) {
+    try {
+      if (on && settings.wake && !wakeLock && navigator.wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+      else if (!on && wakeLock) { const w = wakeLock; wakeLock = null; await w.release(); }
+    } catch (e) {}
   }
   function pause() {
     if (state !== 'play' && state !== 'countdown') return;
     state = 'paused'; store.save();
-    showMenu('Paused', 'Resume', { compact: true });
+    showMenu('Paused', 'Resume', { compact: true, missed: heldMissed });
+    heldMissed = null;
   }
 
   function turn(nx, ny) {
@@ -4332,7 +4411,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
           state = 'dying'; deathT = now; A.sfx.die(); vibrate([40, 40, 90]);
-          setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, 1100);
+          setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, settings.autoRestart ? AUTO_DEATH_MS : 1100);
           break;
         case 'win': state = 'over'; finish('You win!'); break;
       }
@@ -4394,9 +4473,30 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (changed) store.save();
   }
 
+  // "Keep playing after a crash": everything the game over card would say becomes a pop-up, and a new game starts.
+  // With pop-ups off, unlocks wait on the pause menu, the only way out in this mode.
+  let heldMissed = null;
+  function keepGoing(r, lateUnlocks) {
+    const quiet = settings.unlockToasts === false, score = game.score, lvl = SK.levelOf(data.stats.xp);
+    let lvlUp = 0;
+    if (lvl > shownLevel) { shownLevel = lvl; lvlUp = lvl; }
+    if (quiet) {
+      if (r.unlocked.length || liveLevel || lvlUp) {
+        heldMissed = heldMissed || { items: [], level: 0 };
+        heldMissed.items.push(...r.unlocked); heldMissed.level = Math.max(heldMissed.level, liveLevel, lvlUp);
+      }
+    } else {
+      if (lvlUp) { const b = ui.toastLevel(lvlUp, SK.titleOf(lvlUp)); A.sfx.newBest(); if (b) confetti.pop(b.left + b.width / 2, b.top + b.height / 2, 50); }
+      for (const u of lateUnlocks) { const b = ui.toast(u); A.sfx.unlock(); if (b) confetti.pop(b.left + b.width / 2, b.top + b.height / 2, 40); }
+    }
+    if (r.isBest) ui.toastBest(score);
+    if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
+    newGame(); state = 'menu'; start();
+  }
   function finish(title) {
-    const r = endGame();
+    const r = endGame(), lateUnlocks = r.unlocked;
     r.unlocked = liveUnlocked.concat(r.unlocked);
+    if (settings.autoRestart) return keepGoing(r, lateUnlocks);
     let badge = '';
     if (r.isBest) badge = 'New best!';
     const lvl = SK.levelOf(data.stats.xp);
@@ -4650,7 +4750,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     fx.flash = dead && e < 600 && ((e / 100 | 0) % 2 === 0) ? 0.75 : 0;
     fx.grey = dead && e > 600 ? Math.min(1, (e - 600) / 450) : 0;
     fx.mouth = mouth;
-    const shake = !R.reduced && dead && e < 350 ? (1 - e / 350) * 7 : 0;
+    const shake = !R.reduced && settings.shake && dead && e < 350 ? (1 - e / 350) * 7 : 0;
 
     // The lump travels down the body after each apple.
     let w = 0;
@@ -4685,6 +4785,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   // ---------- wiring ----------
   function applyAudio() { A.set({ muted: settings.muted, volume: settings.volume, sfxOn: settings.sfx, musicOn: settings.music }); }
   applyAudio();
+  R.noConfetti = !settings.confetti;
 
   ui.init(store, {
     play: () => { A.unlock(); applyAudio(); start(); },
@@ -4705,6 +4806,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
       store.save(); applyAudio();
+      R.noConfetti = !settings.confetti;
       if (key === 'color' || key === 'pattern') applyAccent();
       if (key === 'board' || key === 'boardSkin') { applyTheme(); fit(); }
       if (key === 'dpad') fit();
@@ -4746,6 +4848,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     togglePause: () => { if (state === 'play' || state === 'countdown') pause(); else if (state === 'paused') start(); },
     confirm: start,
     anyInput: () => { A.unlock(); },
+    swipeScale: () => [1.45, 1, 0.68][settings.swipe] || 1,
     menuOpen: ui.menuOpen
   });
 

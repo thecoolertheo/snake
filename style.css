@@ -412,7 +412,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
 /* Pause card keeps its look but follows the mode accent */
 .pbtn.tog[aria-pressed="true"] { border-color: color-mix(in srgb, var(--mode-accent) 55%, transparent); }
-.road-scroll { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); }
+.road-scroll { }
 
 /* Accent follows the snake's colour (set from JS: --mode-accent, --accent-glow, --mode-ink) */
 :root { --accent-glow: rgba(91, 140, 255, .16); --mode-ink: #fff; }
@@ -474,7 +474,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .ms-item b { font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
 .ms-item small { font-size: var(--fs-xs); color: var(--c-muted); }
 .ms-lvl { cursor: default; }
-.ms-list { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent); padding-right: 18px; }
+.ms-list { padding-right: 18px; }
 
 /* ---------- Sync card ---------- */
 .sync-p { margin: 0; font-size: var(--fs-sm); color: var(--c-muted); line-height: 1.5; }
@@ -829,3 +829,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .mode-desc { padding-block: 3px; }
 .shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .field { gap: 2px; }
 .shell[data-page="home"] .panel[data-panel="modes"] > .pv-slot { display: none; }
+
+/* Scrollable areas fade out at any edge they can still scroll past (see ui.updateFades).
+   --ft keeps a stuck preview solid: the fade starts underneath it. */
+.fade-y { -webkit-mask-image: linear-gradient(to bottom, #000 var(--ft, 0px), transparent var(--ft, 0px), #000 calc(var(--ft, 0px) + var(--fa, 0px)), #000 calc(100% - var(--fb, 0px)), transparent 100%); mask-image: linear-gradient(to bottom, #000 var(--ft, 0px), transparent var(--ft, 0px), #000 calc(var(--ft, 0px) + var(--fa, 0px)), #000 calc(100% - var(--fb, 0px)), transparent 100%); }
+.fade-x { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fa, 0px), #000 calc(100% - var(--fb, 0px)), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 var(--fa, 0px), #000 calc(100% - var(--fb, 0px)), transparent 100%); }

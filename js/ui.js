@@ -89,7 +89,11 @@
     vol.addEventListener('input', () => { st.volume = vol.value / 100; volOut.textContent = vol.value + '%'; vol.style.setProperty('--fill', vol.value + '%'); h.settingsChanged('volume'); });
     vol.addEventListener('change', () => h.click());
     toggle('swToasts', 'unlockToasts');
+    for (const [id, key] of [['swAuto', 'autoRestart'], ['swCountdown', 'countdown'], ['swGrace', 'grace'], ['swWake', 'wake'], ['swShake', 'shake'], ['swConfetti', 'confetti']]) toggle(id, key);
+    seg('segSwipe', [[0, 'Low'], [1, 'Normal'], [2, 'High']], 'swipe', false);
+    ui._seg_swipe();
     toggle('swSfx', 'sfx'); toggle('swMusic', 'music'); toggle('swDpad', 'dpad'); toggle('swVibrate', 'vibrate');
+    if (!navigator.wakeLock) $('swWake').hidden = true;
     if (!navigator.vibrate) $('vibNote').textContent = 'Not supported on this device (iPhone and iPad can’t vibrate from a web page)';
 
     // Sync
@@ -134,6 +138,9 @@
     for (const l of document.querySelectorAll('.logo')) l.innerHTML = LOGO;
     const hero = document.querySelector('.logo-hero');
     hero.classList.add('intro'); setTimeout(() => hero.classList.remove('intro'), 1800);
+    watchFade(ui.el.panels, 'y'); watchFade($('menu'), 'y'); watchFade($('catTabs'), 'x'); watchFade($('missedList'), 'x'); watchFade($('wardrobe'), 'y');
+    for (const p of ui.el.panels.children) watchFade(p, 'y');
+    root.addEventListener('resize', ui.updateFades);
     ui.renderMute();
     ui.refresh();
     applyWide();
@@ -270,6 +277,7 @@
     $('catFilter').hidden = ui.cat === 'combos';
     if (ui.cat === 'combos') { $('catTitle').textContent = 'Saved looks'; $('catNow').textContent = ''; $('catCount').textContent = st.combos.filter(Boolean).length + '/5'; }
     renderCombos();
+    ui.updateFades();
   }
   // Saved looks: 5 slots that each remember every type of customization.
   const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
@@ -516,6 +524,7 @@
     box.innerHTML = html;
     // Scroll each path so its next reward is in view, like the current level on a map.
     for (const sc of box.querySelectorAll('.road-scroll')) {
+      watchFade(sc, 'x');
       const nx = sc.querySelector('.stop.next') || sc.querySelector('.stop:last-of-type');
       if (nx) sc.scrollLeft = Math.max(0, nx.offsetLeft - sc.clientWidth * 0.6);
     }
@@ -548,6 +557,36 @@
     const sc = stop.closest('.road-scroll'); if (sc) sc.scrollLeft = Math.max(0, stop.offsetLeft - sc.clientWidth / 2);
     stop.classList.add('focus'); setTimeout(() => stop.classList.remove('focus'), 1800);
     tr.querySelector('[data-note]').innerHTML = '<b>' + SK.itemName(u) + ':</b> ' + u.text + ' <small>(' + Math.min(u.value(store.progress()), u.goal) + '/' + u.goal + ')</small>';
+  };
+
+  // Anything that scrolls fades out at the edges it can still scroll past, so content never just gets cut off.
+  const FADE = 28, fades = new Map();
+  function updateFade(e, axis) {
+    const y = axis === 'y', size = y ? e.clientHeight : e.clientWidth, full = y ? e.scrollHeight : e.scrollWidth;
+    const over = getComputedStyle(e)[y ? 'overflowY' : 'overflowX'];
+    const on = (over === 'auto' || over === 'scroll') && size > 0 && full > size + 1;
+    e.classList.toggle(y ? 'fade-y' : 'fade-x', on);
+    if (!on) return;
+    const pos = Math.max(0, y ? e.scrollTop : e.scrollLeft), a = Math.round(Math.min(pos, FADE)), b = Math.round(Math.max(0, Math.min(full - size - pos, FADE)));
+    // A preview that stays stuck to the top isn't scrolling, so the fade starts just below it.
+    let top = 0;
+    if (e === ui.el.panels) { for (const c of e.querySelectorAll('.ward-stage, .panel[data-panel="modes"] > .pv-slot')) if (c.offsetParent && getComputedStyle(c).position === 'sticky') top = c.offsetHeight; }
+    const key = a + '|' + b + '|' + top;
+    if (e._fade === key) return;
+    e._fade = key;
+    e.style.setProperty('--fa', a + 'px'); e.style.setProperty('--fb', b + 'px'); e.style.setProperty('--ft', top + 'px');
+  }
+  function watchFade(e, axis) {
+    if (!e || fades.has(e)) return;
+    fades.set(e, axis);
+    let queued = false;
+    e.addEventListener('scroll', () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; updateFade(e, axis); }); }, { passive: true });
+    updateFade(e, axis);
+  }
+  ui.updateFades = function () {
+    requestAnimationFrame(() => {
+      for (const [e, axis] of fades) { if (!e.isConnected) fades.delete(e); else updateFade(e, axis); }
+    });
   };
 
   // Sync card in Settings.
@@ -647,6 +686,7 @@
     ui.el.panels.scrollTop = 0;
     for (const p of ui.el.panels.children) p.scrollTop = 0;
     if (scrollToBest) $('bestHeading').scrollIntoView({ block: 'start' });
+    ui.updateFades();
   };
   ui.shows = name => !document.querySelector('[data-panel="' + name + '"]').hidden;
   function applyWide() {
@@ -682,6 +722,12 @@
     $('lvl').innerHTML = $('homeLvl').innerHTML = '<span class="lv-n">' + L + '</span><span class="lv-t"><b>' + SK.titleOf(L) + '</b><small>' +
       (L >= 100 ? 'Max level!' : (b - xp) + ' XP to level ' + (L + 1)) + '</small></span><i class="lv-bar"><i style="width:' + pct.toFixed(1) + '%"></i></i>';
   };
+  // "New best" pop-up, for when there's no game over screen to show it.
+  ui.toastBest = function (score) {
+    const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">' + score + '</i><span><small>New best!</small><b>Score ' + score + '</b></span>');
+    $('toasts').appendChild(t);
+    setTimeout(() => t.classList.add('out'), 2200); setTimeout(() => t.remove(), 2700);
+  };
   ui.toastLevel = function (L, title) {
     const t = el('div', 'toast toast-lvl', '<i class="rw rw-lvl">' + L + '</i><span><small>Level up!</small><b>' + title + '</b></span>');
     $('toasts').appendChild(t);
@@ -700,6 +746,7 @@
         '</b><small>' + SK.itemName(u).match(/ (colour|pattern|eyes|hat|eat effect|trail|food|board|mode)$/)[1] + '</small></span></button>';
     }
     list.innerHTML = html;
+    ui.updateFades();
   }
   function useMissed(e) {
     const b = e.target.closest('.ms-item[data-id]'); if (!b) return;
@@ -747,6 +794,7 @@
     $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
     ui.renderMute();
     ui.refresh();
+    ui.updateFades();
     if (!card) ui.setTab(o.tab || 'home', o.tab === 'stats');
     (o.compact ? $('resumeBtn') : o.over ? $('againBtn') : E.play).focus({ preventScroll: true });
   };

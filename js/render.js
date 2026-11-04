@@ -804,6 +804,7 @@
       q.c = this.colors[(Math.random() * this.colors.length) | 0];
     }
     fire() {
+      if (R.noConfetti) return;
       if (R.reduced) return;
       this.resize(); const now = performance.now();
       for (let i = 0; i < 160; i++) {
@@ -814,6 +815,7 @@
       this.active = true;
     }
     pop(x, y, n) {
+      if (R.noConfetti) return;
       if (R.reduced) return;
       this.resize(); const now = performance.now(); let k = 0;
       for (const q of this.p) {

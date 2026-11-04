@@ -6,6 +6,7 @@
   const BOARDS = { s: [10, 9], m: [17, 15], l: [24, 21] };   // 'f' (fill screen) is worked out from the screen
   const GAME_NAME = 'Snake Plus';
   const COUNT_MS = 420;
+  const AUTO_DEATH_MS = 650;   // how long a crash plays out when a new game starts by itself
   const XP_APPLE = 10, XP_GAME = 15, XP_BEST = 50;
   // Trails: a couple of particles from the tail end on every step.
   function emitTrail(v, g) {
@@ -115,7 +116,7 @@
 
   function newGame() {
     const [cols, rows] = board();
-    game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode });
+    game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, grace: settings.grace });
     if (view.cols !== cols || view.rows !== rows) { view.setBoard(cols, rows); fit(); }
     acc = 0; deathT = 0; mouth = 0; gameTime = 0; eats.length = 0; view.fx.clear(); R.resetWalls(); hunger.reset();
     lastDir = game.dir; pendingNew = false;
@@ -126,22 +127,33 @@
   }
 
   function showMenu(title, btn, extra) {
-    A.set({ duck: true });
+    A.set({ duck: true }); keepAwake(false);
     ui.showMenu(Object.assign({ title, score: game.score, best: currentBest(), btn }, extra || {}));
     fit();
   }
 
   function start() {
     if (state === 'play' || state === 'countdown' || state === 'dying') return;
+    const resuming = state === 'paused' && !pendingNew;
     if (state === 'paused' && pendingNew && game.steps > 0) endGame();      // settings changed mid-game: count it and start fresh
     if (state === 'over' || pendingNew) newGame();
-    state = 'countdown'; countT = performance.now(); countN = -1;
-    ui.hideMenu(); A.set({ duck: false });
+    if (settings.countdown || resuming) { state = 'countdown'; countT = performance.now(); countN = -1; }
+    else { state = 'play'; acc = 0; A.sfx.start(); }
+    ui.hideMenu(); A.set({ duck: false }); keepAwake(true);
+  }
+  // Stops the screen turning off during a game, on browsers that allow it.
+  let wakeLock = null;
+  async function keepAwake(on) {
+    try {
+      if (on && settings.wake && !wakeLock && navigator.wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+      else if (!on && wakeLock) { const w = wakeLock; wakeLock = null; await w.release(); }
+    } catch (e) {}
   }
   function pause() {
     if (state !== 'play' && state !== 'countdown') return;
     state = 'paused'; store.save();
-    showMenu('Paused', 'Resume', { compact: true });
+    showMenu('Paused', 'Resume', { compact: true, missed: heldMissed });
+    heldMissed = null;
   }
 
   function turn(nx, ny) {
@@ -190,7 +202,7 @@
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
           state = 'dying'; deathT = now; A.sfx.die(); vibrate([40, 40, 90]);
-          setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, 1100);
+          setTimeout(() => { if (state === 'dying') { state = 'over'; finish('Game over'); } }, settings.autoRestart ? AUTO_DEATH_MS : 1100);
           break;
         case 'win': state = 'over'; finish('You win!'); break;
       }
@@ -252,9 +264,30 @@
     if (changed) store.save();
   }
 
+  // "Keep playing after a crash": everything the game over card would say becomes a pop-up, and a new game starts.
+  // With pop-ups off, unlocks wait on the pause menu, the only way out in this mode.
+  let heldMissed = null;
+  function keepGoing(r, lateUnlocks) {
+    const quiet = settings.unlockToasts === false, score = game.score, lvl = SK.levelOf(data.stats.xp);
+    let lvlUp = 0;
+    if (lvl > shownLevel) { shownLevel = lvl; lvlUp = lvl; }
+    if (quiet) {
+      if (r.unlocked.length || liveLevel || lvlUp) {
+        heldMissed = heldMissed || { items: [], level: 0 };
+        heldMissed.items.push(...r.unlocked); heldMissed.level = Math.max(heldMissed.level, liveLevel, lvlUp);
+      }
+    } else {
+      if (lvlUp) { const b = ui.toastLevel(lvlUp, SK.titleOf(lvlUp)); A.sfx.newBest(); if (b) confetti.pop(b.left + b.width / 2, b.top + b.height / 2, 50); }
+      for (const u of lateUnlocks) { const b = ui.toast(u); A.sfx.unlock(); if (b) confetti.pop(b.left + b.width / 2, b.top + b.height / 2, 40); }
+    }
+    if (r.isBest) ui.toastBest(score);
+    if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
+    newGame(); state = 'menu'; start();
+  }
   function finish(title) {
-    const r = endGame();
+    const r = endGame(), lateUnlocks = r.unlocked;
     r.unlocked = liveUnlocked.concat(r.unlocked);
+    if (settings.autoRestart) return keepGoing(r, lateUnlocks);
     let badge = '';
     if (r.isBest) badge = 'New best!';
     const lvl = SK.levelOf(data.stats.xp);
@@ -508,7 +541,7 @@
     fx.flash = dead && e < 600 && ((e / 100 | 0) % 2 === 0) ? 0.75 : 0;
     fx.grey = dead && e > 600 ? Math.min(1, (e - 600) / 450) : 0;
     fx.mouth = mouth;
-    const shake = !R.reduced && dead && e < 350 ? (1 - e / 350) * 7 : 0;
+    const shake = !R.reduced && settings.shake && dead && e < 350 ? (1 - e / 350) * 7 : 0;
 
     // The lump travels down the body after each apple.
     let w = 0;
@@ -543,6 +576,7 @@
   // ---------- wiring ----------
   function applyAudio() { A.set({ muted: settings.muted, volume: settings.volume, sfxOn: settings.sfx, musicOn: settings.music }); }
   applyAudio();
+  R.noConfetti = !settings.confetti;
 
   ui.init(store, {
     play: () => { A.unlock(); applyAudio(); start(); },
@@ -563,6 +597,7 @@
     tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
       store.save(); applyAudio();
+      R.noConfetti = !settings.confetti;
       if (key === 'color' || key === 'pattern') applyAccent();
       if (key === 'board' || key === 'boardSkin') { applyTheme(); fit(); }
       if (key === 'dpad') fit();
@@ -604,6 +639,7 @@
     togglePause: () => { if (state === 'play' || state === 'countdown') pause(); else if (state === 'paused') start(); },
     confirm: start,
     anyInput: () => { A.unlock(); },
+    swipeScale: () => [1.45, 1, 0.68][settings.swipe] || 1,
     menuOpen: ui.menuOpen
   });
 

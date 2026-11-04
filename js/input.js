@@ -38,7 +38,7 @@
       //  - a new turn needs 40px of travel mostly across the current direction (a real corner);
       //  - the same direction is never sent twice, so no-op turns can't fill the turn buffer.
       let sx = 0, sy = 0, tracking = false, gx = 0, gy = 0;
-      const FIRST = 34, NEXT = 40;
+      const FIRST = 34, NEXT = 40;   // pixels at Normal; the Swipe sensitivity setting scales these
       document.addEventListener('touchstart', e => {
         h.anyInput();
         tracking = !(e.target.closest && e.target.closest(INTERACTIVE));
@@ -49,18 +49,18 @@
         if (!tracking) return;
         e.preventDefault();   // stops page scroll / pull-to-refresh while steering
         if (h.menuOpen()) return;
-        const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+        const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy, scale = h.swipeScale();
         let nx = 0, ny = 0;
         if (!gx && !gy) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) < FIRST) return;
+          if (Math.max(Math.abs(dx), Math.abs(dy)) < FIRST * scale) return;
           if (Math.abs(dx) > Math.abs(dy)) nx = Math.sign(dx); else ny = Math.sign(dy);
         } else {
           const along = dx * gx + dy * gy;            // progress in the current swipe direction
           const across = gx ? dy : dx;                // sideways travel
           if (along >= Math.abs(across)) { sx = t.clientX; sy = t.clientY; return; }   // still going the same way
-          if (Math.abs(across) >= NEXT && Math.abs(across) > Math.abs(along)) {
+          if (Math.abs(across) >= NEXT * scale && Math.abs(across) > Math.abs(along)) {
             if (gx) ny = Math.sign(across); else nx = Math.sign(across);
-          } else if (-along >= NEXT) { nx = -gx; ny = -gy; }   // doubled back
+          } else if (-along >= NEXT * scale) { nx = -gx; ny = -gy; }   // doubled back
           else return;
         }
         h.dir(nx, ny);

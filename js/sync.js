@@ -55,9 +55,13 @@
   }
 
   async function post(body, keepalive) {
-    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: !!keepalive, cache: 'no-store' });
-    let j = null; try { j = await r.json(); } catch (e) {}
-    return { status: r.status, body: j };
+    // A request stuck on a bad connection must not hold up every sync after it.
+    const stop = new AbortController(), timer = setTimeout(() => stop.abort(), 10000);
+    try {
+      const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: !!keepalive, cache: 'no-store', signal: stop.signal });
+      let j = null; try { j = await r.json(); } catch (e) {}
+      return { status: r.status, body: j };
+    } finally { clearTimeout(timer); }
   }
 
   function schedule(ms) {

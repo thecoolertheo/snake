@@ -631,6 +631,7 @@
 
   // Each mode has its own board: tile colours, a tint of light, an accent and an ambient effect.
   const THEMES = {
+    mix:        { a: '#22192e', b: '#1c1527', light: '255,170,235', glow: 'rgba(255,111,177,.14)', accent: '#ff6fb1', amb: 'sparkle' },
     classic:    { a: '#1c2a22', b: '#18241d', light: '190,255,215', glow: 'rgba(76,195,91,.10)',   accent: '#4cc35b', amb: null },
     borderless: { a: '#18273a', b: '#142235', light: '150,200,255', glow: 'rgba(91,140,255,.14)',  accent: '#5b8cff', amb: 'drift', edges: '91,140,255' },
     walls:      { a: '#2b2824', b: '#25221e', light: '255,230,190', glow: 'rgba(168,159,145,.12)', accent: '#c9b89c', amb: 'dust' },
@@ -647,6 +648,8 @@
   R.THEMES = THEMES;
 
   // Checkerboard, plus soft light from the top and a vignette. Drawn once into a cache.
+  // High contrast: a plain near-black board, so everything on it stands out.
+  const CONTRAST = { a: '#0a0d0b', b: '#050706', light: '255,255,255', glow: 'rgba(255,255,255,.08)', accent: '#ffffff', amb: null };
   function drawBoard(g, cols, rows, cell, lit, theme) {
     const T = theme || THEMES.classic, W = cols * cell, H = rows * cell;
     g.fillStyle = T.b; g.fillRect(0, 0, W, H);
@@ -703,6 +706,24 @@
     return s < 1 ? 1 + Math.sin(s * Math.PI) * 0.25 - (1 - s) * 0.6 : 1;
   }
 
+  function ring(g, cx, cy, r) { g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.arc(cx, cy, r + 3, 0, TAU); g.stroke(); }
+  // Colourblind-friendly: every special item also has a shape of its own, so colour is never the only clue.
+  function marker(g, a, cx, cy, r) {
+    if (a.kind === 'apple') return;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    if (a.kind === 'poison') {   // a bold X: don't eat this
+      const d = r * 0.5;
+      for (const [w, c] of [[7, '#000'], [3.5, '#fff']]) {
+        g.strokeStyle = c; g.lineWidth = w; g.beginPath();
+        g.moveTo(cx - d, cy - d); g.lineTo(cx + d, cy + d); g.moveTo(cx + d, cy - d); g.lineTo(cx - d, cy + d); g.stroke();
+      }
+      return;
+    }
+    g.font = '700 ' + Math.round(r * 1.25) + 'px Rubik, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const label = a.kind === 'gold' ? '3' : 'ABCDEFGH'[a.pair % 8];   // what it's worth, or which pair it belongs to
+    g.lineWidth = 4; g.strokeStyle = '#000'; g.strokeText(label, cx, cy + 1); g.fillStyle = '#fff'; g.fillText(label, cx, cy + 1);
+  }
+
   function drawApple(g, a, t, game, p) {
     const pop = popScale(a, t);
     // Golden apples blink in their last few steps before turning normal.
@@ -725,7 +746,7 @@
       const rot = R.reduced ? 0 : t / 400;
       for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(cx, cy, r * 1.32, rot + i * TAU / 3, rot + i * TAU / 3 + 1.2); g.stroke(); }
     }
-    if (a.kind === 'apple' && R.food) { drawFood(g, cx, cy, r, R.food); g.globalAlpha = 1; return; }
+    if (a.kind === 'apple' && R.food) { drawFood(g, cx, cy, r, R.food); if (R.contrast) ring(g, cx, cy, r); g.globalAlpha = 1; return; }
     g.save(); g.translate(cx, cy); g.scale(r, r);
     g.fillStyle = grad(g, a.kind, color); dot(g, 0, 0, 1);
     g.fillStyle = 'rgba(255,255,255,0.6)';
@@ -740,6 +761,8 @@
       g.fillStyle = a.kind === 'poison' ? '#3f7a3a' : '#5fd16a';
       g.beginPath(); g.ellipse(cx + 7, cy - r * 1.25, 5.5, 2.6, -0.5, 0, TAU); g.fill();
     }
+    if (R.contrast) ring(g, cx, cy, r);
+    if (R.safe) marker(g, a, cx, cy, r);
     if (a.kind === 'gold' && !R.reduced) {   // twinkle
       const tw = (Math.sin(t / 180 + a.y) + 1) / 2, sx = cx + r * 0.75, sy = cy - r * 0.55, sr = 2 + 3 * tw;
       g.fillStyle = '#fffbe6'; g.beginPath();
@@ -876,8 +899,8 @@
       const s = R.reduced ? 1 : Math.min(1, (t - b) / 220), sc = s < 1 ? 0.5 + 0.6 * U.ease(s) - 0.1 * s : 1;
       const pad = 3 + (1 - sc) * CELL * 0.4, w = CELL - pad * 2;
       g.fillStyle = 'rgba(0,0,0,0.3)'; roundRect(g, x + pad + 1.5, y + pad + 3, w, w, 7); g.fill();
-      g.fillStyle = '#4a5a52'; roundRect(g, x + pad, y + pad, w, w, 7); g.fill();
-      g.fillStyle = '#5e7066'; roundRect(g, x + pad + 3, y + pad + 3, w - 6, w * 0.45, 5); g.fill();
+      g.fillStyle = R.contrast ? '#c8d4cc' : '#4a5a52'; roundRect(g, x + pad, y + pad, w, w, 7); g.fill();
+      g.fillStyle = R.contrast ? '#f2f6f3' : '#5e7066'; roundRect(g, x + pad + 3, y + pad + 3, w - 6, w * 0.45, 5); g.fill();
     }
   }
   R.resetWalls = () => wallBorn.clear();
@@ -1084,7 +1107,7 @@
     setBoard(cols, rows) { this.cols = cols; this.rows = rows; this._sizeKey = ''; }
     // Mode theme, unless a board skin is chosen (skin index > 0).
     setTheme(id, skin) {
-      const T = (skin && SK.BOARD_THEMES[SK.BOARDS[skin]]) || THEMES[id] || THEMES.classic;
+      const T = R.contrast ? CONTRAST : (skin && SK.BOARD_THEMES[SK.BOARDS[skin]]) || THEMES[id] || THEMES.classic;
       if (T !== this.theme) { this.theme = T; this._sizeKey = ''; }
       return T;
     }

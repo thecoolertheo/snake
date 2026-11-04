@@ -538,6 +538,50 @@
     a.score = G; eq(S.duelRace(a, b), -1, 'both');
   });
 
+  // ---------- the Mixer ----------
+  test('mixer: rules combine, and the normal modes are untouched', () => {
+    const g = new S.Game({ cols: 10, rows: 9, mode: 'mix', mix: ['walls', 'dark', 'hunger', 'borderless'], rng: S.util.rng(1) });
+    eq([g.rules.walls, g.rules.dark, g.rules.hunger, g.rules.wrap], [true, true, true, true]);
+    eq(g.rules.poison, undefined); eq(S.MODE.walls.dark, undefined, 'Walls itself did not change');
+    eq(S.MODES.some(m => m.id === 'mix'), false, 'not one of the normal twelve');
+  });
+  test('mixer: with no rules it plays like Classic, and rubbish is ignored', () => {
+    const g = new S.Game({ cols: 10, rows: 9, mode: 'mix', mix: [], rng: S.util.rng(1) });
+    eq(Object.keys(g.rules).length, 0);
+    eq(S.mixClean(['nope', 'peaceful', 'classic', 'mix', 'dark', 'dark']), ['dark']); eq(S.mixClean('dark'), []); eq(S.mixClean(null), []);
+  });
+  test('mixer: portals never sit alongside the rules that need ordinary apples', () => {
+    eq(S.mixClean(['poison', 'portal', 'gold', 'runaway', 'dark']), ['portal', 'dark']);
+    const g = new S.Game({ cols: 10, rows: 9, mode: 'mix', mix: ['portal', 'poison'], rng: S.util.rng(1) });
+    eq(g.rules.poison, undefined); eq(g.apples.every(a => a.kind === 'portal'), true);
+  });
+  test('mixer: each combination has one best, whatever order you picked it in', () => {
+    eq(S.mixKey(['dark', 'walls']), S.mixKey(['walls', 'dark']));
+    if (S.mixKey(['dark']) === S.mixKey(['walls'])) throw new Error('two mixes share a best');
+    eq(S.mixKey(S.MIX_IDS).length <= 8, true, 'short enough to sync');
+  });
+  test('mixer: random combinations all play out, on their own and with two snakes', () => {
+    const r = S.util.rng(11);
+    for (let n = 0; n < 150; n++) {
+      const mix = S.MIX_IDS.filter(() => r() < 0.45), o = { cols: 12, rows: 11, apples: 3, mode: 'mix', mix, grace: false, rng: r };
+      const g = new S.Game(o);
+      for (let i = 0; i < 200 && g.alive; i++) { const k = r() * 4 | 0; g.turn([1, -1, 0, 0][k], [0, 0, 1, -1][k], 1); g.step(); }
+      const a = new S.Game(Object.assign({ waitApples: true, start: { x: 3, y: 3, dx: 1 } }, o)), b = new S.Game(Object.assign({ waitApples: true, start: { x: 8, y: 7, dx: -1 }, share: a }, o));
+      a.fillApples();
+      for (let i = 0; i < 200 && a.alive && b.alive; i++) {
+        for (const q of [a, b]) { const k = r() * 4 | 0; q.turn([1, -1, 0, 0][k], [0, 0, 1, -1][k], 1); }
+        S.duelStep(a, b);
+        let c = 0; for (const v of a.occ) c += v;
+        eq(c, a.cells.length + b.cells.length, String(mix));
+      }
+    }
+  });
+  test('run summary: counts tiles crossed and turns', () => {
+    const g = mk(); g.apples.length = 0; g.apples.push({ x: 9, y: 0, kind: 'apple' });
+    g.step(); g.turn(0, 1); g.step(); g.step();
+    eq(g.turns, 1); eq(g.visits[g.idx(3, 4)], 1); eq(g.visits[g.idx(3, 5)], 1); eq(g.visits.reduce((a, b) => a + b, 0), 3);
+  });
+
   // ---------- leaderboard replays ----------
   if (S.daily) {
     const D = S.daily, DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];

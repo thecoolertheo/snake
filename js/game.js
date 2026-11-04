@@ -24,10 +24,29 @@
     { id: 'hunger',     name: 'Hunger',     desc: 'Keep eating! You shrink when hungry and starve at length 1.', hunger: true },
     { id: 'runaway',    name: 'Runaway',    desc: 'Apples hop away when you get close.', runaway: true }
   ];
+  const MODE = {}; for (const m of MODES) MODE[m.id] = m;
+  // The Mixer: your own mode, built from the rules of the others. It isn't in MODES, so the Modes list,
+  // the Daily Challenge and the roadmap never treat it as one of the normal twelve.
+  const MIX_IDS = ['borderless', 'walls', 'portal', 'poison', 'turbo', 'mirror', 'dark', 'gold', 'hunger', 'runaway'];
+  const MIX_CLASH = { portal: ['poison', 'gold', 'runaway'], poison: ['portal'], gold: ['portal'], runaway: ['portal'] };   // portals replace ordinary apples
+  MODE.mix = { id: 'mix', name: 'Mixer', desc: 'Pick the rules yourself and play them all at once.' };
+  // A valid list, always in the same order. If two rules clash, the one that comes first in the list stays.
+  function mixClean(list) {
+    const out = [];
+    for (const id of MIX_IDS) if (Array.isArray(list) && list.indexOf(id) >= 0 && !(MIX_CLASH[id] || []).some(o => out.indexOf(o) >= 0)) out.push(id);
+    return out;
+  }
+  function mixRules(list) {
+    const r = {};
+    for (const id of mixClean(list)) for (const k in MODE[id]) if (k !== 'id' && k !== 'name' && k !== 'desc') r[k] = MODE[id][k];
+    return r;
+  }
+  // Each combination keeps its own best score, in a form the normal bests never count.
+  const mixKey = list => { let n = 0; for (const id of mixClean(list)) n |= 1 << MIX_IDS.indexOf(id); return 'mix:' + n.toString(36); };
+
   const PEACE_GOAL = 15;   // two-player Peaceful is a race: first to this many apples takes the round
   const HUNGER_START = 30, HUNGER_EVERY = 8;   // steps without food before shrinking, then one cell per 8 steps
   const GOLD_CHANCE = 0.3, GOLD_LIFE = 45;   // steps a golden apple stays before turning normal
-  const MODE = {}; for (const m of MODES) MODE[m.id] = m;
 
   class Game {
     constructor(opts = {}) {
@@ -35,7 +54,8 @@
       this.rows = opts.rows || 15;
       this.appleCount = opts.apples || 1;
       this.mode = MODE[opts.mode] ? opts.mode : 'classic';
-      this.rules = MODE[this.mode];
+      this.mix = this.mode === 'mix' ? mixClean(opts.mix) : null;
+      this.rules = this.mix ? mixRules(this.mix) : MODE[this.mode];
       this.rng = opts.rng || Math.random;
       this.useGrace = opts.grace !== false;   // Google-style beat of grace before a crash
       this.seed = opts.seed;                  // Daily Challenge: apples land in the same order for everyone
@@ -59,6 +79,8 @@
       this.wallCount = 0;
       this.spawned = 0;
       this.ticks = 0;                      // calls to step(), which is what a replay counts
+      this.turns = 0;
+      this.visits = new Uint16Array(size); // how often the head crossed each tile, for the run summary
       for (const [bx, by] of this.blocks) { this.wall[this.idx(bx, by)] = 2; this.wallCount++; }
       this.cells = [];
       for (let i = 0; i < 3; i++) this._addCell(hx - i * dx, y, false);
@@ -262,9 +284,11 @@
       this.inGrace = false;
 
       const u = { prevTail: this.prevTail, dir: this.dir, prevDir: this.prevDir, grow: this.grow, popped: null };
+      if (nd.x !== this.dir.x || nd.y !== this.dir.y) this.turns++;
       this.prevDir = this.dir; this.dir = nd;
       this.prevTail = { x: tail.x, y: tail.y };
       const c = this._addCell(hx, hy, true);
+      this.visits[i]++;
       if (jump) { c.ja = jump.ja; c.jb = jump.jb; }
       this.undo = u;
 
@@ -401,4 +425,5 @@
   S.MODES = MODES;
   S.MODE = MODE;
   S.PEACE_GOAL = PEACE_GOAL;
+  S.MIX_IDS = MIX_IDS; S.MIX_CLASH = MIX_CLASH; S.mixClean = mixClean; S.mixKey = mixKey;
 })(typeof window !== 'undefined' ? window : globalThis);

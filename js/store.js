@@ -19,7 +19,8 @@
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
                   volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, customGrad: null, unlockToasts: true,
                   combos: [null, null, null, null, null],
-                  duel: false, duelMode: 'classic', colorSort: false, lbName: '', lbId: '',
+                  duel: false, duelMode: 'classic', colorSort: false, lbName: '', lbId: '', mix: [],
+                  a11ySafe: false, a11yCalm: false, a11yContrast: false, a11yText: false,
                   autoRestart: false, countdown: true, grace: true, wake: true, shake: true, confetti: true, swipe: 1 },
       best: {},        // "mode|board|apples" -> best score
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, xpInit: false },
@@ -72,7 +73,7 @@
       return this.data;
     },
     save() { ls.set(KEY, JSON.stringify(this.data)); },
-    bestAny() { let b = 0; for (const k in this.data.best) b = Math.max(b, this.data.best[k]); return b; },
+    bestAny() { let b = 0; for (const k in this.data.best) if (k.indexOf('mix:') !== 0) b = Math.max(b, this.data.best[k]); return b; },   // Mixer scores stay out of the normal bests
     bestMode(mode) { let b = 0; for (const k in this.data.best) if (k.split('|')[0] === mode) b = Math.max(b, this.data.best[k]); return b; },
     // Snapshot used by unlock conditions.
     progress() {

@@ -21,6 +21,7 @@
     runaway: '<circle cx="15" cy="14" r="6.5" fill="#ff5a4e"/><path d="M15 7.5c0-1.6.8-2.4 2.4-3.2" stroke="#5fd16a" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M2 11h5M3 15h4M2 19h5" stroke="#8aa094" stroke-width="2" stroke-linecap="round"/>',
     gold: '<circle cx="12" cy="14" r="8" fill="#ffc83d"/><circle cx="9" cy="11" r="2" fill="#fff6c4"/><path d="M12 6c0-2 1-3 3-4" stroke="#6b4a2b" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M19 3l.8 1.7 1.7.8-1.7.8L19 8l-.8-1.7-1.7-.8 1.7-.8z" fill="#fffbe6"/>'
   };
+  MODE_ICONS.mix = '<circle cx="9" cy="10" r="6" fill="#ff6fb1" opacity=".85"/><circle cx="15" cy="10" r="6" fill="#5b8cff" opacity=".85"/><circle cx="12" cy="15" r="6" fill="#ffc83d" opacity=".85"/>';
   const BOARD_NAMES = { s: 'Small', m: 'Medium', l: 'Large', f: 'Fill screen' };
   const BOARD_KEYS = ['s', 'm', 'l', 'f'];
 
@@ -61,7 +62,7 @@
 
     // Modes
     const grid = $('modeGrid');
-    for (const m of S.MODES) {
+    for (const m of [...S.MODES, S.MODE.mix]) {
       const b = el('button', 'mode-card');
       b.type = 'button'; b.dataset.mode = m.id; b.title = m.desc;
       const T = S.render.THEMES[m.id];
@@ -78,6 +79,13 @@
       });
       grid.appendChild(b);
     }
+    const mixBox = $('mixBox');
+    for (const id of S.MIX_IDS) {
+      const b = el('button', 'mix-chip', svg(MODE_ICONS[id]) + '<span>' + S.MODE[id].name + '</span>');
+      b.type = 'button'; b.dataset.rule = id; b.title = S.MODE[id].desc;
+      b.addEventListener('click', () => toggleMix(id));
+      mixBox.appendChild(b);
+    }
     ui.modeDesc = el('p', 'mode-desc'); grid.before(ui.modeDesc);
     ui.modeLock = el('div', 'lock-note'); ui.modeLock.hidden = true;
     ui.modeLock.innerHTML = '<span></span><button type="button" class="link">See it on the roadmap</button>';
@@ -92,7 +100,13 @@
     $('pageBack').addEventListener('click', () => { ui.setTab('home'); h.click(); });
     $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
     $('dailyShare').addEventListener('click', e => { h.click(); ui.share(todayResult(), e.currentTarget); });
-    $('shareBtn').addEventListener('click', e => { h.click(); ui.share(ui.lastResult, e.currentTarget); });
+    $('summaryBtn').addEventListener('click', () => { h.click(); openSummary(ui.lastResult); });
+    $('sumShare').addEventListener('click', e => { h.click(); ui.share(ui.lastResult, e.currentTarget); });
+    const closeSummary = () => { $('summary').hidden = true; $('summaryBtn').focus({ preventScroll: true }); };
+    $('sumClose').addEventListener('click', () => { h.click(); closeSummary(); });
+    $('summary').addEventListener('click', e => { if (e.target === $('summary')) closeSummary(); });
+    root.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('summary').hidden) closeSummary(); });
+    for (const [id, key] of [['swSafe', 'a11ySafe'], ['swCalm', 'a11yCalm'], ['swContrast', 'a11yContrast'], ['swText', 'a11yText']]) toggle(id, key);
     $('boardJoin').addEventListener('submit', async e => {
       e.preventDefault(); h.click();
       const ok = await S.board.setName($('boardName').value);
@@ -100,7 +114,11 @@
       ui.boardEdit = false; ui.renderBoard();
     });
     $('boardRename').addEventListener('click', () => { h.click(); ui.boardEdit = true; $('boardName').value = st.lbName; ui.renderBoard(); $('boardName').focus(); });
-    $('swDuel').addEventListener('click', () => { st.duel = !st.duel; hideModeLock(); h.gameChanged(); h.click(); });
+    $('swDuel').addEventListener('click', () => {
+      st.duel = !st.duel; hideModeLock();
+      if (!st.duel) st.mix = st.mix.filter(id => !lockedItem('mode', id));   // locked rules are only open with two players
+      h.gameChanged(); h.click();
+    });
 
     // Snake
     buildSkinPickers();
@@ -459,6 +477,28 @@
     renderCats();
   }
 
+  // The Mixer. Rules that can't go together switch each other off, and the note says what happened.
+  function toggleMix(id) {
+    const u = !st.duel && lockedItem('mode', id);
+    if (u) { showModeLock(u); return; }
+    hideModeLock();
+    const had = st.mix.indexOf(id) >= 0;
+    let list = st.mix.filter(x => x !== id), note = '';
+    if (!had) {
+      const off = list.filter(x => (S.MIX_CLASH[id] || []).indexOf(x) >= 0);
+      if (off.length) note = S.MODE[id].name + ' replaces ordinary apples, so ' + off.map(x => S.MODE[x].name).join(' and ') + (off.length > 1 ? ' are' : ' is') + ' off.';
+      list = list.filter(x => off.indexOf(x) < 0).concat(id);
+    }
+    st.mix = S.mixClean(list); ui.mixNote = note;
+    h.gameChanged(); h.click();
+  }
+  // A mode's name for the screen, with a mix spelled out.
+  ui.modeName = (id, mix) => {
+    if (id !== 'mix') return S.MODE[id].name;
+    const n = (mix || []).map(x => S.MODE[x].name);
+    return n.length ? n.join(' + ') : 'Mixer';
+  };
+
   function showModeLock(u) {
     ui.modeLockFocus = u;
     ui.modeLock.querySelector('span').textContent = 'Locked: ' + SK.itemName(u) + '. ' + S.MODE[u.index].desc + ' To unlock: ' + lockText(u).split('. ').slice(1).join('. ') + ' ';
@@ -473,9 +513,16 @@
       b.setAttribute('aria-pressed', (st.duel ? st.duelMode : st.mode) === id);
       const u = !st.duel && lockedItem('mode', id);
       b.classList.toggle('locked', !!u);
-      b.querySelector('small').innerHTML = st.duel ? (id === 'peaceful' ? 'First to ' + S.PEACE_GOAL : 'Two players') : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
+      b.querySelector('small').innerHTML = st.duel ? (id === 'peaceful' ? 'First to ' + S.PEACE_GOAL : id === 'mix' ? 'Your own rules' : 'Two players') : id === 'mix' ? 'Your own rules. Best ' + store.getBest(S.mixKey(st.mix), st.board, st.apples) : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
     }
-    ui.modeDesc.textContent = st.duel ? duelDesc(st.duelMode) : S.MODE[st.mode].desc;
+    const mixing = (st.duel ? st.duelMode : st.mode) === 'mix';
+    ui.modeDesc.textContent = !mixing ? (st.duel ? duelDesc(st.duelMode) : S.MODE[st.mode].desc) : ui.mixNote || (st.mix.length ? ui.modeName('mix', st.mix) : 'Pick some rules below. With none picked, it plays like Classic.');
+    $('mixBox').hidden = !mixing;
+    for (const b of $('mixBox').children) {
+      const id = b.dataset.rule, u = !st.duel && lockedItem('mode', id);
+      b.setAttribute('aria-pressed', st.mix.indexOf(id) >= 0); b.classList.toggle('locked', !!u);
+      b.querySelector('span').innerHTML = S.MODE[id].name + (u ? ' ' + LOCK : '');
+    }
     $('swDuel').setAttribute('aria-checked', !!st.duel);
     ui._seg_board(); ui._seg_apples(); ui._seg_speed();
     $('swRamp').setAttribute('aria-checked', !!st.ramp);
@@ -731,7 +778,7 @@
   })();
 
   function renderHome() {
-    $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
+    $('homeBest').textContent = store.getBest(st.mode === 'mix' ? S.mixKey(st.mix) : st.mode, st.board, st.apples);
     $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
     renderNext($('homeNext'), 3);
     ui.fitHome();
@@ -835,6 +882,47 @@
     ui.updateFades();
   };
 
+  // Run summary: where you went, how it ended, and the numbers.
+  // Brighter tiles are ones you crossed more often. The line is your snake at the end of the run.
+  function drawRunMap(g, x, y, w, h, m, accent) {
+    const c = Math.min(w / m.cols, h / m.rows), ox = x + (w - c * m.cols) / 2, oy = y + (h - c * m.rows) / 2;
+    let top = 1; for (const v of m.visits) if (v > top) top = v;
+    g.fillStyle = '#0b100d'; g.fillRect(ox, oy, c * m.cols, c * m.rows);
+    for (let j = 0; j < m.rows; j++) for (let i = 0; i < m.cols; i++) {
+      const k = j * m.cols + i, v = m.visits[k];
+      if (m.wall[k] === 2) { g.globalAlpha = 1; g.fillStyle = '#6a7a72'; g.fillRect(ox + i * c + 1, oy + j * c + 1, c - 2, c - 2); }
+      else if (v) { g.globalAlpha = 0.14 + 0.6 * Math.sqrt(v / top); g.fillStyle = accent; g.fillRect(ox + i * c + 0.5, oy + j * c + 0.5, c - 1, c - 1); }
+    }
+    g.globalAlpha = 1; g.strokeStyle = '#fff'; g.lineWidth = Math.max(2, c * 0.42); g.lineCap = 'round'; g.lineJoin = 'round';
+    const P = q => [ox + (q.x + 0.5) * c, oy + (q.y + 0.5) * c];
+    g.beginPath();
+    m.cells.forEach((q, i) => {
+      const [a, b] = P(q), far = i && Math.abs(q.x - m.cells[i - 1].x) + Math.abs(q.y - m.cells[i - 1].y) > 1;   // going round an edge or through a portal
+      if (!i || far) g.moveTo(a, b); else g.lineTo(a, b);
+    });
+    g.stroke();
+    const [hx, hy] = P(m.cells[0]);
+    g.fillStyle = accent; g.strokeStyle = '#fff'; g.lineWidth = Math.max(1.5, c * 0.14);
+    g.beginPath(); g.arc(hx, hy, c * 0.42, 0, 7); g.fill(); g.stroke();
+  }
+  const runStats = r => {
+    const seen = r.map.visits.filter(Boolean).length, open = r.map.visits.length - r.map.wall.filter(v => v === 2).length;
+    return [['Score', r.score], ['Time', fmtTime(r.ms)], ['Length', r.length], ['Apples', r.apples], ['Turns', r.turns], ['Board covered', Math.round(seen / open * 100) + '%']];
+  };
+  function openSummary(r) {
+    if (!r) return;
+    $('sumWhy').textContent = r.mode + ' · ' + r.why + (r.isBest ? ' · New best!' : '');
+    $('sumStats').innerHTML = runStats(r).map(([k, v]) => '<div><b>' + v + '</b><small>' + k + '</small></div>').join('');
+    $('summary').hidden = false;
+    const cv = $('sumMap'), box = cv.parentElement.clientWidth, ratio = r.map.rows / r.map.cols, cssH = Math.min(box * ratio, root.innerHeight * 0.42), cssW = cssH / ratio;
+    const d = Math.min(root.devicePixelRatio || 1, 3), g = cv.getContext('2d');
+    cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px'; cv.width = Math.round(cssW * d); cv.height = Math.round(cssH * d);
+    drawRunMap(g, 0, 0, cv.width, cv.height, r.map, getComputedStyle(document.documentElement).getPropertyValue('--mode-accent').trim() || '#5b8cff');
+    $('sumClose').focus({ preventScroll: true });
+  }
+  // Tells screen readers what just happened.
+  ui.say = text => { $('srLive').textContent = ''; setTimeout(() => { $('srLive').textContent = text; }, 60); };
+
   // Your result, as text and as a picture, sent wherever you like.
   const SITE = 'https://snake-lake-two.vercel.app';
   function shareText(r) {
@@ -850,9 +938,12 @@
     c.width = 1200; c.height = 630;
     const bg = g.createLinearGradient(0, 0, 1200, 630); bg.addColorStop(0, '#16201b'); bg.addColorStop(1, '#0b100d');
     g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
-    g.strokeStyle = accent; g.lineWidth = 34; g.lineCap = 'round'; g.lineJoin = 'round';
-    g.beginPath(); g.moveTo(760, 520); g.lineTo(1040, 520); g.arcTo(1110, 520, 1110, 450, 70); g.lineTo(1110, 180); g.arcTo(1110, 110, 1040, 110, 70); g.lineTo(900, 110); g.stroke();
-    g.fillStyle = '#fff'; for (const y of [100, 120]) { g.beginPath(); g.arc(892, y, 7, 0, 7); g.fill(); }
+    if (r.map) drawRunMap(g, 640, 60, 500, 510, r.map, accent);   // the map of your run, when this picture comes straight from a game
+    else {
+      g.strokeStyle = accent; g.lineWidth = 34; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(760, 520); g.lineTo(1040, 520); g.arcTo(1110, 520, 1110, 450, 70); g.lineTo(1110, 180); g.arcTo(1110, 110, 1040, 110, 70); g.lineTo(900, 110); g.stroke();
+      g.fillStyle = '#fff'; for (const y of [100, 120]) { g.beginPath(); g.arc(892, y, 7, 0, 7); g.fill(); }
+    }
     const font = (w, s) => w + ' ' + s + 'px Rubik, system-ui, sans-serif';
     g.textBaseline = 'alphabetic'; g.fillStyle = accent; g.font = font(700, 44); g.fillText('SNAKE PLUS', 70, 110);
     g.fillStyle = '#8aa094'; g.font = font(500, 32); g.fillText(r.daily ? 'Daily Challenge · ' + r.mode : r.mode, 70, 165);
@@ -904,7 +995,7 @@
     renderModes(); renderSkins(); ui.renderLevel(); ui.renderDaily(); renderHome();
     if (ui.shows('stats')) renderStats();
     const m = S.MODE[st.duel ? st.duelMode : st.mode];
-    const line = (st.duel ? 'Two players · ' : '') + m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
+    const line = (st.duel ? 'Two players · ' : '') + ui.modeName(m.id, st.mix) + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal || (m.id === 'mix' && st.mix.indexOf('portal') >= 0) ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
     ui.el.modeLine.textContent = line;
     ui.el.modeTag.textContent = ui.runTag || m.name;
   };
@@ -1045,7 +1136,8 @@
     E.overlay.hidden = !card; E.shell.hidden = card;
     if (o.next) renderNext(E.nextGoal, 1); else E.nextGoal.hidden = true;
     $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
-    $('shareBtn').hidden = !o.over || L[0] === 'Player 1';   // nothing to share from a two-player round
+    $('summaryBtn').hidden = !o.over || L[0] === 'Player 1';   // a two-player round has no one run to sum up
+    $('summary').hidden = true;
     ui.renderMute();
     ui.refresh();
     ui.updateFades();

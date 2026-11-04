@@ -33,15 +33,22 @@
 
   // Reduced motion: no shake, no confetti, fewer particles.
   const rm = root.matchMedia ? root.matchMedia('(prefers-reduced-motion: reduce)') : null;
-  R.reduced = !!(rm && rm.matches);
-  if (rm && rm.addEventListener) rm.addEventListener('change', () => { R.reduced = rm.matches; });
+  // Accessibility settings (and your device's own reduced motion setting).
+  function applyAccess() {
+    const on = (name, v) => document.documentElement.classList.toggle(name, !!v);
+    R.reduced = !!(rm && rm.matches) || !!settings.a11yCalm;
+    R.safe = !!settings.a11ySafe; R.contrast = !!settings.a11yContrast;
+    on('a-calm', settings.a11yCalm); on('a-contrast', settings.a11yContrast); on('a-text', settings.a11yText);
+  }
+  applyAccess();
+  if (rm && rm.addEventListener) rm.addEventListener('change', applyAccess);
 
   // ---------- state ----------
   // menu → countdown → play ⇄ paused, play → dying → over → countdown …
   let state = 'menu';
   let game = null, pendingNew = false;
   let acc = 0, last = 0, deathT = 0, gameTime = 0;
-  let crashing = false;
+  let crashing = false, runEnd = '';
   let countT = 0, countN = -1;
   let bestBefore = 0, passedBest = false;
   let blinkT = -1e9, nextBlink = 2000;
@@ -124,10 +131,13 @@
     const a = available(), target = U.clamp(Math.min(a.w, a.h) / 12, 28, 46);
     return [Math.max(8, Math.floor(a.w / target)), Math.max(8, Math.floor(a.h / target))];
   }
+  // What your best score is filed under. Each Mixer combination has its own.
+  const bestId = () => (settings.mode === 'mix' ? S.mixKey(settings.mix) : settings.mode);
+  const mixOf = id => (id === 'mix' ? settings.mix : undefined);
   const currentBest = () => {
     if (run.kind === 'duel') return match.wins[1];
     if (run.kind === 'daily') return data.daily.days[run.spec.key] || 0;
-    return store.getBest(settings.mode, settings.board, settings.apples);
+    return store.getBest(bestId(), settings.board, settings.apples);
   };
   // Only after the player has interacted (browsers block it otherwise and log a warning).
   const vibrate = p => {
@@ -139,7 +149,8 @@
   function rivalLook() {
     const mine = lookRgb(), far = c => { const o = U.hexRgb(c[1]); return (o[0] - mine[0]) ** 2 + (o[1] - mine[1]) ** 2 + (o[2] - mine[2]) ** 2; };
     const best = ['Orange', 'Blue', 'Pink', 'Yellow', 'Teal'].map(n => SK.COLORS.find(c => c[0] === n)).sort((a, b) => far(b) - far(a))[0];
-    return Object.assign({}, settings, { color: SK.COLORS.indexOf(best), pattern: 0, customColor: null, customGrad: null, trail: 0, hat: 0 });
+    // Colourblind-friendly: stripes as well, so the two snakes differ by more than colour.
+    return Object.assign({}, settings, { color: SK.COLORS.indexOf(best), pattern: settings.a11ySafe ? SK.PATTERNS.indexOf('Stripes') : 0, customColor: null, customGrad: null, trail: 0, hat: 0 });
   }
   function resetPlayer(q, g) {
     q.g = g; q.bar.reset(); q.lastDir = g.dir; q.reach = q.reachTo = 0; q.mouth = 0; q.eats.length = 0; q.fx.reachX = q.fx.reachY = 0;
@@ -153,11 +164,12 @@
       cols = spec.cols; rows = spec.rows;
       game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks, record: run.scored });   // edge grace is always on, so scores compare
     } else if (pick === 'duel') {
-      if (!match || match.mode !== settings.duelMode) match = { mode: settings.duelMode, wins: [0, 0] };
+      const rules = String(mixOf(settings.duelMode));
+      if (!match || match.mode !== settings.duelMode || match.rules !== rules) match = { mode: settings.duelMode, rules, wins: [0, 0] };
       if (match.wins.some(n => n >= ROUNDS_TO_WIN)) match.wins = [0, 0];
       run = { kind: 'duel' };
       [cols, rows] = board();
-      const o = { cols, rows, apples: settings.apples, mode: match.mode, grace: false, waitApples: true };
+      const o = { cols, rows, apples: settings.apples, mode: match.mode, mix: mixOf(match.mode), grace: false, waitApples: true };
       const edge = Math.floor(cols / 4), top = Math.floor(rows / 3), bottom = rows - 1 - top;
       game = new S.Game(Object.assign({ start: { x: edge, y: top, dx: 1 } }, o));
       const g2 = new S.Game(Object.assign({ start: { x: cols - 1 - edge, y: bottom, dx: -1 }, share: game }, o));
@@ -168,7 +180,7 @@
     } else {
       run = { kind: 'solo' };
       [cols, rows] = board();
-      game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, grace: settings.grace });
+      game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, mix: mixOf(settings.mode), grace: settings.grace });
     }
     players.length = 0; players.push(me); if (foe) players.push(foe);
     resetPlayer(me, game);
@@ -293,6 +305,7 @@
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
           state = 'dying'; crashing = true; aimReach(me, e.x, e.y);
+          runEnd = e.x === game.cells[0].x && e.y === game.cells[0].y ? 'You starved' : !game.inBounds(e.x, e.y) ? 'You hit the edge' : game.wall[game.idx(e.x, e.y)] === 2 ? 'You hit a wall' : 'You ran into yourself';
           break;
         case 'win': state = 'over'; finish('You win!'); break;
       }
@@ -349,6 +362,7 @@
     if (w >= 0) match.wins[w]++;
     const done = match.wins.some(n => n >= ROUNDS_TO_WIN), who = 'Player ' + (w + 1);
     ui.setScore(match.wins[0]); ui.setBest(match.wins[1]);
+    ui.say(done ? who + ' wins the match' : w < 0 ? 'Draw' : who + ' takes the round. ' + match.wins[0] + ' to ' + match.wins[1]);
     showMenu(done ? who + ' wins!' : w < 0 ? 'Draw' : who + ' takes the round', done ? 'Rematch' : 'Next round',
       { over: true, badge: done ? '' : 'First to ' + ROUNDS_TO_WIN + ' rounds wins' });
     if (done) { confetti.fire(); A.sfx.newBest(); }
@@ -365,11 +379,13 @@
     if (scored) {   // the first go of the day is the one that counts; replays are practice
       data.daily.days[run.spec.key] = game.score; run.scored = false;
       dailyXp = D.dailyXp(D.streak(data.daily.days, run.spec.key));
-    } else if (!daily) isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
+    } else if (!daily) isBest = store.submitBest(bestId(), settings.board, settings.apples, game.score);
     const missions = D.record(data, { mode: game.mode, apples: game.eaten, ms: gameTime, score: game.score, length: game.maxLen, daily: scored });
     s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0) + dailyXp + payout(missions);
     if (scored) S.board.record({ day: run.spec.key, score: game.score, ticks: game.ticks, log: game.log, sent: false });
-    ui.lastResult = { daily, score: game.score, mode: S.MODE[game.mode].name, isBest: isBest && game.score > 0, day: daily ? run.spec.key : '' };
+    ui.lastResult = { daily, score: game.score, mode: ui.modeName(game.mode, game.mix), isBest: isBest && game.score > 0, day: daily ? run.spec.key : '',
+      ms: gameTime, length: game.maxLen, apples: game.eaten, turns: game.turns, why: game.won ? 'You filled the board!' : game.alive ? 'You stopped here' : runEnd,
+      map: { cols: game.cols, rows: game.rows, visits: game.visits.slice(), wall: game.wall.slice(), cells: game.cells.map(c => ({ x: c.x, y: c.y })) } };
     const unlocked = checkUnlocks();
     store.save();
     return { isBest: isBest && game.score > 0, celebrate: isBest && (bestBefore > 0 || game.score >= 10), unlocked, missions, dailyXp };
@@ -390,11 +406,13 @@
   if (checkUnlocks().length) store.save();   // goals can change between versions
   D.ensureWeek(data);
   if (!S.MODE[settings.mode] || !modeOpen(settings.mode)) settings.mode = 'classic';
+  settings.mix = S.mixClean(settings.mix);
+  if (!settings.duel) settings.mix = settings.mix.filter(modeOpen);   // locked rules are only open with two players
 
   // Unlock rewards the moment you reach them mid-game (toast + a burst of confetti).
   function liveCheck() {
     if (!game || state !== 'play' || foe) return;
-    const b = store.progress(), solo = run.kind === 'solo', mode = solo ? settings.mode : null, score = solo ? game.score : 0;   // a Daily score isn't a best in that mode
+    const b = store.progress(), solo = run.kind === 'solo' && settings.mode !== 'mix', mode = solo ? settings.mode : null, score = solo ? game.score : 0;   // a Daily score isn't a best in that mode
     const liveXp = data.stats.xp + game.eaten * XP_APPLE, level = SK.levelOf(liveXp);
     const pops = settings.unlockToasts !== false;   // off: stay quiet, show it all after the game instead
     if (level > shownLevel) {   // level up mid-game
@@ -458,6 +476,7 @@
     const quiet = settings.unlockToasts === false;
     const missed = quiet && (r.unlocked.length || liveLevel || lvlUp) ? { items: r.unlocked, level: Math.max(liveLevel, lvlUp) } : null;
     if (missed) badge = r.isBest ? 'New best!' : '';   // the card already lists unlocks and level-ups
+    ui.say(title + '. Score ' + game.score + '.' + (badge ? ' ' + badge : ''));
     showMenu(title, run.kind === 'daily' ? 'Practice' : 'Play again', { over: true, badge, next: ui.nextGoal(), missed });
     if (missed) { A.sfx.unlock(); const box = document.getElementById('missed').getBoundingClientRect(); confetti.pop(box.left + box.width / 2, box.top + 20, 36); }
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
@@ -500,7 +519,7 @@
   const pv2 = { drawer: new R.SnakeDrawer(), skin: settings, eats: [], trim: 0, bar: new R.HungerBar(), fx: { mouth: 0, blink: 0, bulges: new Float32Array(16), nBulges: 0, squash: 0 } };
   const pvWantsTwo = () => !!settings.duel && !pvTry;
   function pvNew() {
-    const o = { cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), grace: false };
+    const o = { cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), mix: mixOf(pvModeId()), grace: false };
     pvFoe = null;
     if (pvWantsTwo()) {
       pvGame = new S.Game(Object.assign({ waitApples: true, start: { x: 2, y: 1, dx: 1 } }, o));
@@ -658,7 +677,7 @@
   }
   const pvStepMs = g => baseMs() * (g.rules.turbo ? Math.max(0.35, 0.7 * Math.pow(0.92, g.score)) : 1);
   function drawPreview(t, dt) {
-    if (!pvGame || pvGame.mode !== pvModeId() || pvGame.appleCount !== settings.apples || !!pvFoe !== pvWantsTwo()) pvNew();
+    if (!pvGame || pvGame.mode !== pvModeId() || pvGame.appleCount !== settings.apples || !!pvFoe !== pvWantsTwo() || (pvGame.mix && String(pvGame.mix) !== String(S.mixClean(settings.mix)))) pvNew();
     pvAcc += dt; pvTime.t += dt;
     let ms = pvStepMs(pvGame);
     while (pvAcc >= ms) { pvAcc -= ms; pvStep(); ms = pvStepMs(pvGame); }
@@ -770,7 +789,7 @@
       // Death: shake, flash, then the body greys out from head to tail. The winner of a two-player round is left alone.
       const dead = deathT > 0 && !g.alive && !g.won;
       f.dead = dead;
-      f.flash = dead && e < 600 && ((e / 100 | 0) % 2 === 0) ? 0.75 : 0;
+      f.flash = dead && (R.reduced ? e < 260 : e < 600 && (e / 100 | 0) % 2 === 0) ? 0.75 : 0;   // reduced motion: one flash, never a flicker
       f.grey = dead && e > 600 ? Math.min(1, (e - 600) / 450) : 0;
       if (dead && !R.reduced && settings.shake && e < 350) shake = (1 - e / 350) * 7;
       // The lump travels down the body after each apple.
@@ -835,6 +854,10 @@
     tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
       store.save(); applyAudio();
+      if (key.indexOf('a11y') === 0) {
+        applyAccess(); applyTheme(); view._sizeKey = ''; pvView._sizeKey = ''; fit();
+        if (foe) rival.skin = rivalLook();
+      }
       if (pvFoe) pv2.skin = rivalLook();   // player 2 stays different from whatever you've just put on
       R.noConfetti = !settings.confetti;
       if (key === 'color' || key === 'pattern' || key === 'customGrad') applyAccent();
@@ -902,5 +925,5 @@
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // Handy for debugging and automated checks.
-  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get foe() { return foe && foe.g; }, get run() { return run; }, get match() { return match; }, get preview() { return pvGame; }, get previewFoe() { return pvFoe; }, get previewPath() { return pvSnake.path; } };
+  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get foe() { return foe && foe.g; }, get run() { return run; }, get match() { return match; }, fx, get preview() { return pvGame; }, get previewFoe() { return pvFoe; }, get previewPath() { return pvSnake.path; } };
 })(window);

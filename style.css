@@ -294,6 +294,7 @@ html.full .app { gap: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+html.a-calm *, html.a-calm *::before, html.a-calm *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 
 /* =====================================================================
    Menu redesign: themed by the selected mode (--mode-accent / --mode-glow)
@@ -967,3 +968,40 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 /* Leaderboard name box: the box takes the row and Join stays small. It's a name, not a sync code, so no capitals or wide spacing. */
 .panel-detail .sync-join .play { width: auto; flex: none; padding: 10px var(--sp-4); font-size: var(--fs-md); }
 #boardName { text-transform: none; letter-spacing: 0; text-align: left; font-weight: 500; font-size: var(--fs-md); }
+/* The Mixer */
+.mode-card[data-mode="mix"] { grid-column: 1 / -1; min-height: 0; grid-template-columns: auto auto; justify-content: center; column-gap: var(--sp-2); padding-block: var(--sp-2); }
+.mode-card[data-mode="mix"] .mc-ic { grid-row: span 2; }
+.mix-box { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.mix-box[hidden] { display: none; }
+.mix-chip { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 7px var(--sp-2); text-align: left; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: inherit; font-size: var(--fs-sm); cursor: pointer; transition: background var(--t-fast); }
+.mix-chip svg:not(.lock) { width: 18px; height: 18px; flex: none; }
+.mix-chip span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mix-chip .lock { width: 11px; height: 11px; }
+.mix-chip[aria-pressed="true"] { border-color: var(--mode-accent); background: color-mix(in srgb, var(--mode-accent) 24%, var(--c-surface)); font-weight: 700; }
+.mix-chip.locked { opacity: .55; }
+/* Run summary */
+.sum-wrap { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: var(--sp-3); overflow-y: auto; background: var(--c-scrim); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: fade var(--t-med) var(--ease); }
+.sum-wrap[hidden] { display: none; }
+.sum-card { display: grid; gap: var(--sp-3); width: min(100%, 460px); padding: var(--sp-4); border: 1px solid var(--c-line); border-radius: var(--r-lg); background: var(--c-surface); box-shadow: var(--shadow-2); }
+.sum-card h2 { margin: 0; font-size: var(--fs-lg); }
+.sum-card .hint { margin: 0; }
+.sum-map { display: grid; justify-items: center; }
+.sum-map canvas { display: block; border-radius: var(--r-sm); }
+.sum-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.sum-stats > div { display: grid; padding: 6px var(--sp-2); border-radius: var(--r-md); background: rgba(0, 0, 0, .22); }
+.sum-stats b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+.sum-stats small { font-size: var(--fs-xs); color: var(--c-muted); }
+.sum-btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.sum-btns .play { width: auto; }
+/* Accessibility */
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+html.a-contrast { --c-muted: #c9d8cf; --c-line: rgba(230, 239, 233, .32); --c-fg: #ffffff; --c-scrim: rgba(0, 0, 0, .82); }
+html.a-contrast .switch-row small, html.a-contrast .hint { color: #d4e0d9; }
+html.a-text, html.a-text .shell { --fs-xs: 13.5px; --fs-sm: 15.5px; --fs-md: 18px; --fs-lg: 21px; --fs-xl: 28px; }
+html.a-text .tabs button { font-size: 11.5px; }
+/* Tighter Modes column beside Home when space runs short */
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) #swDuel small { display: none; }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) .mode-card[data-mode="mix"] { padding-block: 2px; }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) .mix-chip { padding-block: 3px; }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) .mix-box { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .mix-chip svg:not(.lock) { display: none; }

@@ -315,6 +315,7 @@ html.full .app { gap: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+html.a-calm *, html.a-calm *::before, html.a-calm *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 
 /* =====================================================================
    Menu redesign: themed by the selected mode (--mode-accent / --mode-glow)
@@ -988,6 +989,43 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 /* Leaderboard name box: the box takes the row and Join stays small. It's a name, not a sync code, so no capitals or wide spacing. */
 .panel-detail .sync-join .play { width: auto; flex: none; padding: 10px var(--sp-4); font-size: var(--fs-md); }
 #boardName { text-transform: none; letter-spacing: 0; text-align: left; font-weight: 500; font-size: var(--fs-md); }
+/* The Mixer */
+.mode-card[data-mode="mix"] { grid-column: 1 / -1; min-height: 0; grid-template-columns: auto auto; justify-content: center; column-gap: var(--sp-2); padding-block: var(--sp-2); }
+.mode-card[data-mode="mix"] .mc-ic { grid-row: span 2; }
+.mix-box { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.mix-box[hidden] { display: none; }
+.mix-chip { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 7px var(--sp-2); text-align: left; border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); color: inherit; font-size: var(--fs-sm); cursor: pointer; transition: background var(--t-fast); }
+.mix-chip svg:not(.lock) { width: 18px; height: 18px; flex: none; }
+.mix-chip span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mix-chip .lock { width: 11px; height: 11px; }
+.mix-chip[aria-pressed="true"] { border-color: var(--mode-accent); background: color-mix(in srgb, var(--mode-accent) 24%, var(--c-surface)); font-weight: 700; }
+.mix-chip.locked { opacity: .55; }
+/* Run summary */
+.sum-wrap { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: var(--sp-3); overflow-y: auto; background: var(--c-scrim); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: fade var(--t-med) var(--ease); }
+.sum-wrap[hidden] { display: none; }
+.sum-card { display: grid; gap: var(--sp-3); width: min(100%, 460px); padding: var(--sp-4); border: 1px solid var(--c-line); border-radius: var(--r-lg); background: var(--c-surface); box-shadow: var(--shadow-2); }
+.sum-card h2 { margin: 0; font-size: var(--fs-lg); }
+.sum-card .hint { margin: 0; }
+.sum-map { display: grid; justify-items: center; }
+.sum-map canvas { display: block; border-radius: var(--r-sm); }
+.sum-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.sum-stats > div { display: grid; padding: 6px var(--sp-2); border-radius: var(--r-md); background: rgba(0, 0, 0, .22); }
+.sum-stats b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+.sum-stats small { font-size: var(--fs-xs); color: var(--c-muted); }
+.sum-btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.sum-btns .play { width: auto; }
+/* Accessibility */
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+html.a-contrast { --c-muted: #c9d8cf; --c-line: rgba(230, 239, 233, .32); --c-fg: #ffffff; --c-scrim: rgba(0, 0, 0, .82); }
+html.a-contrast .switch-row small, html.a-contrast .hint { color: #d4e0d9; }
+html.a-text, html.a-text .shell { --fs-xs: 13.5px; --fs-sm: 15.5px; --fs-md: 18px; --fs-lg: 21px; --fs-xl: 28px; }
+html.a-text .tabs button { font-size: 11.5px; }
+/* Tighter Modes column beside Home when space runs short */
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) #swDuel small { display: none; }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) .mode-card[data-mode="mix"] { padding-block: 2px; }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) .mix-chip { padding-block: 3px; }
+.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) .mix-box { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.shell[data-page="home"] .panel[data-panel="modes"][data-fit="3"] .mix-chip svg:not(.lock) { display: none; }
 </style>
 </head>
 <body>
@@ -1046,7 +1084,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
           </div>
           <div class="pause-box" id="overBox" hidden>
             <button class="play" id="againBtn" type="button">Play again</button>
-            <button class="pbtn" id="shareBtn" type="button">Share result</button>
+            <button class="pbtn" id="summaryBtn" type="button">Run summary</button>
             <button class="pbtn" id="overHome" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="currentColor"/></svg>Main menu</button>
           </div>
         </div>
@@ -1100,6 +1138,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Game mode</span></h3>
                 <button class="switch-row" type="button" role="switch" id="swDuel" aria-checked="false"><span><b>Two players</b><small>One screen, first to 3 rounds. Every mode is open</small></span><i class="switch"></i></button>
                 <div class="mode-grid" id="modeGrid"></div>
+                <div class="mix-box" id="mixBox" role="group" aria-label="Mixer rules" hidden></div>
               </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke="currentColor" stroke-width="1.2" opacity=".6"/></svg><span>Board</span></h3>
                 <div class="field"><span class="label">Size</span><div class="seg" id="segBoard"></div></div>
@@ -1211,6 +1250,12 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 <button class="switch-row" type="button" role="switch" id="swShake" aria-checked="true"><span><b>Screen shake</b><small>The board shakes when you crash</small></span><i class="switch"></i></button>
                 <button class="switch-row" type="button" role="switch" id="swConfetti" aria-checked="true"><span><b>Confetti</b><small>Bursts for new bests and unlocks</small></span><i class="switch"></i></button>
               </div>
+              <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.500" r="2.500"/><path d="M4 8.500l5 1.500v4l-2 7h2.500l2.500-6 2.500 6H17l-2-7v-4l5-1.500-.6-2L12 8 4.600 6.500z"/></svg><span>Accessibility</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swSafe" aria-checked="false"><span><b>Colourblind-friendly</b><small>Poison, gold and portals get symbols, and player 2 gets stripes</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swCalm" aria-checked="false"><span><b>Reduce motion</b><small>No shake or confetti, one soft flash instead of flickering, and calmer menus</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swContrast" aria-checked="false"><span><b>High contrast</b><small>A plain black board, bright walls and outlined apples, with clearer menu text</small></span><i class="switch"></i></button>
+                <button class="switch-row" type="button" role="switch" id="swText" aria-checked="false"><span><b>Larger text</b><small>Bigger text throughout the menus</small></span><i class="switch"></i></button>
+              </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM10 19a2 2 0 0 0 4 0z"/></svg><span>Notifications</span></h3>
                 <button class="switch-row" type="button" role="switch" id="swToasts" aria-checked="true"><span><b>Unlock pop-ups during games</b><small>When off, you'll see everything you unlocked after the game, in “What you missed”</small></span><i class="switch"></i></button>
               </div>
@@ -1239,6 +1284,16 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   </div>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="sum-wrap" id="summary" role="dialog" aria-modal="true" aria-labelledby="sumTitle" hidden>
+  <div class="sum-card">
+    <h2 id="sumTitle">Run summary</h2>
+    <p class="hint" id="sumWhy"></p>
+    <div class="sum-map"><canvas id="sumMap" role="img" aria-label="Map of where your snake went. Brighter tiles were crossed more often."></canvas></div>
+    <div class="sum-stats" id="sumStats"></div>
+    <div class="sum-btns"><button class="pbtn" id="sumShare" type="button">Share</button><button class="play" id="sumClose" type="button">Done</button></div>
+  </div>
+</div>
+<p class="sr" id="srLive" aria-live="polite"></p>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
 <script>window.SNAKE_SYNC_API = "https://snake-lake-two.vercel.app/api/sync";</script>
@@ -1306,10 +1361,29 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     { id: 'hunger',     name: 'Hunger',     desc: 'Keep eating! You shrink when hungry and starve at length 1.', hunger: true },
     { id: 'runaway',    name: 'Runaway',    desc: 'Apples hop away when you get close.', runaway: true }
   ];
+  const MODE = {}; for (const m of MODES) MODE[m.id] = m;
+  // The Mixer: your own mode, built from the rules of the others. It isn't in MODES, so the Modes list,
+  // the Daily Challenge and the roadmap never treat it as one of the normal twelve.
+  const MIX_IDS = ['borderless', 'walls', 'portal', 'poison', 'turbo', 'mirror', 'dark', 'gold', 'hunger', 'runaway'];
+  const MIX_CLASH = { portal: ['poison', 'gold', 'runaway'], poison: ['portal'], gold: ['portal'], runaway: ['portal'] };   // portals replace ordinary apples
+  MODE.mix = { id: 'mix', name: 'Mixer', desc: 'Pick the rules yourself and play them all at once.' };
+  // A valid list, always in the same order. If two rules clash, the one that comes first in the list stays.
+  function mixClean(list) {
+    const out = [];
+    for (const id of MIX_IDS) if (Array.isArray(list) && list.indexOf(id) >= 0 && !(MIX_CLASH[id] || []).some(o => out.indexOf(o) >= 0)) out.push(id);
+    return out;
+  }
+  function mixRules(list) {
+    const r = {};
+    for (const id of mixClean(list)) for (const k in MODE[id]) if (k !== 'id' && k !== 'name' && k !== 'desc') r[k] = MODE[id][k];
+    return r;
+  }
+  // Each combination keeps its own best score, in a form the normal bests never count.
+  const mixKey = list => { let n = 0; for (const id of mixClean(list)) n |= 1 << MIX_IDS.indexOf(id); return 'mix:' + n.toString(36); };
+
   const PEACE_GOAL = 15;   // two-player Peaceful is a race: first to this many apples takes the round
   const HUNGER_START = 30, HUNGER_EVERY = 8;   // steps without food before shrinking, then one cell per 8 steps
   const GOLD_CHANCE = 0.3, GOLD_LIFE = 45;   // steps a golden apple stays before turning normal
-  const MODE = {}; for (const m of MODES) MODE[m.id] = m;
 
   class Game {
     constructor(opts = {}) {
@@ -1317,7 +1391,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       this.rows = opts.rows || 15;
       this.appleCount = opts.apples || 1;
       this.mode = MODE[opts.mode] ? opts.mode : 'classic';
-      this.rules = MODE[this.mode];
+      this.mix = this.mode === 'mix' ? mixClean(opts.mix) : null;
+      this.rules = this.mix ? mixRules(this.mix) : MODE[this.mode];
       this.rng = opts.rng || Math.random;
       this.useGrace = opts.grace !== false;   // Google-style beat of grace before a crash
       this.seed = opts.seed;                  // Daily Challenge: apples land in the same order for everyone
@@ -1341,6 +1416,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       this.wallCount = 0;
       this.spawned = 0;
       this.ticks = 0;                      // calls to step(), which is what a replay counts
+      this.turns = 0;
+      this.visits = new Uint16Array(size); // how often the head crossed each tile, for the run summary
       for (const [bx, by] of this.blocks) { this.wall[this.idx(bx, by)] = 2; this.wallCount++; }
       this.cells = [];
       for (let i = 0; i < 3; i++) this._addCell(hx - i * dx, y, false);
@@ -1544,9 +1621,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       this.inGrace = false;
 
       const u = { prevTail: this.prevTail, dir: this.dir, prevDir: this.prevDir, grow: this.grow, popped: null };
+      if (nd.x !== this.dir.x || nd.y !== this.dir.y) this.turns++;
       this.prevDir = this.dir; this.dir = nd;
       this.prevTail = { x: tail.x, y: tail.y };
       const c = this._addCell(hx, hy, true);
+      this.visits[i]++;
       if (jump) { c.ja = jump.ja; c.jb = jump.jb; }
       this.undo = u;
 
@@ -1683,6 +1762,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   S.MODES = MODES;
   S.MODE = MODE;
   S.PEACE_GOAL = PEACE_GOAL;
+  S.MIX_IDS = MIX_IDS; S.MIX_CLASH = MIX_CLASH; S.mixClean = mixClean; S.mixKey = mixKey;
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -1707,7 +1787,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
                   volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, customGrad: null, unlockToasts: true,
                   combos: [null, null, null, null, null],
-                  duel: false, duelMode: 'classic', colorSort: false, lbName: '', lbId: '',
+                  duel: false, duelMode: 'classic', colorSort: false, lbName: '', lbId: '', mix: [],
+                  a11ySafe: false, a11yCalm: false, a11yContrast: false, a11yText: false,
                   autoRestart: false, countdown: true, grace: true, wake: true, shake: true, confetti: true, swipe: 1 },
       best: {},        // "mode|board|apples" -> best score
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, missions: 0, perfect: 0, xpInit: false },
@@ -1760,7 +1841,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       return this.data;
     },
     save() { ls.set(KEY, JSON.stringify(this.data)); },
-    bestAny() { let b = 0; for (const k in this.data.best) b = Math.max(b, this.data.best[k]); return b; },
+    bestAny() { let b = 0; for (const k in this.data.best) if (k.indexOf('mix:') !== 0) b = Math.max(b, this.data.best[k]); return b; },   // Mixer scores stay out of the normal bests
     bestMode(mode) { let b = 0; for (const k in this.data.best) if (k.split('|')[0] === mode) b = Math.max(b, this.data.best[k]); return b; },
     // Snapshot used by unlock conditions.
     progress() {
@@ -3436,6 +3517,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
   // Each mode has its own board: tile colours, a tint of light, an accent and an ambient effect.
   const THEMES = {
+    mix:        { a: '#22192e', b: '#1c1527', light: '255,170,235', glow: 'rgba(255,111,177,.14)', accent: '#ff6fb1', amb: 'sparkle' },
     classic:    { a: '#1c2a22', b: '#18241d', light: '190,255,215', glow: 'rgba(76,195,91,.10)',   accent: '#4cc35b', amb: null },
     borderless: { a: '#18273a', b: '#142235', light: '150,200,255', glow: 'rgba(91,140,255,.14)',  accent: '#5b8cff', amb: 'drift', edges: '91,140,255' },
     walls:      { a: '#2b2824', b: '#25221e', light: '255,230,190', glow: 'rgba(168,159,145,.12)', accent: '#c9b89c', amb: 'dust' },
@@ -3452,6 +3534,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   R.THEMES = THEMES;
 
   // Checkerboard, plus soft light from the top and a vignette. Drawn once into a cache.
+  // High contrast: a plain near-black board, so everything on it stands out.
+  const CONTRAST = { a: '#0a0d0b', b: '#050706', light: '255,255,255', glow: 'rgba(255,255,255,.08)', accent: '#ffffff', amb: null };
   function drawBoard(g, cols, rows, cell, lit, theme) {
     const T = theme || THEMES.classic, W = cols * cell, H = rows * cell;
     g.fillStyle = T.b; g.fillRect(0, 0, W, H);
@@ -3508,6 +3592,24 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     return s < 1 ? 1 + Math.sin(s * Math.PI) * 0.25 - (1 - s) * 0.6 : 1;
   }
 
+  function ring(g, cx, cy, r) { g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.arc(cx, cy, r + 3, 0, TAU); g.stroke(); }
+  // Colourblind-friendly: every special item also has a shape of its own, so colour is never the only clue.
+  function marker(g, a, cx, cy, r) {
+    if (a.kind === 'apple') return;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    if (a.kind === 'poison') {   // a bold X: don't eat this
+      const d = r * 0.5;
+      for (const [w, c] of [[7, '#000'], [3.5, '#fff']]) {
+        g.strokeStyle = c; g.lineWidth = w; g.beginPath();
+        g.moveTo(cx - d, cy - d); g.lineTo(cx + d, cy + d); g.moveTo(cx + d, cy - d); g.lineTo(cx - d, cy + d); g.stroke();
+      }
+      return;
+    }
+    g.font = '700 ' + Math.round(r * 1.25) + 'px Rubik, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const label = a.kind === 'gold' ? '3' : 'ABCDEFGH'[a.pair % 8];   // what it's worth, or which pair it belongs to
+    g.lineWidth = 4; g.strokeStyle = '#000'; g.strokeText(label, cx, cy + 1); g.fillStyle = '#fff'; g.fillText(label, cx, cy + 1);
+  }
+
   function drawApple(g, a, t, game, p) {
     const pop = popScale(a, t);
     // Golden apples blink in their last few steps before turning normal.
@@ -3530,7 +3632,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       const rot = R.reduced ? 0 : t / 400;
       for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(cx, cy, r * 1.32, rot + i * TAU / 3, rot + i * TAU / 3 + 1.2); g.stroke(); }
     }
-    if (a.kind === 'apple' && R.food) { drawFood(g, cx, cy, r, R.food); g.globalAlpha = 1; return; }
+    if (a.kind === 'apple' && R.food) { drawFood(g, cx, cy, r, R.food); if (R.contrast) ring(g, cx, cy, r); g.globalAlpha = 1; return; }
     g.save(); g.translate(cx, cy); g.scale(r, r);
     g.fillStyle = grad(g, a.kind, color); dot(g, 0, 0, 1);
     g.fillStyle = 'rgba(255,255,255,0.6)';
@@ -3545,6 +3647,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       g.fillStyle = a.kind === 'poison' ? '#3f7a3a' : '#5fd16a';
       g.beginPath(); g.ellipse(cx + 7, cy - r * 1.25, 5.5, 2.6, -0.5, 0, TAU); g.fill();
     }
+    if (R.contrast) ring(g, cx, cy, r);
+    if (R.safe) marker(g, a, cx, cy, r);
     if (a.kind === 'gold' && !R.reduced) {   // twinkle
       const tw = (Math.sin(t / 180 + a.y) + 1) / 2, sx = cx + r * 0.75, sy = cy - r * 0.55, sr = 2 + 3 * tw;
       g.fillStyle = '#fffbe6'; g.beginPath();
@@ -3681,8 +3785,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       const s = R.reduced ? 1 : Math.min(1, (t - b) / 220), sc = s < 1 ? 0.5 + 0.6 * U.ease(s) - 0.1 * s : 1;
       const pad = 3 + (1 - sc) * CELL * 0.4, w = CELL - pad * 2;
       g.fillStyle = 'rgba(0,0,0,0.3)'; roundRect(g, x + pad + 1.5, y + pad + 3, w, w, 7); g.fill();
-      g.fillStyle = '#4a5a52'; roundRect(g, x + pad, y + pad, w, w, 7); g.fill();
-      g.fillStyle = '#5e7066'; roundRect(g, x + pad + 3, y + pad + 3, w - 6, w * 0.45, 5); g.fill();
+      g.fillStyle = R.contrast ? '#c8d4cc' : '#4a5a52'; roundRect(g, x + pad, y + pad, w, w, 7); g.fill();
+      g.fillStyle = R.contrast ? '#f2f6f3' : '#5e7066'; roundRect(g, x + pad + 3, y + pad + 3, w - 6, w * 0.45, 5); g.fill();
     }
   }
   R.resetWalls = () => wallBorn.clear();
@@ -3889,7 +3993,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     setBoard(cols, rows) { this.cols = cols; this.rows = rows; this._sizeKey = ''; }
     // Mode theme, unless a board skin is chosen (skin index > 0).
     setTheme(id, skin) {
-      const T = (skin && SK.BOARD_THEMES[SK.BOARDS[skin]]) || THEMES[id] || THEMES.classic;
+      const T = R.contrast ? CONTRAST : (skin && SK.BOARD_THEMES[SK.BOARDS[skin]]) || THEMES[id] || THEMES.classic;
       if (T !== this.theme) { this.theme = T; this._sizeKey = ''; }
       return T;
     }
@@ -4233,6 +4337,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     runaway: '<circle cx="15" cy="14" r="6.5" fill="#ff5a4e"/><path d="M15 7.5c0-1.6.8-2.4 2.4-3.2" stroke="#5fd16a" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M2 11h5M3 15h4M2 19h5" stroke="#8aa094" stroke-width="2" stroke-linecap="round"/>',
     gold: '<circle cx="12" cy="14" r="8" fill="#ffc83d"/><circle cx="9" cy="11" r="2" fill="#fff6c4"/><path d="M12 6c0-2 1-3 3-4" stroke="#6b4a2b" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M19 3l.8 1.7 1.7.8-1.7.8L19 8l-.8-1.7-1.7-.8 1.7-.8z" fill="#fffbe6"/>'
   };
+  MODE_ICONS.mix = '<circle cx="9" cy="10" r="6" fill="#ff6fb1" opacity=".85"/><circle cx="15" cy="10" r="6" fill="#5b8cff" opacity=".85"/><circle cx="12" cy="15" r="6" fill="#ffc83d" opacity=".85"/>';
   const BOARD_NAMES = { s: 'Small', m: 'Medium', l: 'Large', f: 'Fill screen' };
   const BOARD_KEYS = ['s', 'm', 'l', 'f'];
 
@@ -4273,7 +4378,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
     // Modes
     const grid = $('modeGrid');
-    for (const m of S.MODES) {
+    for (const m of [...S.MODES, S.MODE.mix]) {
       const b = el('button', 'mode-card');
       b.type = 'button'; b.dataset.mode = m.id; b.title = m.desc;
       const T = S.render.THEMES[m.id];
@@ -4290,6 +4395,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       });
       grid.appendChild(b);
     }
+    const mixBox = $('mixBox');
+    for (const id of S.MIX_IDS) {
+      const b = el('button', 'mix-chip', svg(MODE_ICONS[id]) + '<span>' + S.MODE[id].name + '</span>');
+      b.type = 'button'; b.dataset.rule = id; b.title = S.MODE[id].desc;
+      b.addEventListener('click', () => toggleMix(id));
+      mixBox.appendChild(b);
+    }
     ui.modeDesc = el('p', 'mode-desc'); grid.before(ui.modeDesc);
     ui.modeLock = el('div', 'lock-note'); ui.modeLock.hidden = true;
     ui.modeLock.innerHTML = '<span></span><button type="button" class="link">See it on the roadmap</button>';
@@ -4304,7 +4416,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     $('pageBack').addEventListener('click', () => { ui.setTab('home'); h.click(); });
     $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
     $('dailyShare').addEventListener('click', e => { h.click(); ui.share(todayResult(), e.currentTarget); });
-    $('shareBtn').addEventListener('click', e => { h.click(); ui.share(ui.lastResult, e.currentTarget); });
+    $('summaryBtn').addEventListener('click', () => { h.click(); openSummary(ui.lastResult); });
+    $('sumShare').addEventListener('click', e => { h.click(); ui.share(ui.lastResult, e.currentTarget); });
+    const closeSummary = () => { $('summary').hidden = true; $('summaryBtn').focus({ preventScroll: true }); };
+    $('sumClose').addEventListener('click', () => { h.click(); closeSummary(); });
+    $('summary').addEventListener('click', e => { if (e.target === $('summary')) closeSummary(); });
+    root.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('summary').hidden) closeSummary(); });
+    for (const [id, key] of [['swSafe', 'a11ySafe'], ['swCalm', 'a11yCalm'], ['swContrast', 'a11yContrast'], ['swText', 'a11yText']]) toggle(id, key);
     $('boardJoin').addEventListener('submit', async e => {
       e.preventDefault(); h.click();
       const ok = await S.board.setName($('boardName').value);
@@ -4312,7 +4430,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       ui.boardEdit = false; ui.renderBoard();
     });
     $('boardRename').addEventListener('click', () => { h.click(); ui.boardEdit = true; $('boardName').value = st.lbName; ui.renderBoard(); $('boardName').focus(); });
-    $('swDuel').addEventListener('click', () => { st.duel = !st.duel; hideModeLock(); h.gameChanged(); h.click(); });
+    $('swDuel').addEventListener('click', () => {
+      st.duel = !st.duel; hideModeLock();
+      if (!st.duel) st.mix = st.mix.filter(id => !lockedItem('mode', id));   // locked rules are only open with two players
+      h.gameChanged(); h.click();
+    });
 
     // Snake
     buildSkinPickers();
@@ -4671,6 +4793,28 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     renderCats();
   }
 
+  // The Mixer. Rules that can't go together switch each other off, and the note says what happened.
+  function toggleMix(id) {
+    const u = !st.duel && lockedItem('mode', id);
+    if (u) { showModeLock(u); return; }
+    hideModeLock();
+    const had = st.mix.indexOf(id) >= 0;
+    let list = st.mix.filter(x => x !== id), note = '';
+    if (!had) {
+      const off = list.filter(x => (S.MIX_CLASH[id] || []).indexOf(x) >= 0);
+      if (off.length) note = S.MODE[id].name + ' replaces ordinary apples, so ' + off.map(x => S.MODE[x].name).join(' and ') + (off.length > 1 ? ' are' : ' is') + ' off.';
+      list = list.filter(x => off.indexOf(x) < 0).concat(id);
+    }
+    st.mix = S.mixClean(list); ui.mixNote = note;
+    h.gameChanged(); h.click();
+  }
+  // A mode's name for the screen, with a mix spelled out.
+  ui.modeName = (id, mix) => {
+    if (id !== 'mix') return S.MODE[id].name;
+    const n = (mix || []).map(x => S.MODE[x].name);
+    return n.length ? n.join(' + ') : 'Mixer';
+  };
+
   function showModeLock(u) {
     ui.modeLockFocus = u;
     ui.modeLock.querySelector('span').textContent = 'Locked: ' + SK.itemName(u) + '. ' + S.MODE[u.index].desc + ' To unlock: ' + lockText(u).split('. ').slice(1).join('. ') + ' ';
@@ -4685,9 +4829,16 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       b.setAttribute('aria-pressed', (st.duel ? st.duelMode : st.mode) === id);
       const u = !st.duel && lockedItem('mode', id);
       b.classList.toggle('locked', !!u);
-      b.querySelector('small').innerHTML = st.duel ? (id === 'peaceful' ? 'First to ' + S.PEACE_GOAL : 'Two players') : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
+      b.querySelector('small').innerHTML = st.duel ? (id === 'peaceful' ? 'First to ' + S.PEACE_GOAL : id === 'mix' ? 'Your own rules' : 'Two players') : id === 'mix' ? 'Your own rules. Best ' + store.getBest(S.mixKey(st.mix), st.board, st.apples) : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
     }
-    ui.modeDesc.textContent = st.duel ? duelDesc(st.duelMode) : S.MODE[st.mode].desc;
+    const mixing = (st.duel ? st.duelMode : st.mode) === 'mix';
+    ui.modeDesc.textContent = !mixing ? (st.duel ? duelDesc(st.duelMode) : S.MODE[st.mode].desc) : ui.mixNote || (st.mix.length ? ui.modeName('mix', st.mix) : 'Pick some rules below. With none picked, it plays like Classic.');
+    $('mixBox').hidden = !mixing;
+    for (const b of $('mixBox').children) {
+      const id = b.dataset.rule, u = !st.duel && lockedItem('mode', id);
+      b.setAttribute('aria-pressed', st.mix.indexOf(id) >= 0); b.classList.toggle('locked', !!u);
+      b.querySelector('span').innerHTML = S.MODE[id].name + (u ? ' ' + LOCK : '');
+    }
     $('swDuel').setAttribute('aria-checked', !!st.duel);
     ui._seg_board(); ui._seg_apples(); ui._seg_speed();
     $('swRamp').setAttribute('aria-checked', !!st.ramp);
@@ -4943,7 +5094,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   })();
 
   function renderHome() {
-    $('homeBest').textContent = store.getBest(st.mode, st.board, st.apples);
+    $('homeBest').textContent = store.getBest(st.mode === 'mix' ? S.mixKey(st.mix) : st.mode, st.board, st.apples);
     $('homeGot').textContent = SK.UNLOCKS.filter(u => store.isUnlocked(u.id)).length + ' / ' + SK.UNLOCKS.length;
     renderNext($('homeNext'), 3);
     ui.fitHome();
@@ -5047,6 +5198,47 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     ui.updateFades();
   };
 
+  // Run summary: where you went, how it ended, and the numbers.
+  // Brighter tiles are ones you crossed more often. The line is your snake at the end of the run.
+  function drawRunMap(g, x, y, w, h, m, accent) {
+    const c = Math.min(w / m.cols, h / m.rows), ox = x + (w - c * m.cols) / 2, oy = y + (h - c * m.rows) / 2;
+    let top = 1; for (const v of m.visits) if (v > top) top = v;
+    g.fillStyle = '#0b100d'; g.fillRect(ox, oy, c * m.cols, c * m.rows);
+    for (let j = 0; j < m.rows; j++) for (let i = 0; i < m.cols; i++) {
+      const k = j * m.cols + i, v = m.visits[k];
+      if (m.wall[k] === 2) { g.globalAlpha = 1; g.fillStyle = '#6a7a72'; g.fillRect(ox + i * c + 1, oy + j * c + 1, c - 2, c - 2); }
+      else if (v) { g.globalAlpha = 0.14 + 0.6 * Math.sqrt(v / top); g.fillStyle = accent; g.fillRect(ox + i * c + 0.5, oy + j * c + 0.5, c - 1, c - 1); }
+    }
+    g.globalAlpha = 1; g.strokeStyle = '#fff'; g.lineWidth = Math.max(2, c * 0.42); g.lineCap = 'round'; g.lineJoin = 'round';
+    const P = q => [ox + (q.x + 0.5) * c, oy + (q.y + 0.5) * c];
+    g.beginPath();
+    m.cells.forEach((q, i) => {
+      const [a, b] = P(q), far = i && Math.abs(q.x - m.cells[i - 1].x) + Math.abs(q.y - m.cells[i - 1].y) > 1;   // going round an edge or through a portal
+      if (!i || far) g.moveTo(a, b); else g.lineTo(a, b);
+    });
+    g.stroke();
+    const [hx, hy] = P(m.cells[0]);
+    g.fillStyle = accent; g.strokeStyle = '#fff'; g.lineWidth = Math.max(1.5, c * 0.14);
+    g.beginPath(); g.arc(hx, hy, c * 0.42, 0, 7); g.fill(); g.stroke();
+  }
+  const runStats = r => {
+    const seen = r.map.visits.filter(Boolean).length, open = r.map.visits.length - r.map.wall.filter(v => v === 2).length;
+    return [['Score', r.score], ['Time', fmtTime(r.ms)], ['Length', r.length], ['Apples', r.apples], ['Turns', r.turns], ['Board covered', Math.round(seen / open * 100) + '%']];
+  };
+  function openSummary(r) {
+    if (!r) return;
+    $('sumWhy').textContent = r.mode + ' · ' + r.why + (r.isBest ? ' · New best!' : '');
+    $('sumStats').innerHTML = runStats(r).map(([k, v]) => '<div><b>' + v + '</b><small>' + k + '</small></div>').join('');
+    $('summary').hidden = false;
+    const cv = $('sumMap'), box = cv.parentElement.clientWidth, ratio = r.map.rows / r.map.cols, cssH = Math.min(box * ratio, root.innerHeight * 0.42), cssW = cssH / ratio;
+    const d = Math.min(root.devicePixelRatio || 1, 3), g = cv.getContext('2d');
+    cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px'; cv.width = Math.round(cssW * d); cv.height = Math.round(cssH * d);
+    drawRunMap(g, 0, 0, cv.width, cv.height, r.map, getComputedStyle(document.documentElement).getPropertyValue('--mode-accent').trim() || '#5b8cff');
+    $('sumClose').focus({ preventScroll: true });
+  }
+  // Tells screen readers what just happened.
+  ui.say = text => { $('srLive').textContent = ''; setTimeout(() => { $('srLive').textContent = text; }, 60); };
+
   // Your result, as text and as a picture, sent wherever you like.
   const SITE = 'https://snake-lake-two.vercel.app';
   function shareText(r) {
@@ -5062,9 +5254,12 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     c.width = 1200; c.height = 630;
     const bg = g.createLinearGradient(0, 0, 1200, 630); bg.addColorStop(0, '#16201b'); bg.addColorStop(1, '#0b100d');
     g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
-    g.strokeStyle = accent; g.lineWidth = 34; g.lineCap = 'round'; g.lineJoin = 'round';
-    g.beginPath(); g.moveTo(760, 520); g.lineTo(1040, 520); g.arcTo(1110, 520, 1110, 450, 70); g.lineTo(1110, 180); g.arcTo(1110, 110, 1040, 110, 70); g.lineTo(900, 110); g.stroke();
-    g.fillStyle = '#fff'; for (const y of [100, 120]) { g.beginPath(); g.arc(892, y, 7, 0, 7); g.fill(); }
+    if (r.map) drawRunMap(g, 640, 60, 500, 510, r.map, accent);   // the map of your run, when this picture comes straight from a game
+    else {
+      g.strokeStyle = accent; g.lineWidth = 34; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(760, 520); g.lineTo(1040, 520); g.arcTo(1110, 520, 1110, 450, 70); g.lineTo(1110, 180); g.arcTo(1110, 110, 1040, 110, 70); g.lineTo(900, 110); g.stroke();
+      g.fillStyle = '#fff'; for (const y of [100, 120]) { g.beginPath(); g.arc(892, y, 7, 0, 7); g.fill(); }
+    }
     const font = (w, s) => w + ' ' + s + 'px Rubik, system-ui, sans-serif';
     g.textBaseline = 'alphabetic'; g.fillStyle = accent; g.font = font(700, 44); g.fillText('SNAKE PLUS', 70, 110);
     g.fillStyle = '#8aa094'; g.font = font(500, 32); g.fillText(r.daily ? 'Daily Challenge · ' + r.mode : r.mode, 70, 165);
@@ -5116,7 +5311,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     renderModes(); renderSkins(); ui.renderLevel(); ui.renderDaily(); renderHome();
     if (ui.shows('stats')) renderStats();
     const m = S.MODE[st.duel ? st.duelMode : st.mode];
-    const line = (st.duel ? 'Two players · ' : '') + m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
+    const line = (st.duel ? 'Two players · ' : '') + ui.modeName(m.id, st.mix) + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal || (m.id === 'mix' && st.mix.indexOf('portal') >= 0) ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
     ui.el.modeLine.textContent = line;
     ui.el.modeTag.textContent = ui.runTag || m.name;
   };
@@ -5257,7 +5452,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     E.overlay.hidden = !card; E.shell.hidden = card;
     if (o.next) renderNext(E.nextGoal, 1); else E.nextGoal.hidden = true;
     $('pauseBox').hidden = !o.compact; $('overBox').hidden = !o.over;
-    $('shareBtn').hidden = !o.over || L[0] === 'Player 1';   // nothing to share from a two-player round
+    $('summaryBtn').hidden = !o.over || L[0] === 'Player 1';   // a two-player round has no one run to sum up
+    $('summary').hidden = true;
     ui.renderMute();
     ui.refresh();
     ui.updateFades();
@@ -5753,15 +5949,22 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
   // Reduced motion: no shake, no confetti, fewer particles.
   const rm = root.matchMedia ? root.matchMedia('(prefers-reduced-motion: reduce)') : null;
-  R.reduced = !!(rm && rm.matches);
-  if (rm && rm.addEventListener) rm.addEventListener('change', () => { R.reduced = rm.matches; });
+  // Accessibility settings (and your device's own reduced motion setting).
+  function applyAccess() {
+    const on = (name, v) => document.documentElement.classList.toggle(name, !!v);
+    R.reduced = !!(rm && rm.matches) || !!settings.a11yCalm;
+    R.safe = !!settings.a11ySafe; R.contrast = !!settings.a11yContrast;
+    on('a-calm', settings.a11yCalm); on('a-contrast', settings.a11yContrast); on('a-text', settings.a11yText);
+  }
+  applyAccess();
+  if (rm && rm.addEventListener) rm.addEventListener('change', applyAccess);
 
   // ---------- state ----------
   // menu → countdown → play ⇄ paused, play → dying → over → countdown …
   let state = 'menu';
   let game = null, pendingNew = false;
   let acc = 0, last = 0, deathT = 0, gameTime = 0;
-  let crashing = false;
+  let crashing = false, runEnd = '';
   let countT = 0, countN = -1;
   let bestBefore = 0, passedBest = false;
   let blinkT = -1e9, nextBlink = 2000;
@@ -5844,10 +6047,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const a = available(), target = U.clamp(Math.min(a.w, a.h) / 12, 28, 46);
     return [Math.max(8, Math.floor(a.w / target)), Math.max(8, Math.floor(a.h / target))];
   }
+  // What your best score is filed under. Each Mixer combination has its own.
+  const bestId = () => (settings.mode === 'mix' ? S.mixKey(settings.mix) : settings.mode);
+  const mixOf = id => (id === 'mix' ? settings.mix : undefined);
   const currentBest = () => {
     if (run.kind === 'duel') return match.wins[1];
     if (run.kind === 'daily') return data.daily.days[run.spec.key] || 0;
-    return store.getBest(settings.mode, settings.board, settings.apples);
+    return store.getBest(bestId(), settings.board, settings.apples);
   };
   // Only after the player has interacted (browsers block it otherwise and log a warning).
   const vibrate = p => {
@@ -5859,7 +6065,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   function rivalLook() {
     const mine = lookRgb(), far = c => { const o = U.hexRgb(c[1]); return (o[0] - mine[0]) ** 2 + (o[1] - mine[1]) ** 2 + (o[2] - mine[2]) ** 2; };
     const best = ['Orange', 'Blue', 'Pink', 'Yellow', 'Teal'].map(n => SK.COLORS.find(c => c[0] === n)).sort((a, b) => far(b) - far(a))[0];
-    return Object.assign({}, settings, { color: SK.COLORS.indexOf(best), pattern: 0, customColor: null, customGrad: null, trail: 0, hat: 0 });
+    // Colourblind-friendly: stripes as well, so the two snakes differ by more than colour.
+    return Object.assign({}, settings, { color: SK.COLORS.indexOf(best), pattern: settings.a11ySafe ? SK.PATTERNS.indexOf('Stripes') : 0, customColor: null, customGrad: null, trail: 0, hat: 0 });
   }
   function resetPlayer(q, g) {
     q.g = g; q.bar.reset(); q.lastDir = g.dir; q.reach = q.reachTo = 0; q.mouth = 0; q.eats.length = 0; q.fx.reachX = q.fx.reachY = 0;
@@ -5873,11 +6080,12 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       cols = spec.cols; rows = spec.rows;
       game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks, record: run.scored });   // edge grace is always on, so scores compare
     } else if (pick === 'duel') {
-      if (!match || match.mode !== settings.duelMode) match = { mode: settings.duelMode, wins: [0, 0] };
+      const rules = String(mixOf(settings.duelMode));
+      if (!match || match.mode !== settings.duelMode || match.rules !== rules) match = { mode: settings.duelMode, rules, wins: [0, 0] };
       if (match.wins.some(n => n >= ROUNDS_TO_WIN)) match.wins = [0, 0];
       run = { kind: 'duel' };
       [cols, rows] = board();
-      const o = { cols, rows, apples: settings.apples, mode: match.mode, grace: false, waitApples: true };
+      const o = { cols, rows, apples: settings.apples, mode: match.mode, mix: mixOf(match.mode), grace: false, waitApples: true };
       const edge = Math.floor(cols / 4), top = Math.floor(rows / 3), bottom = rows - 1 - top;
       game = new S.Game(Object.assign({ start: { x: edge, y: top, dx: 1 } }, o));
       const g2 = new S.Game(Object.assign({ start: { x: cols - 1 - edge, y: bottom, dx: -1 }, share: game }, o));
@@ -5888,7 +6096,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     } else {
       run = { kind: 'solo' };
       [cols, rows] = board();
-      game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, grace: settings.grace });
+      game = new S.Game({ cols, rows, apples: settings.apples, mode: settings.mode, mix: mixOf(settings.mode), grace: settings.grace });
     }
     players.length = 0; players.push(me); if (foe) players.push(foe);
     resetPlayer(me, game);
@@ -6013,6 +6221,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         case 'expire': view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6); break;
         case 'die':
           state = 'dying'; crashing = true; aimReach(me, e.x, e.y);
+          runEnd = e.x === game.cells[0].x && e.y === game.cells[0].y ? 'You starved' : !game.inBounds(e.x, e.y) ? 'You hit the edge' : game.wall[game.idx(e.x, e.y)] === 2 ? 'You hit a wall' : 'You ran into yourself';
           break;
         case 'win': state = 'over'; finish('You win!'); break;
       }
@@ -6069,6 +6278,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (w >= 0) match.wins[w]++;
     const done = match.wins.some(n => n >= ROUNDS_TO_WIN), who = 'Player ' + (w + 1);
     ui.setScore(match.wins[0]); ui.setBest(match.wins[1]);
+    ui.say(done ? who + ' wins the match' : w < 0 ? 'Draw' : who + ' takes the round. ' + match.wins[0] + ' to ' + match.wins[1]);
     showMenu(done ? who + ' wins!' : w < 0 ? 'Draw' : who + ' takes the round', done ? 'Rematch' : 'Next round',
       { over: true, badge: done ? '' : 'First to ' + ROUNDS_TO_WIN + ' rounds wins' });
     if (done) { confetti.fire(); A.sfx.newBest(); }
@@ -6085,11 +6295,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (scored) {   // the first go of the day is the one that counts; replays are practice
       data.daily.days[run.spec.key] = game.score; run.scored = false;
       dailyXp = D.dailyXp(D.streak(data.daily.days, run.spec.key));
-    } else if (!daily) isBest = store.submitBest(settings.mode, settings.board, settings.apples, game.score);
+    } else if (!daily) isBest = store.submitBest(bestId(), settings.board, settings.apples, game.score);
     const missions = D.record(data, { mode: game.mode, apples: game.eaten, ms: gameTime, score: game.score, length: game.maxLen, daily: scored });
     s.xp += game.eaten * XP_APPLE + XP_GAME + (isBest && game.score > 0 ? XP_BEST : 0) + dailyXp + payout(missions);
     if (scored) S.board.record({ day: run.spec.key, score: game.score, ticks: game.ticks, log: game.log, sent: false });
-    ui.lastResult = { daily, score: game.score, mode: S.MODE[game.mode].name, isBest: isBest && game.score > 0, day: daily ? run.spec.key : '' };
+    ui.lastResult = { daily, score: game.score, mode: ui.modeName(game.mode, game.mix), isBest: isBest && game.score > 0, day: daily ? run.spec.key : '',
+      ms: gameTime, length: game.maxLen, apples: game.eaten, turns: game.turns, why: game.won ? 'You filled the board!' : game.alive ? 'You stopped here' : runEnd,
+      map: { cols: game.cols, rows: game.rows, visits: game.visits.slice(), wall: game.wall.slice(), cells: game.cells.map(c => ({ x: c.x, y: c.y })) } };
     const unlocked = checkUnlocks();
     store.save();
     return { isBest: isBest && game.score > 0, celebrate: isBest && (bestBefore > 0 || game.score >= 10), unlocked, missions, dailyXp };
@@ -6110,11 +6322,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   if (checkUnlocks().length) store.save();   // goals can change between versions
   D.ensureWeek(data);
   if (!S.MODE[settings.mode] || !modeOpen(settings.mode)) settings.mode = 'classic';
+  settings.mix = S.mixClean(settings.mix);
+  if (!settings.duel) settings.mix = settings.mix.filter(modeOpen);   // locked rules are only open with two players
 
   // Unlock rewards the moment you reach them mid-game (toast + a burst of confetti).
   function liveCheck() {
     if (!game || state !== 'play' || foe) return;
-    const b = store.progress(), solo = run.kind === 'solo', mode = solo ? settings.mode : null, score = solo ? game.score : 0;   // a Daily score isn't a best in that mode
+    const b = store.progress(), solo = run.kind === 'solo' && settings.mode !== 'mix', mode = solo ? settings.mode : null, score = solo ? game.score : 0;   // a Daily score isn't a best in that mode
     const liveXp = data.stats.xp + game.eaten * XP_APPLE, level = SK.levelOf(liveXp);
     const pops = settings.unlockToasts !== false;   // off: stay quiet, show it all after the game instead
     if (level > shownLevel) {   // level up mid-game
@@ -6178,6 +6392,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const quiet = settings.unlockToasts === false;
     const missed = quiet && (r.unlocked.length || liveLevel || lvlUp) ? { items: r.unlocked, level: Math.max(liveLevel, lvlUp) } : null;
     if (missed) badge = r.isBest ? 'New best!' : '';   // the card already lists unlocks and level-ups
+    ui.say(title + '. Score ' + game.score + '.' + (badge ? ' ' + badge : ''));
     showMenu(title, run.kind === 'daily' ? 'Practice' : 'Play again', { over: true, badge, next: ui.nextGoal(), missed });
     if (missed) { A.sfx.unlock(); const box = document.getElementById('missed').getBoundingClientRect(); confetti.pop(box.left + box.width / 2, box.top + 20, 36); }
     if (r.celebrate) { confetti.fire(); A.sfx.newBest(); vibrate([20, 60, 20, 60, 40]); }
@@ -6220,7 +6435,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const pv2 = { drawer: new R.SnakeDrawer(), skin: settings, eats: [], trim: 0, bar: new R.HungerBar(), fx: { mouth: 0, blink: 0, bulges: new Float32Array(16), nBulges: 0, squash: 0 } };
   const pvWantsTwo = () => !!settings.duel && !pvTry;
   function pvNew() {
-    const o = { cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), grace: false };
+    const o = { cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), mix: mixOf(pvModeId()), grace: false };
     pvFoe = null;
     if (pvWantsTwo()) {
       pvGame = new S.Game(Object.assign({ waitApples: true, start: { x: 2, y: 1, dx: 1 } }, o));
@@ -6378,7 +6593,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   }
   const pvStepMs = g => baseMs() * (g.rules.turbo ? Math.max(0.35, 0.7 * Math.pow(0.92, g.score)) : 1);
   function drawPreview(t, dt) {
-    if (!pvGame || pvGame.mode !== pvModeId() || pvGame.appleCount !== settings.apples || !!pvFoe !== pvWantsTwo()) pvNew();
+    if (!pvGame || pvGame.mode !== pvModeId() || pvGame.appleCount !== settings.apples || !!pvFoe !== pvWantsTwo() || (pvGame.mix && String(pvGame.mix) !== String(S.mixClean(settings.mix)))) pvNew();
     pvAcc += dt; pvTime.t += dt;
     let ms = pvStepMs(pvGame);
     while (pvAcc >= ms) { pvAcc -= ms; pvStep(); ms = pvStepMs(pvGame); }
@@ -6490,7 +6705,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       // Death: shake, flash, then the body greys out from head to tail. The winner of a two-player round is left alone.
       const dead = deathT > 0 && !g.alive && !g.won;
       f.dead = dead;
-      f.flash = dead && e < 600 && ((e / 100 | 0) % 2 === 0) ? 0.75 : 0;
+      f.flash = dead && (R.reduced ? e < 260 : e < 600 && (e / 100 | 0) % 2 === 0) ? 0.75 : 0;   // reduced motion: one flash, never a flicker
       f.grey = dead && e > 600 ? Math.min(1, (e - 600) / 450) : 0;
       if (dead && !R.reduced && settings.shake && e < 350) shake = (1 - e / 350) * 7;
       // The lump travels down the body after each apple.
@@ -6555,6 +6770,10 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
       store.save(); applyAudio();
+      if (key.indexOf('a11y') === 0) {
+        applyAccess(); applyTheme(); view._sizeKey = ''; pvView._sizeKey = ''; fit();
+        if (foe) rival.skin = rivalLook();
+      }
       if (pvFoe) pv2.skin = rivalLook();   // player 2 stays different from whatever you've just put on
       R.noConfetti = !settings.confetti;
       if (key === 'color' || key === 'pattern' || key === 'customGrad') applyAccent();
@@ -6622,7 +6841,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // Handy for debugging and automated checks.
-  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get foe() { return foe && foe.g; }, get run() { return run; }, get match() { return match; }, get preview() { return pvGame; }, get previewFoe() { return pvFoe; }, get previewPath() { return pvSnake.path; } };
+  S.app = { get game() { return game; }, get state() { return state; }, settings, view, store, confetti, endGame, newGame, get foe() { return foe && foe.g; }, get run() { return run; }, get match() { return match; }, fx, get preview() { return pvGame; }, get previewFoe() { return pvFoe; }, get previewPath() { return pvSnake.path; } };
 })(window);
 </script>
 </body>

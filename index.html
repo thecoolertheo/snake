@@ -126,6 +126,7 @@
             <section class="panel" role="tabpanel" data-panel="modes" hidden>
               <div class="pv-slot"></div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Game mode</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swDuel" aria-checked="false"><span><b>Two players</b><small>One screen, first to 3 rounds. Every mode is open except Peaceful and Dark</small></span><i class="switch"></i></button>
                 <div class="mode-grid" id="modeGrid"></div>
               </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke="currentColor" stroke-width="1.2" opacity=".6"/></svg><span>Board</span></h3>
@@ -135,10 +136,6 @@
                 <button class="switch-row" type="button" role="switch" id="swRamp" aria-checked="false">
                   <span><b>Speed up as you score</b><small>Gets a little faster with every apple</small></span><i class="switch"></i>
                 </button>
-              </div>
-              <div class="card" id="duelCard"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="4"/><circle cx="17" cy="9" r="3"/><path d="M1 21c0-4 3-7 7-7s7 3 7 7zM16.500 21c0-3-1-5-2.500-6.500 3-1.500 8 .5 8 6.500z"/></svg><span>Two-player</span></h3>
-                <p class="hint">Two snakes, one screen, first to 3 rounds. WASD against the arrow keys, or swipe on your own half of the screen. Doesn’t count towards your stats.</p>
-                <div class="duel-row"><div class="seg" id="duelModes"></div><button class="play" id="duelStart" type="button">Start match</button></div>
               </div>
             </section>
 
@@ -165,7 +162,7 @@
                 <div class="cat-tabs" id="catTabs"></div>
               </div>
               <div class="ward-body" id="wardrobe">
-                <div class="cat-head"><span class="cat-name"><b id="catTitle"></b><small id="catNow"></small></span><span class="cat-tools"><small id="catCount"></small><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></span></div>
+                <div class="cat-head"><span class="cat-name"><b id="catTitle"></b><small id="catNow"></small></span><span class="cat-tools"><small id="catCount"></small><button class="cat-filter" id="catRainbow" type="button" aria-pressed="false" hidden>Rainbow order</button><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></span></div>
                 <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
                 <div class="cat" data-cat="color">
                 <div class="custom-pick" id="customPick" hidden>

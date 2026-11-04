@@ -563,7 +563,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .pv-slot { min-width: 0; }
 
 /* Home */
-.panel-home { max-width: 520px; gap: var(--sp-4); }
+.panel-home { gap: var(--sp-4); max-width: none; }
 .home-hero, .home-side { display: grid; gap: var(--sp-3); min-width: 0; align-content: start; }
 .setup { display: flex; align-items: center; justify-content: center; gap: var(--sp-1); padding: var(--sp-2); border: 0; background: none; color: var(--c-muted); cursor: pointer; border-radius: var(--r-md); }
 .setup:hover { color: var(--c-fg); }
@@ -648,7 +648,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .tabs button[aria-selected="true"] { background: var(--c-surface-3); }
   .panels { padding-left: var(--sp-5); padding-right: var(--sp-5); }
   .page-head { padding-left: var(--sp-5); padding-right: var(--sp-5); }
-  .panel-home { max-width: 960px; grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); align-items: center; gap: var(--sp-6); }
 }
 /* Landscape phones: just enough room for the essentials */
 @media (max-height: 520px) and (min-width: 560px) {
@@ -659,7 +658,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   .page-head { min-height: 0; padding-top: max(var(--sp-2), env(safe-area-inset-top)); padding-bottom: var(--sp-1); }
   .page-head h2 { font-size: var(--fs-lg); }
   .shell[data-page="home"] .page-head { display: none; }
-  .panel-home { max-width: none; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 1fr); align-items: center; gap: var(--sp-4); }
+  .panel-home { grid-template-columns: minmax(0, 1.2fr) minmax(220px, 1fr); gap: var(--sp-4); }
   .play-hero { padding: 10px var(--sp-5); font-size: var(--fs-lg); }
 }
 
@@ -782,9 +781,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .home-next:hover { border-color: var(--mode-accent); }
 .home-next:active { transform: scale(.985); }
 .nx-main { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); align-items: center; }
-.nx-ring { --p: 0%; display: grid; place-items: center; width: 62px; height: 62px; flex: none; border-radius: 50%; background: conic-gradient(var(--mode-accent) var(--p), rgba(255, 255, 255, .09) 0); box-shadow: 0 0 16px -4px var(--mode-accent); transition: --p .8s var(--ease); }
-.nx-ring .rw { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background-color: #0b100d; font-style: normal; box-shadow: 0 0 0 2px var(--c-bg) !important; }
-.nx-ring .rw img { width: 50px; height: 50px; }
+.nx-ring { --p: 0%; display: grid; place-items: center; width: calc(62px * var(--hk, 1)); height: calc(62px * var(--hk, 1)); flex: none; border-radius: 50%; background: conic-gradient(var(--mode-accent) var(--p), rgba(255, 255, 255, .09) 0); box-shadow: 0 0 16px -4px var(--mode-accent); transition: --p .8s var(--ease); }
+.nx-ring .rw { width: calc(50px * var(--hk, 1)); height: calc(50px * var(--hk, 1)); border-radius: 50%; display: grid; place-items: center; overflow: hidden; background-color: #0b100d; font-style: normal; box-shadow: 0 0 0 2px var(--c-bg) !important; }
+.nx-ring .rw img { width: 100%; height: 100%; }
 .nx-ring .rw svg { width: 30px; height: 30px; }
 .nx-body { display: grid; gap: 4px; min-width: 0; }
 .nx-k { color: var(--mode-accent); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
@@ -812,8 +811,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
    Home never scrolls. ui.fitHome() picks the first tier that fits.
    ===================================================================== */
 #pv { width: 100% !important; height: auto !important; }
-.shell[data-page="home"] .panels { display: grid; align-content: start; align-content: safe center; align-items: start; align-items: safe center; overflow: hidden; }
-.shell[data-page="home"] .panel { height: auto; overflow: visible; padding-right: 0; }
+.shell[data-page="home"] .panels { display: grid; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.shell[data-page="home"] .panel { height: 100%; overflow: visible; padding-right: 0; }
+.shell[data-page="home"] .panel.measuring { height: auto; align-self: start; }
 .panel-home .pv-slot { width: 100%; margin: 0 auto; }
 .panel-home, .panel-home .home-hero, .panel-home .home-side { transition: none; }
 
@@ -827,9 +827,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .shell[data-page="home"] .panel-home[data-fit="2"] .home-hero, .shell[data-page="home"] .panel-home[data-fit="2"] .home-side,
 .shell[data-page="home"] .panel-home[data-fit="3"] .home-hero, .shell[data-page="home"] .panel-home[data-fit="3"] .home-side { gap: 6px; }
 .shell[data-page="home"] .panel-home[data-fit="2"] .logo-hero { width: min(100%, 230px); }
-.shell[data-page="home"] .panel-home[data-fit="2"] .pv-slot { width: 74%; }
 .shell[data-page="home"] .panel-home[data-fit="3"] .logo-hero { width: min(100%, 170px); }
-.shell[data-page="home"] .panel-home[data-fit="3"] .pv-slot { width: 52%; }
+.shell[data-page="home"] .panel-home[data-fit="3"] .pv-slot { width: 78%; }
 .shell[data-page="home"] .panel-home[data-fit="2"] .setup, .shell[data-page="home"] .panel-home[data-fit="3"] .setup { padding: 0; font-size: var(--fs-xs); }
 .shell[data-page="home"] .panel-home[data-fit="2"] .mode-line, .shell[data-page="home"] .panel-home[data-fit="3"] .mode-line { font-size: var(--fs-xs); }
 .shell[data-page="home"] .panel-home[data-fit="2"] .play-hero, .shell[data-page="home"] .panel-home[data-fit="3"] .play-hero { padding: 8px var(--sp-5); font-size: var(--fs-md); }
@@ -842,7 +841,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .shell[data-page="home"] .panel-home[data-fit="2"] .nx-main .nx-ring, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-main .nx-ring { width: 46px; height: 46px; }
 .shell[data-page="home"] .panel-home[data-fit="2"] .nx-main .rw, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-main .rw,
 .shell[data-page="home"] .panel-home[data-fit="2"] .nx-main .rw img, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-main .rw img { width: 37px; height: 37px; }
-.shell[data-page="home"] .panel-home[data-fit="2"] .nx-more, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-more { padding-top: 4px; }
+.shell[data-page="home"] .panel-home[data-fit="2"] .nx-more { padding-top: 4px; }
+.shell[data-page="home"] .panel-home[data-fit="3"] .nx-more { display: none; }
 .shell[data-page="home"] .panel-home[data-fit="2"] .nx-mini .nx-ring, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-mini .nx-ring { width: 26px; height: 26px; }
 .shell[data-page="home"] .panel-home[data-fit="2"] .nx-mini .rw, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-mini .rw,
 .shell[data-page="home"] .panel-home[data-fit="2"] .nx-mini .rw img, .shell[data-page="home"] .panel-home[data-fit="3"] .nx-mini .rw img { width: 20px; height: 20px; }
@@ -885,7 +885,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .hev:active { transform: scale(.98); }
 .hev.new { border-color: color-mix(in srgb, var(--mode-accent) 45%, var(--c-line)); }
 .hev.new::after { content: ''; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--c-danger); }
-.hev-ic svg { display: block; width: 26px; height: 26px; }
+.hev-ic svg { display: block; width: calc(26px * var(--hk, 1)); height: calc(26px * var(--hk, 1)); }
 .hev-t { display: grid; gap: 1px; min-width: 0; }
 .hev-t b { font-size: var(--fs-sm); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hev-t small { font-size: var(--fs-xs); color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -895,11 +895,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .hev { padding: 4px var(--sp-2); }
 .shell[data-page="home"] .panel-home:is([data-fit="2"], [data-fit="3"]) .hev-ic svg { width: 20px; height: 20px; }
 .panel-detail { width: 100%; max-width: 640px; margin-inline: auto; }
-.duel-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-.duel-row .seg { flex: 2 1 260px; }
-.duel-row .play { flex: 1 1 130px; width: auto; }
-.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) #duelCard .hint { display: none; }
-.shell[data-page="home"] .panel[data-panel="modes"]:is([data-fit="2"], [data-fit="3"]) .duel-row .play { padding-block: 6px; font-size: var(--fs-sm); }
 .daily-mode { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); align-items: center; }
 .daily-mode .mc-ic svg { width: 40px; height: 40px; display: block; }
 .daily-mode span:last-child { display: grid; gap: 2px; }
@@ -914,6 +909,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .dd { display: grid; justify-items: center; gap: 3px; }
 .dd i { width: 16px; height: 16px; border-radius: 50%; background: rgba(255, 255, 255, .08); }
 .dd.on i { background: var(--mode-accent); }
+.dd.later { opacity: .45; }
 .dd.now i { box-shadow: 0 0 0 2px var(--c-surface), 0 0 0 3px var(--c-muted); }
 .week { display: grid; gap: var(--sp-3); }
 .ms { display: grid; gap: 4px; }
@@ -934,6 +930,34 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .home-events { container-type: inline-size; }
 @container (max-width: 310px) { .hev { grid-template-columns: minmax(0, 1fr); } .hev-ic { display: none; } }
 @media (max-width: 360px) { .tabs button { font-size: 9px; letter-spacing: -.2px; } }
+/* Home fills the page. One column on anything taller than it is wide, two side by side otherwise. */
+.panel-home { grid-template-rows: auto minmax(0, 1fr); }
+.home-side { grid-template-rows: auto auto auto minmax(0, 1fr); }
+.home-side .home-next { align-content: center; height: 100%; }
+.panel-home.measuring .home-next { height: auto; }
+.home-events .hev { align-content: center; }
+@media (min-width: 560px) and (min-aspect-ratio: 5/4) {
+  .panel-home { grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--sp-5); }
+  .panel-home .home-hero { align-content: center; }
+}
+@media (min-width: 1000px) and (min-height: 560px) {
+  .panel-home { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: var(--sp-3); }
+  .shell[data-page="home"] .panel[data-panel="modes"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .shell[data-page="home"] .panel[data-panel="modes"].measuring { grid-template-rows: auto auto; }
+  .shell[data-page="home"] .panel[data-panel="modes"] > .pv-slot + .card { height: 100%; grid-template-rows: auto auto auto minmax(0, 1fr); }
+  .shell[data-page="home"] .panel[data-panel="modes"] .mode-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+}
+/* Larger layouts for Home, tried from the biggest down (see fitPanel) */
+.panel-home[data-fit="g1"] { --hk: 1.2; --fs-xs: 13px; --fs-sm: 15px; --fs-md: 18px; --fs-lg: 22px; --fs-xl: 28px; --sp-2: 10px; --sp-3: 15px; --sp-4: 20px; }
+.panel-home[data-fit="g2"] { --hk: 1.45; --fs-xs: 15px; --fs-sm: 18px; --fs-md: 21px; --fs-lg: 26px; --fs-xl: 34px; --sp-2: 12px; --sp-3: 18px; --sp-4: 24px; }
+.panel-home[data-fit="g3"] { --hk: 1.75; --fs-xs: 18px; --fs-sm: 21px; --fs-md: 25px; --fs-lg: 31px; --fs-xl: 40px; --sp-2: 14px; --sp-3: 22px; --sp-4: 28px; }
+.panel-home[data-fit^="g"] .logo-hero { width: min(100%, 720px); }
+.panel-home[data-fit^="g"] .play-hero { padding-block: 1em; }
+.panel-home[data-fit^="g"] .htile svg { width: calc(26px * var(--hk)); height: calc(26px * var(--hk)); }
+.panel-home[data-fit^="g"] .lv-n { width: calc(36px * var(--hk)); height: calc(36px * var(--hk)); }
+.panel-home[data-fit^="g"] .nx-mini .nx-ring { width: calc(34px * var(--hk)); height: calc(34px * var(--hk)); }
+.panel-home[data-fit^="g"] .nx-mini .nx-ring .rw { width: calc(27px * var(--hk)); height: calc(27px * var(--hk)); }
+.cat-tools { flex-wrap: wrap; justify-content: flex-end; }
 </style>
 </head>
 <body>
@@ -1043,6 +1067,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
             <section class="panel" role="tabpanel" data-panel="modes" hidden>
               <div class="pv-slot"></div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>Game mode</span></h3>
+                <button class="switch-row" type="button" role="switch" id="swDuel" aria-checked="false"><span><b>Two players</b><small>One screen, first to 3 rounds. Every mode is open except Peaceful and Dark</small></span><i class="switch"></i></button>
                 <div class="mode-grid" id="modeGrid"></div>
               </div>
               <div class="card"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke="currentColor" stroke-width="1.2" opacity=".6"/></svg><span>Board</span></h3>
@@ -1052,10 +1077,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 <button class="switch-row" type="button" role="switch" id="swRamp" aria-checked="false">
                   <span><b>Speed up as you score</b><small>Gets a little faster with every apple</small></span><i class="switch"></i>
                 </button>
-              </div>
-              <div class="card" id="duelCard"><h3 class="card-h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="4"/><circle cx="17" cy="9" r="3"/><path d="M1 21c0-4 3-7 7-7s7 3 7 7zM16.500 21c0-3-1-5-2.500-6.500 3-1.500 8 .5 8 6.500z"/></svg><span>Two-player</span></h3>
-                <p class="hint">Two snakes, one screen, first to 3 rounds. WASD against the arrow keys, or swipe on your own half of the screen. Doesn’t count towards your stats.</p>
-                <div class="duel-row"><div class="seg" id="duelModes"></div><button class="play" id="duelStart" type="button">Start match</button></div>
               </div>
             </section>
 
@@ -1082,7 +1103,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                 <div class="cat-tabs" id="catTabs"></div>
               </div>
               <div class="ward-body" id="wardrobe">
-                <div class="cat-head"><span class="cat-name"><b id="catTitle"></b><small id="catNow"></small></span><span class="cat-tools"><small id="catCount"></small><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></span></div>
+                <div class="cat-head"><span class="cat-name"><b id="catTitle"></b><small id="catNow"></small></span><span class="cat-tools"><small id="catCount"></small><button class="cat-filter" id="catRainbow" type="button" aria-pressed="false" hidden>Rainbow order</button><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></span></div>
                 <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
                 <div class="cat" data-cat="color">
                 <div class="custom-pick" id="customPick" hidden>
@@ -1342,16 +1363,16 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     _count(kind) { let n = 0; for (const a of this.apples) if (a.kind === kind) n++; return n; }
 
     fillApples() {
-      const r = this.rules;
+      const r = this.rules, host = this.share || this;   // two snakes number their portal pairs from one counter
       if (r.portal) {
         while (this._count('portal') < this.appleCount * 2) {
           const a = this.randomFree(); if (!a) break;
-          const pa = { x: a.x, y: a.y, kind: 'portal', pair: this.pairSeq };
+          const pa = { x: a.x, y: a.y, kind: 'portal', pair: host.pairSeq };
           this.apples.push(pa);
           const b = this.randomFree();
           if (!b) { this.apples.pop(); break; }
-          this.apples.push({ x: b.x, y: b.y, kind: 'portal', pair: this.pairSeq });
-          this.pairSeq++;
+          this.apples.push({ x: b.x, y: b.y, kind: 'portal', pair: host.pairSeq });
+          host.pairSeq++;
         }
         return;
       }
@@ -1425,6 +1446,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       const d = this.queue.length ? this.queue[0] : this.dir, h = this.cells[0];
       let x = h.x + d.x, y = h.y + d.y;
       if (!this.inBounds(x, y) && this.rules.wrap) { x = (x + this.cols) % this.cols; y = (y + this.rows) % this.rows; }
+      const a = this.apples[this.appleAt(x, y)];
+      if (a && a.kind === 'portal') {   // it comes out at the other end
+        const b = this.apples.find(o => o !== a && o.kind === 'portal' && o.pair === a.pair);
+        if (b) return { x: b.x, y: b.y };
+      }
       return { x, y };
     }
 
@@ -1482,7 +1508,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
           this.events.push({ type: 'poison', x: hx, y: hy });
         } else {
           if (partner) {
-            this.apples = this.apples.filter(a => a !== apple && a !== partner);
+            for (const z of [apple, partner]) this.apples.splice(this.apples.indexOf(z), 1);   // in place: two snakes share this list
             this.events.push({ type: 'portal', x: apple.x, y: apple.y, tx: hx, ty: hy, pair: apple.pair });
           } else this.apples.splice(ai, 1);
           const worth = apple.kind === 'gold' ? 3 : 1;
@@ -1617,6 +1643,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
                   volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, customGrad: null, unlockToasts: true,
                   combos: [null, null, null, null, null],
+                  duel: false, duelMode: 'classic', colorSort: false,
                   autoRestart: false, countdown: true, grace: true, wake: true, shake: true, confetti: true, swipe: 1 },
       best: {},        // "mode|board|apples" -> best score
       stats: { games: 0, apples: 0, longest: 0, timeMs: 0, xp: 0, xpInit: false },
@@ -3770,9 +3797,10 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     reset() { this.v = 0; this.fedT = -1e9; this.hitT = -1e9; }
     fed(t) { this.fedT = t; }
     hit(t) { this.hitT = t; }
-    draw(g, cols, rows, target, t, dt) {
+    // top: two-player, where player 2's bar sits at the top. mark: a dot in that snake's colour.
+    draw(g, cols, rows, target, t, dt, top, mark) {
       this.v += (target - this.v) * Math.min(1, dt / (target > this.v ? 70 : 170));
-      const L = this.v, W = cols * CELL, H = rows * CELL, w = W * 0.62, h = 14, x = (W - w) / 2, y = H - h - 12;
+      const L = this.v, W = cols * CELL, H = rows * CELL, w = W * 0.62, h = 14, x = (W - w) / 2, y = top ? 12 : H - h - 12;
       const rm = R.reduced, danger = U.clamp((L - 0.6) / 0.4, 0, 1), still = rm ? 0 : 1;
       const fedAge = U.clamp((t - this.fedT) / 340, 0, 1), hitAge = U.clamp((t - this.hitT) / 280, 0, 1);
       const pulse = 0.5 + 0.5 * Math.sin(t / (210 - 130 * danger));
@@ -3784,6 +3812,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
         g.globalAlpha = danger * (0.25 + 0.4 * pulse); g.fillStyle = '#ff3b30';
         roundRect(g, x - 7, y - 7, w + 14, h + 14, (h + 14) / 2); g.fill(); g.globalAlpha = 1;
       }
+      if (mark) { g.fillStyle = mark; dot(g, x + w + 16, y + h / 2, 7); }
       g.fillStyle = 'rgba(6,10,8,.8)'; roundRect(g, x - 3, y - 3, w + 6, h + 6, (h + 6) / 2); g.fill();
       if (this.gradFor !== g || this.gradW !== x) {   // green → yellow → red across the whole track
         const c = g.createLinearGradient(x, 0, x + w, 0);
@@ -4037,8 +4066,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 
   const D = S.daily;
   const FROM_HOME = { daily: 1, weekly: 1 };   // detail pages with no tab of their own: they open from Home and go back to it
-  const DUEL_MODES = ['classic', 'borderless', 'walls', 'poison'];
-  let duelMode = 'classic';
+  const SOLO_ONLY = { peaceful: 1, dark: 1 };   // the modes that can't work with two snakes
   const svg = (inner, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true">' + inner + '</svg>';
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const pressed = (box, fn) => [...box.children].forEach((c, i) => c.setAttribute('aria-pressed', fn(c, i)));
@@ -4071,6 +4099,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       if (T) { b.style.setProperty('--ta', T.a); b.style.setProperty('--tb', T.b); b.style.setProperty('--acc', T.accent); }
       b.innerHTML = '<span class="mc-ic">' + svg(MODE_ICONS[m.id]) + '</span><b>' + m.name + '</b><small></small>';
       b.addEventListener('click', () => {
+        if (st.duel) {   // two players get every mode, locked or not, and keep your solo mode as it was
+          if (SOLO_ONLY[m.id]) return;
+          st.duelMode = m.id; h.gameChanged(); h.click();
+          return;
+        }
         const u = lockedItem('mode', m.id);
         if (u) { showModeLock(u); return; }
         hideModeLock(); st.mode = m.id; h.gameChanged(); h.click();
@@ -4090,14 +4123,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     // Daily Challenge and two-player
     $('pageBack').addEventListener('click', () => { ui.setTab('home'); h.click(); });
     $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
-    $('duelStart').addEventListener('click', () => { h.click(); h.duel(duelMode); });
-    const duelBox = $('duelModes');
-    for (const id of DUEL_MODES) {
-      const b = el('button', null, S.MODE[id].name); b.type = 'button';
-      b.addEventListener('click', () => { duelMode = id; pressed(duelBox, c => c === b); h.click(); });
-      b.setAttribute('aria-pressed', id === duelMode);
-      duelBox.appendChild(b);
-    }
+    $('swDuel').addEventListener('click', () => { st.duel = !st.duel; hideModeLock(); h.gameChanged(); h.click(); });
 
     // Snake
     buildSkinPickers();
@@ -4194,6 +4220,30 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   }
   const lockedItem = (kind, i) => { const u = SK.unlockFor(kind, i); return u && !store.isUnlocked(u.id) ? u : null; };
 
+  // Colours in rainbow order: red through violet to pink, darker to lighter inside each shade,
+  // with the near-greys last. Your own colour stays first either way.
+  const colorRanks = (function () {
+    let list = null;
+    return () => {
+      if (list) return list;
+      const key = hex => {
+        const [r, g, b] = S.util.hexRgb(hex).map(v => v / 255), hi = Math.max(r, g, b), lo = Math.min(r, g, b), d = hi - lo, l = (hi + lo) / 2;
+        const sat = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+        let hue = !d ? 0 : hi === r ? ((g - b) / d + 6) % 6 : hi === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        hue = (hue * 60 + 15) % 360;                         // +15 keeps the reds just under 0 and over 345 together, at the start
+        return sat < 0.14 ? 1000 + l : Math.floor(hue / 12) * 10 + l * 9;   // 12 degree bands, so each shade runs dark to light
+      };
+      const keys = SK.COLORS.map(c => key(c[1]));
+      list = keys.map((k, i) => 1 + keys.filter((o, j) => o < k || (o === k && j < i)).length);
+      return list;
+    };
+  })();
+  function applyColorOrder() {
+    const on = !!st.colorSort, box = $('optColor');
+    $('catRainbow').setAttribute('aria-pressed', on);
+    [...box.children].forEach((b, i) => { if (i !== SK.CUSTOM) b.style.order = on ? colorRanks()[i] : ''; });
+  }
+
   function buildSkinPickers() {
     const colorBox = $('optColor');
     SK.COLORS.forEach(([name, hex], i) => {
@@ -4209,6 +4259,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       });
       colorBox.appendChild(b);
     });
+    $('catRainbow').addEventListener('click', () => { st.colorSort = !st.colorSort; applyColorOrder(); h.settingsChanged('colorSort'); h.click(); });
+    applyColorOrder();
     // Custom colour: any colour, as long as it's clearly different from every built-in one.
     const inp = $('customInput'), status = $('customStatus');
     const check = (save) => {
@@ -4341,6 +4393,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const sv = $('catTabs').querySelector('[data-cat="combos"]');
     sv.setAttribute('aria-pressed', ui.cat === 'combos');
     $('catFilter').hidden = ui.cat === 'combos';
+    $('catRainbow').hidden = ui.cat !== 'color';
     if (ui.cat === 'combos') { $('catTitle').textContent = 'Saved looks'; $('catNow').textContent = ''; $('catCount').textContent = st.combos.filter(Boolean).length + '/5'; }
     renderCombos();
     ui.updateFades();
@@ -4440,12 +4493,13 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     const cards = $('modeGrid').children;
     for (const b of cards) {
       const id = b.dataset.mode;
-      b.setAttribute('aria-pressed', st.mode === id);
-      const u = lockedItem('mode', id);
-      b.classList.toggle('locked', !!u);
-      b.querySelector('small').innerHTML = u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
+      b.setAttribute('aria-pressed', (st.duel ? st.duelMode : st.mode) === id);
+      const u = !st.duel && lockedItem('mode', id), off = st.duel && SOLO_ONLY[id];
+      b.classList.toggle('locked', !!u || !!off);
+      b.querySelector('small').innerHTML = off ? 'Solo only' : st.duel ? 'Two players' : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
     }
-    ui.modeDesc.textContent = S.MODE[st.mode].desc;
+    ui.modeDesc.textContent = S.MODE[st.duel ? st.duelMode : st.mode].desc;
+    $('swDuel').setAttribute('aria-checked', !!st.duel);
     ui._seg_board(); ui._seg_apples(); ui._seg_speed();
     $('swRamp').setAttribute('aria-checked', !!st.ramp);
   }
@@ -4743,11 +4797,12 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     $('dailyPlay').textContent = played ? 'Practice' : 'Play today’s challenge';
     $('dailyNote').textContent = played ? 'Today’s score: ' + days[key] + '. A new challenge arrives at midnight.' : 'Your first go counts, so make it a good one. Worth +' + D.dailyXp(now + 1) + ' XP.';
     $('dailyStreak').textContent = now; $('dailyBest').textContent = D.bestStreak(days);
-    const n = D.dayNum(key);
+    // This week, Sunday to Saturday.
+    const n = D.dayNum(key), dow = new Date(n * 864e5).getUTCDay();
     let dots = '';
-    for (let i = 6; i >= 0; i--) {
-      const k = D.keyOf(n - i), day = new Date(k + 'T12:00:00Z').toUTCString().slice(0, 1);
-      dots += '<span class="dd' + (k in days ? ' on' : '') + (!i ? ' now' : '') + '" title="' + k + (k in days ? ': ' + days[k] : '') + '"><i></i><small>' + day + '</small></span>';
+    for (let i = 0; i < 7; i++) {
+      const k = D.keyOf(n - dow + i);
+      dots += '<span class="dd' + (k in days ? ' on' : '') + (i === dow ? ' now' : '') + (i > dow ? ' later' : '') + '" title="' + k + (k in days ? ': ' + days[k] : '') + '"><i></i><small>' + 'SMTWTFS'[i] + '</small></span>';
     }
     $('dailyDots').innerHTML = dots;
     const w = D.ensureWeek(store.data), left = D.daysLeftInWeek();
@@ -4784,8 +4839,8 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   ui.refresh = function () {
     renderModes(); renderSkins(); ui.renderLevel(); ui.renderDaily(); renderHome();
     if (ui.shows('stats')) renderStats();
-    const m = S.MODE[st.mode];
-    const line = m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
+    const m = S.MODE[st.duel ? st.duelMode : st.mode];
+    const line = (st.duel ? 'Two players · ' : '') + m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
     ui.el.modeLine.textContent = line;
     ui.el.modeTag.textContent = ui.runTag || m.name;
   };
@@ -4820,15 +4875,19 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   }
   // Home never scrolls. Each column steps through tighter layouts until it fits the space there is,
   // and if the tightest one is still too tall (a tiny window) the column is scaled down to fit.
+  // On a big screen it does the opposite: the larger layouts (g3, g2, g1) are tried first, so Home grows into the space.
   const FIT_TIERS = 3;
   function fitPanel(panel, room) {
-    panel.style.transform = ''; panel.style.alignSelf = ''; panel.style.marginBottom = '';
+    const tiers = panel.classList.contains('panel-home') ? ['g3', 'g2', 'g1'] : [];
+    for (let t = 0; t <= FIT_TIERS; t++) tiers.push(t);
+    panel.style.transform = ''; panel.style.marginBottom = '';
+    panel.classList.add('measuring');   // its natural height: normally it stretches to fill the page
     let h = 0;
-    for (let tier = 0; tier <= FIT_TIERS; tier++) {
+    for (const tier of tiers) {
       panel.dataset.fit = tier; h = panel.offsetHeight;
-      if (h <= room) return;
+      if (h <= room) { panel.classList.remove('measuring'); return; }
     }
-    panel.style.alignSelf = 'start'; panel.style.transformOrigin = 'top center'; panel.style.transform = 'scale(' + (room / h).toFixed(4) + ')';
+    panel.style.transformOrigin = 'top center'; panel.style.transform = 'scale(' + (room / h).toFixed(4) + ')';
     panel.style.marginBottom = (room - h) + 'px';   // the page takes up only its scaled size
   }
   ui.fitHome = function () {
@@ -5310,6 +5369,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const AUTO_DEATH_MS = 650;   // how long a crash plays out when a new game starts by itself
   const XP_APPLE = 10, XP_GAME = 15, XP_BEST = 50;
   const ROUNDS_TO_WIN = 3;       // two-player: first to this many rounds takes the match
+  const SOLO_ONLY = { peaceful: 1, dark: 1 };   // nobody can lose in Peaceful, and Dark only has one pool of light
   // Trails: a couple of particles from the tail end on every step.
   function emitTrail(v, g) {
     const name = SK.TRAILS[settings.trail]; if (!name || name === 'None') return;
@@ -5347,12 +5407,14 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   let bestBefore = 0, passedBest = false;
   let blinkT = -1e9, nextBlink = 2000;
   // What kind of game this is. solo: your own setup. daily: today's challenge. duel: two players, one screen.
-  let pick = 'solo', run = { kind: 'solo' }, match = null, foe = null;
+  let pick = settings.duel ? 'duel' : 'solo', run = { kind: 'solo' }, match = null, foe = null, duelTold = false;
+  const basePick = () => (settings.duel ? 'duel' : 'solo');
+  if (!S.MODE[settings.duelMode] || SOLO_ONLY[settings.duelMode]) settings.duelMode = 'classic';
   // Everything needed to animate one snake. The head runs on into whatever it hit (reach), and
   // the crash only happens when it gets there. eats = gameTime of recent apples, for the lump.
   const newPlayer = () => {
     const bulges = new Float32Array(64);
-    return { g: null, skin: settings, eats: [], reach: 0, reachTo: 0, reachX: 0, reachY: 0, mouth: 0, squashT: -1e9, lastDir: null,
+    return { g: null, skin: settings, bar: new R.HungerBar(), eats: [], reach: 0, reachTo: 0, reachX: 0, reachY: 0, mouth: 0, squashT: -1e9, lastDir: null,
       fx: { dead: false, flash: 0, grey: 0, mouth: 0, bulges, nBulges: 0, blink: 0, squash: 0, reachX: 0, reachY: 0 } };
   };
   const me = newPlayer(), fx = me.fx, players = [me];
@@ -5363,7 +5425,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const pvView = new R.View($('pv'), PV_COLS, PV_ROWS, true);
   const pvSnake = new R.SnakeDrawer();
   const pvAmbient = new R.Ambient();
-  const hunger = new R.HungerBar(), pvHunger = new R.HungerBar();
+  const pvHunger = new R.HungerBar(), hunger = me.bar;
   const confetti = new R.Confetti($('confetti'));
   const ambient = new R.Ambient();
   me.drawer = view.snake;
@@ -5399,8 +5461,9 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   // Turbo mode: 3% faster per point, down to 45% of the base interval.
   const stepMs = () => {
     if (!game) return baseMs();
-    if (game.rules.turbo) return gameMs() * Math.max(0.45, Math.pow(0.97, game.score));
-    return gameMs() * ((run.spec ? run.spec.ramp : settings.ramp) ? Math.max(0.6, Math.pow(0.985, game.score)) : 1);
+    const score = foe ? Math.max(game.score, foe.g.score) : game.score;   // two-player: both snakes follow whoever is ahead
+    if (game.rules.turbo) return gameMs() * Math.max(0.45, Math.pow(0.97, score));
+    return gameMs() * ((run.spec ? run.spec.ramp : settings.ramp) ? Math.max(0.6, Math.pow(0.985, score)) : 1);
   };
   // Space the board can use, in CSS pixels (after the bar, padding and D-pad).
   function available() {
@@ -5439,7 +5502,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     return Object.assign({}, settings, { color: SK.COLORS.indexOf(best), pattern: 0, customColor: null, customGrad: null, trail: 0, hat: 0 });
   }
   function resetPlayer(q, g) {
-    q.g = g; q.lastDir = g.dir; q.reach = q.reachTo = 0; q.mouth = 0; q.eats.length = 0; q.fx.reachX = q.fx.reachY = 0;
+    q.g = g; q.bar.reset(); q.lastDir = g.dir; q.reach = q.reachTo = 0; q.mouth = 0; q.eats.length = 0; q.fx.reachX = q.fx.reachY = 0;
   }
   function newGame() {
     foe = null;
@@ -5450,10 +5513,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       cols = spec.cols; rows = spec.rows;
       game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks });   // edge grace is always on, so scores compare
     } else if (pick === 'duel') {
+      if (!match || match.mode !== settings.duelMode) match = { mode: settings.duelMode, wins: [0, 0] };
       if (match.wins.some(n => n >= ROUNDS_TO_WIN)) match.wins = [0, 0];
-      run = { kind: 'duel', fixed: true };
-      [cols, rows] = settings.board === 'l' ? BOARDS.l : BOARDS.m;
-      const apples = Math.max(3, settings.apples), o = { cols, rows, apples, mode: match.mode, grace: false, waitApples: true };
+      run = { kind: 'duel' };
+      [cols, rows] = board();
+      const o = { cols, rows, apples: settings.apples, mode: match.mode, grace: false, waitApples: true };
       const edge = Math.floor(cols / 4), top = Math.floor(rows / 3), bottom = rows - 1 - top;
       game = new S.Game(Object.assign({ start: { x: edge, y: top, dx: 1 } }, o));
       const g2 = new S.Game(Object.assign({ start: { x: cols - 1 - edge, y: bottom, dx: -1 }, share: game }, o));
@@ -5479,7 +5543,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     applyTheme(); fit();
   }
 
-  // Starts a Daily Challenge or a two-player game from the menu.
+  // Starts a Daily Challenge from the menu.
   function launch(kind) {
     if (state === 'dying' || state === 'play' || state === 'countdown') return;
     if (state === 'paused' && game.steps > 0) endGame();
@@ -5502,6 +5566,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     if (settings.countdown || resuming) { state = 'countdown'; countT = performance.now(); countN = -1; }
     else { state = 'play'; acc = 0; A.sfx.start(); }
     ui.hideMenu(); A.set({ duck: false }); keepAwake(true);
+    if (foe && !duelTold) { duelTold = true; ui.note('Player 1: WASD, or swipe ' + ui.sideNames()[0], 'Player 2: arrow keys, or swipe ' + ui.sideNames()[1]); }
   }
   // Stops the screen turning off during a game, on browsers that allow it.
   let wakeLock = null;
@@ -5602,11 +5667,19 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       for (const e of q.g.events) {
         const cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
         if (e.type === 'eat') {
-          const B = SK.BURST_STYLES[SK.BURSTS[q.skin.burst]] || SK.BURST_STYLES.Classic;
-          view.fx.burst(cx, cy, now, B.colors, B.count || (B.shape === 'dot' ? 14 : 16), B.shape);
-          q.eats.push(gameTime); q.mouth = 0; A.sfx.eat(); vibrate(12);
+          if (e.kind === 'gold') { view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22); A.sfx.gold(); }
+          else if (e.kind !== 'portal') {
+            const B = SK.BURST_STYLES[SK.BURSTS[q.skin.burst]] || SK.BURST_STYLES.Classic;
+            view.fx.burst(cx, cy, now, B.colors, B.count || (B.shape === 'dot' ? 14 : 16), B.shape);
+          }
+          for (let k = 0; k < (e.worth || 1); k++) q.eats.push(gameTime - k * stepMs() * 0.6);
+          q.bar.fed(now); q.mouth = 0; A.sfx.eat(); vibrate(12);
+        } else if (e.type === 'portal') {
+          const c = R.PORTAL_COLORS[e.pair % R.PORTAL_COLORS.length];
+          view.fx.ring(cx, cy, now, c); view.fx.burst(e.tx * CELL + CELL / 2, e.ty * CELL + CELL / 2, now, [c, '#ffffff', c], 10); A.sfx.portal();
         } else if (e.type === 'poison') { view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); }
-        else if (e.type === 'shrink') view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5);
+        else if (e.type === 'shrink') { view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); q.bar.hit(now); }
+        else if (e.type === 'expire') view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6);
         else if (e.type === 'wall') A.sfx.wall();
         else if (e.type === 'die') aimReach(q, e.x, e.y, e.meet);
       }
@@ -5762,7 +5835,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
   const DIRS4 = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
   // The preview plays the real mode: a locked mode tapped on the Modes page gets a try-out here too.
   let pvTry = null, pvTarget = null, pvHint = null;
-  const pvModeId = () => pvTry || settings.mode;
+  const pvModeId = () => pvTry || (settings.duel ? settings.duelMode : settings.mode);
   function pvTheme() { pvAmbient.reset(pvView.setTheme(pvModeId(), settings.boardSkin).amb, PV_COLS, PV_ROWS); }
   function pvNew() {
     pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), grace: false });
@@ -6004,7 +6077,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       const n = q.g, a = U.lerpAng(U.angOf(n.prevDir.x, n.prevDir.y), U.angOf(n.dir.x, n.dir.y), U.ease(Math.min(1, p / 0.7)));
       q.drawer.draw(g, n.cells, n.prevTail, p, CELL, a, q.skin, q.fx);
     }
-    if (game.rules.hunger && state !== 'menu') hunger.draw(g, game.cols, game.rows, game.hungerLevel(state === 'play' ? p : 0), t, fdt);
+    if (game.rules.hunger && state !== 'menu') for (const q of players) q.bar.draw(g, game.cols, game.rows, q.g.hungerLevel(state === 'play' ? p : 0), t, fdt, q === foe, foe ? U.rgb(U.hexRgb(SK.colorHex(q.skin))) : null);
     view.fx.draw(g, t, fdt);
     if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }   // over the effects, so they stay hidden in the dark too
     if (state === 'countdown') {
@@ -6033,7 +6106,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
     },
     gameChanged: () => {
       store.save();
-      pick = 'solo';
+      pick = basePick();
       if (state === 'paused') { pendingNew = true; ui.setPlayLabel('New game'); }
       else if (state === 'menu' || state === 'over') { newGame(); state = 'menu'; ui.closeCard(); ui.setPlayLabel('Play'); }
       ui.el.mBest.textContent = currentBest();
@@ -6041,11 +6114,6 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       pvTheme(); fit();
     },
     daily: () => launch('daily'),
-    duel: mode => {
-      match = { mode, wins: [0, 0] };
-      launch('duel');
-      if (foe) ui.note('Player 1: WASD, or swipe ' + ui.sideNames()[0], 'Player 2: arrow keys, or swipe ' + ui.sideNames()[1]);
-    },
     tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
       store.save(); applyAudio();
@@ -6068,7 +6136,7 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
       if (state !== 'paused' && state !== 'over') return;
       A.sfx.click();
       if (state === 'paused' && game.steps > 0) endGame();
-      pick = 'solo'; newGame(); state = 'menu';
+      pick = basePick(); match = null; newGame(); state = 'menu';
       showMenu(GAME_NAME, 'Play');
     }
   });

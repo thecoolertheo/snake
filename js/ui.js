@@ -34,8 +34,7 @@
 
   const D = S.daily;
   const FROM_HOME = { daily: 1, weekly: 1 };   // detail pages with no tab of their own: they open from Home and go back to it
-  const DUEL_MODES = ['classic', 'borderless', 'walls', 'poison'];
-  let duelMode = 'classic';
+  const SOLO_ONLY = { peaceful: 1, dark: 1 };   // the modes that can't work with two snakes
   const svg = (inner, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true">' + inner + '</svg>';
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const pressed = (box, fn) => [...box.children].forEach((c, i) => c.setAttribute('aria-pressed', fn(c, i)));
@@ -68,6 +67,11 @@
       if (T) { b.style.setProperty('--ta', T.a); b.style.setProperty('--tb', T.b); b.style.setProperty('--acc', T.accent); }
       b.innerHTML = '<span class="mc-ic">' + svg(MODE_ICONS[m.id]) + '</span><b>' + m.name + '</b><small></small>';
       b.addEventListener('click', () => {
+        if (st.duel) {   // two players get every mode, locked or not, and keep your solo mode as it was
+          if (SOLO_ONLY[m.id]) return;
+          st.duelMode = m.id; h.gameChanged(); h.click();
+          return;
+        }
         const u = lockedItem('mode', m.id);
         if (u) { showModeLock(u); return; }
         hideModeLock(); st.mode = m.id; h.gameChanged(); h.click();
@@ -87,14 +91,7 @@
     // Daily Challenge and two-player
     $('pageBack').addEventListener('click', () => { ui.setTab('home'); h.click(); });
     $('dailyPlay').addEventListener('click', () => { h.click(); h.daily(); });
-    $('duelStart').addEventListener('click', () => { h.click(); h.duel(duelMode); });
-    const duelBox = $('duelModes');
-    for (const id of DUEL_MODES) {
-      const b = el('button', null, S.MODE[id].name); b.type = 'button';
-      b.addEventListener('click', () => { duelMode = id; pressed(duelBox, c => c === b); h.click(); });
-      b.setAttribute('aria-pressed', id === duelMode);
-      duelBox.appendChild(b);
-    }
+    $('swDuel').addEventListener('click', () => { st.duel = !st.duel; hideModeLock(); h.gameChanged(); h.click(); });
 
     // Snake
     buildSkinPickers();
@@ -191,6 +188,30 @@
   }
   const lockedItem = (kind, i) => { const u = SK.unlockFor(kind, i); return u && !store.isUnlocked(u.id) ? u : null; };
 
+  // Colours in rainbow order: red through violet to pink, darker to lighter inside each shade,
+  // with the near-greys last. Your own colour stays first either way.
+  const colorRanks = (function () {
+    let list = null;
+    return () => {
+      if (list) return list;
+      const key = hex => {
+        const [r, g, b] = S.util.hexRgb(hex).map(v => v / 255), hi = Math.max(r, g, b), lo = Math.min(r, g, b), d = hi - lo, l = (hi + lo) / 2;
+        const sat = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+        let hue = !d ? 0 : hi === r ? ((g - b) / d + 6) % 6 : hi === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        hue = (hue * 60 + 15) % 360;                         // +15 keeps the reds just under 0 and over 345 together, at the start
+        return sat < 0.14 ? 1000 + l : Math.floor(hue / 12) * 10 + l * 9;   // 12 degree bands, so each shade runs dark to light
+      };
+      const keys = SK.COLORS.map(c => key(c[1]));
+      list = keys.map((k, i) => 1 + keys.filter((o, j) => o < k || (o === k && j < i)).length);
+      return list;
+    };
+  })();
+  function applyColorOrder() {
+    const on = !!st.colorSort, box = $('optColor');
+    $('catRainbow').setAttribute('aria-pressed', on);
+    [...box.children].forEach((b, i) => { if (i !== SK.CUSTOM) b.style.order = on ? colorRanks()[i] : ''; });
+  }
+
   function buildSkinPickers() {
     const colorBox = $('optColor');
     SK.COLORS.forEach(([name, hex], i) => {
@@ -206,6 +227,8 @@
       });
       colorBox.appendChild(b);
     });
+    $('catRainbow').addEventListener('click', () => { st.colorSort = !st.colorSort; applyColorOrder(); h.settingsChanged('colorSort'); h.click(); });
+    applyColorOrder();
     // Custom colour: any colour, as long as it's clearly different from every built-in one.
     const inp = $('customInput'), status = $('customStatus');
     const check = (save) => {
@@ -338,6 +361,7 @@
     const sv = $('catTabs').querySelector('[data-cat="combos"]');
     sv.setAttribute('aria-pressed', ui.cat === 'combos');
     $('catFilter').hidden = ui.cat === 'combos';
+    $('catRainbow').hidden = ui.cat !== 'color';
     if (ui.cat === 'combos') { $('catTitle').textContent = 'Saved looks'; $('catNow').textContent = ''; $('catCount').textContent = st.combos.filter(Boolean).length + '/5'; }
     renderCombos();
     ui.updateFades();
@@ -437,12 +461,13 @@
     const cards = $('modeGrid').children;
     for (const b of cards) {
       const id = b.dataset.mode;
-      b.setAttribute('aria-pressed', st.mode === id);
-      const u = lockedItem('mode', id);
-      b.classList.toggle('locked', !!u);
-      b.querySelector('small').innerHTML = u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
+      b.setAttribute('aria-pressed', (st.duel ? st.duelMode : st.mode) === id);
+      const u = !st.duel && lockedItem('mode', id), off = st.duel && SOLO_ONLY[id];
+      b.classList.toggle('locked', !!u || !!off);
+      b.querySelector('small').innerHTML = off ? 'Solo only' : st.duel ? 'Two players' : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
     }
-    ui.modeDesc.textContent = S.MODE[st.mode].desc;
+    ui.modeDesc.textContent = S.MODE[st.duel ? st.duelMode : st.mode].desc;
+    $('swDuel').setAttribute('aria-checked', !!st.duel);
     ui._seg_board(); ui._seg_apples(); ui._seg_speed();
     $('swRamp').setAttribute('aria-checked', !!st.ramp);
   }
@@ -740,11 +765,12 @@
     $('dailyPlay').textContent = played ? 'Practice' : 'Play today’s challenge';
     $('dailyNote').textContent = played ? 'Today’s score: ' + days[key] + '. A new challenge arrives at midnight.' : 'Your first go counts, so make it a good one. Worth +' + D.dailyXp(now + 1) + ' XP.';
     $('dailyStreak').textContent = now; $('dailyBest').textContent = D.bestStreak(days);
-    const n = D.dayNum(key);
+    // This week, Sunday to Saturday.
+    const n = D.dayNum(key), dow = new Date(n * 864e5).getUTCDay();
     let dots = '';
-    for (let i = 6; i >= 0; i--) {
-      const k = D.keyOf(n - i), day = new Date(k + 'T12:00:00Z').toUTCString().slice(0, 1);
-      dots += '<span class="dd' + (k in days ? ' on' : '') + (!i ? ' now' : '') + '" title="' + k + (k in days ? ': ' + days[k] : '') + '"><i></i><small>' + day + '</small></span>';
+    for (let i = 0; i < 7; i++) {
+      const k = D.keyOf(n - dow + i);
+      dots += '<span class="dd' + (k in days ? ' on' : '') + (i === dow ? ' now' : '') + (i > dow ? ' later' : '') + '" title="' + k + (k in days ? ': ' + days[k] : '') + '"><i></i><small>' + 'SMTWTFS'[i] + '</small></span>';
     }
     $('dailyDots').innerHTML = dots;
     const w = D.ensureWeek(store.data), left = D.daysLeftInWeek();
@@ -781,8 +807,8 @@
   ui.refresh = function () {
     renderModes(); renderSkins(); ui.renderLevel(); ui.renderDaily(); renderHome();
     if (ui.shows('stats')) renderStats();
-    const m = S.MODE[st.mode];
-    const line = m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
+    const m = S.MODE[st.duel ? st.duelMode : st.mode];
+    const line = (st.duel ? 'Two players · ' : '') + m.name + ' · ' + BOARD_NAMES[st.board] + ' · ' + st.apples + (m.portal ? ' pair' : ' apple') + (st.apples > 1 ? 's' : '') + ' · ' + SK.SPEEDS[st.speed] + (st.ramp ? ' +' : '');
     ui.el.modeLine.textContent = line;
     ui.el.modeTag.textContent = ui.runTag || m.name;
   };
@@ -817,15 +843,19 @@
   }
   // Home never scrolls. Each column steps through tighter layouts until it fits the space there is,
   // and if the tightest one is still too tall (a tiny window) the column is scaled down to fit.
+  // On a big screen it does the opposite: the larger layouts (g3, g2, g1) are tried first, so Home grows into the space.
   const FIT_TIERS = 3;
   function fitPanel(panel, room) {
-    panel.style.transform = ''; panel.style.alignSelf = ''; panel.style.marginBottom = '';
+    const tiers = panel.classList.contains('panel-home') ? ['g3', 'g2', 'g1'] : [];
+    for (let t = 0; t <= FIT_TIERS; t++) tiers.push(t);
+    panel.style.transform = ''; panel.style.marginBottom = '';
+    panel.classList.add('measuring');   // its natural height: normally it stretches to fill the page
     let h = 0;
-    for (let tier = 0; tier <= FIT_TIERS; tier++) {
+    for (const tier of tiers) {
       panel.dataset.fit = tier; h = panel.offsetHeight;
-      if (h <= room) return;
+      if (h <= room) { panel.classList.remove('measuring'); return; }
     }
-    panel.style.alignSelf = 'start'; panel.style.transformOrigin = 'top center'; panel.style.transform = 'scale(' + (room / h).toFixed(4) + ')';
+    panel.style.transformOrigin = 'top center'; panel.style.transform = 'scale(' + (room / h).toFixed(4) + ')';
     panel.style.marginBottom = (room - h) + 'px';   // the page takes up only its scaled size
   }
   ui.fitHome = function () {

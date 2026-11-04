@@ -123,16 +123,16 @@
     _count(kind) { let n = 0; for (const a of this.apples) if (a.kind === kind) n++; return n; }
 
     fillApples() {
-      const r = this.rules;
+      const r = this.rules, host = this.share || this;   // two snakes number their portal pairs from one counter
       if (r.portal) {
         while (this._count('portal') < this.appleCount * 2) {
           const a = this.randomFree(); if (!a) break;
-          const pa = { x: a.x, y: a.y, kind: 'portal', pair: this.pairSeq };
+          const pa = { x: a.x, y: a.y, kind: 'portal', pair: host.pairSeq };
           this.apples.push(pa);
           const b = this.randomFree();
           if (!b) { this.apples.pop(); break; }
-          this.apples.push({ x: b.x, y: b.y, kind: 'portal', pair: this.pairSeq });
-          this.pairSeq++;
+          this.apples.push({ x: b.x, y: b.y, kind: 'portal', pair: host.pairSeq });
+          host.pairSeq++;
         }
         return;
       }
@@ -206,6 +206,11 @@
       const d = this.queue.length ? this.queue[0] : this.dir, h = this.cells[0];
       let x = h.x + d.x, y = h.y + d.y;
       if (!this.inBounds(x, y) && this.rules.wrap) { x = (x + this.cols) % this.cols; y = (y + this.rows) % this.rows; }
+      const a = this.apples[this.appleAt(x, y)];
+      if (a && a.kind === 'portal') {   // it comes out at the other end
+        const b = this.apples.find(o => o !== a && o.kind === 'portal' && o.pair === a.pair);
+        if (b) return { x: b.x, y: b.y };
+      }
       return { x, y };
     }
 
@@ -263,7 +268,7 @@
           this.events.push({ type: 'poison', x: hx, y: hy });
         } else {
           if (partner) {
-            this.apples = this.apples.filter(a => a !== apple && a !== partner);
+            for (const z of [apple, partner]) this.apples.splice(this.apples.indexOf(z), 1);   // in place: two snakes share this list
             this.events.push({ type: 'portal', x: apple.x, y: apple.y, tx: hx, ty: hy, pair: apple.pair });
           } else this.apples.splice(ai, 1);
           const worth = apple.kind === 'gold' ? 3 : 1;

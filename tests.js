@@ -479,6 +479,36 @@
     eq(b.alive, false, 'hit the wall');
   });
 
+  test('two-player: portals share one list and pair numbers never clash', () => {
+    const [a, b] = duel('portal');
+    a.apples.length = 0; a.fillApples();
+    eq(a.apples.length, 2, 'one pair'); eq(a.apples[0].pair, a.apples[1].pair, 'pair');
+    b.fillApples(); eq(b.apples.length, 2, 'not doubled');
+    a.apples.length = 0; a.apples.push({ x: 4, y: 2, kind: 'portal', pair: 7 }, { x: 8, y: 8, kind: 'portal', pair: 7 });
+    const list = a.apples;
+    eq(a.peek(), { x: 8, y: 8 }, 'peek follows the portal');
+    S.duelStep(a, b);
+    eq(head(a), { x: 8, y: 8 }, 'came out the other end'); eq(a.apples === list && b.apples === list, true, 'still shared');
+    eq(new Set(a.apples.map(x => x.pair)).size, 1, 'one new pair');
+  });
+  test('two-player: every mode but Peaceful and Dark plays out without breaking the board', () => {
+    for (const mode of ['classic', 'borderless', 'walls', 'portal', 'poison', 'turbo', 'mirror', 'gold', 'hunger', 'runaway']) {
+      const r = S.util.rng(5);
+      for (let round = 0; round < 25; round++) {
+        const o = { cols: 12, rows: 11, apples: 3, grace: false, waitApples: true, mode, rng: r };
+        const a = new S.Game(Object.assign({ start: { x: 3, y: 3, dx: 1 } }, o)), b = new S.Game(Object.assign({ start: { x: 8, y: 7, dx: -1 }, share: a }, o));
+        a.fillApples();
+        for (let i = 0; i < 300 && a.alive && b.alive; i++) {
+          for (const g of [a, b]) { const k = r() * 4 | 0; if (r() < 0.4) g.turn([1, -1, 0, 0][k], [0, 0, 1, -1][k], 1); }
+          S.duelStep(a, b);
+          let n = 0; for (const v of a.occ) n += v;
+          eq(n, a.cells.length + b.cells.length, mode + ' occupied tiles');
+          if (a.apples !== b.apples) throw new Error(mode + ' lost the shared apples');
+        }
+      }
+    }
+  });
+
   // ---------- Daily Challenge and weekly missions ----------
   if (S.daily) {
     const D = S.daily, at = (y, m, d) => new Date(y, m - 1, d, 12);

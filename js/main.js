@@ -9,6 +9,7 @@
   const AUTO_DEATH_MS = 650;   // how long a crash plays out when a new game starts by itself
   const XP_APPLE = 10, XP_GAME = 15, XP_BEST = 50;
   const ROUNDS_TO_WIN = 3;       // two-player: first to this many rounds takes the match
+  const SOLO_ONLY = { peaceful: 1, dark: 1 };   // nobody can lose in Peaceful, and Dark only has one pool of light
   // Trails: a couple of particles from the tail end on every step.
   function emitTrail(v, g) {
     const name = SK.TRAILS[settings.trail]; if (!name || name === 'None') return;
@@ -46,12 +47,14 @@
   let bestBefore = 0, passedBest = false;
   let blinkT = -1e9, nextBlink = 2000;
   // What kind of game this is. solo: your own setup. daily: today's challenge. duel: two players, one screen.
-  let pick = 'solo', run = { kind: 'solo' }, match = null, foe = null;
+  let pick = settings.duel ? 'duel' : 'solo', run = { kind: 'solo' }, match = null, foe = null, duelTold = false;
+  const basePick = () => (settings.duel ? 'duel' : 'solo');
+  if (!S.MODE[settings.duelMode] || SOLO_ONLY[settings.duelMode]) settings.duelMode = 'classic';
   // Everything needed to animate one snake. The head runs on into whatever it hit (reach), and
   // the crash only happens when it gets there. eats = gameTime of recent apples, for the lump.
   const newPlayer = () => {
     const bulges = new Float32Array(64);
-    return { g: null, skin: settings, eats: [], reach: 0, reachTo: 0, reachX: 0, reachY: 0, mouth: 0, squashT: -1e9, lastDir: null,
+    return { g: null, skin: settings, bar: new R.HungerBar(), eats: [], reach: 0, reachTo: 0, reachX: 0, reachY: 0, mouth: 0, squashT: -1e9, lastDir: null,
       fx: { dead: false, flash: 0, grey: 0, mouth: 0, bulges, nBulges: 0, blink: 0, squash: 0, reachX: 0, reachY: 0 } };
   };
   const me = newPlayer(), fx = me.fx, players = [me];
@@ -62,7 +65,7 @@
   const pvView = new R.View($('pv'), PV_COLS, PV_ROWS, true);
   const pvSnake = new R.SnakeDrawer();
   const pvAmbient = new R.Ambient();
-  const hunger = new R.HungerBar(), pvHunger = new R.HungerBar();
+  const pvHunger = new R.HungerBar(), hunger = me.bar;
   const confetti = new R.Confetti($('confetti'));
   const ambient = new R.Ambient();
   me.drawer = view.snake;
@@ -98,8 +101,9 @@
   // Turbo mode: 3% faster per point, down to 45% of the base interval.
   const stepMs = () => {
     if (!game) return baseMs();
-    if (game.rules.turbo) return gameMs() * Math.max(0.45, Math.pow(0.97, game.score));
-    return gameMs() * ((run.spec ? run.spec.ramp : settings.ramp) ? Math.max(0.6, Math.pow(0.985, game.score)) : 1);
+    const score = foe ? Math.max(game.score, foe.g.score) : game.score;   // two-player: both snakes follow whoever is ahead
+    if (game.rules.turbo) return gameMs() * Math.max(0.45, Math.pow(0.97, score));
+    return gameMs() * ((run.spec ? run.spec.ramp : settings.ramp) ? Math.max(0.6, Math.pow(0.985, score)) : 1);
   };
   // Space the board can use, in CSS pixels (after the bar, padding and D-pad).
   function available() {
@@ -138,7 +142,7 @@
     return Object.assign({}, settings, { color: SK.COLORS.indexOf(best), pattern: 0, customColor: null, customGrad: null, trail: 0, hat: 0 });
   }
   function resetPlayer(q, g) {
-    q.g = g; q.lastDir = g.dir; q.reach = q.reachTo = 0; q.mouth = 0; q.eats.length = 0; q.fx.reachX = q.fx.reachY = 0;
+    q.g = g; q.bar.reset(); q.lastDir = g.dir; q.reach = q.reachTo = 0; q.mouth = 0; q.eats.length = 0; q.fx.reachX = q.fx.reachY = 0;
   }
   function newGame() {
     foe = null;
@@ -149,10 +153,11 @@
       cols = spec.cols; rows = spec.rows;
       game = new S.Game({ cols, rows, apples: spec.apples, mode: spec.mode, seed: spec.seed, blocks: spec.blocks });   // edge grace is always on, so scores compare
     } else if (pick === 'duel') {
+      if (!match || match.mode !== settings.duelMode) match = { mode: settings.duelMode, wins: [0, 0] };
       if (match.wins.some(n => n >= ROUNDS_TO_WIN)) match.wins = [0, 0];
-      run = { kind: 'duel', fixed: true };
-      [cols, rows] = settings.board === 'l' ? BOARDS.l : BOARDS.m;
-      const apples = Math.max(3, settings.apples), o = { cols, rows, apples, mode: match.mode, grace: false, waitApples: true };
+      run = { kind: 'duel' };
+      [cols, rows] = board();
+      const o = { cols, rows, apples: settings.apples, mode: match.mode, grace: false, waitApples: true };
       const edge = Math.floor(cols / 4), top = Math.floor(rows / 3), bottom = rows - 1 - top;
       game = new S.Game(Object.assign({ start: { x: edge, y: top, dx: 1 } }, o));
       const g2 = new S.Game(Object.assign({ start: { x: cols - 1 - edge, y: bottom, dx: -1 }, share: game }, o));
@@ -178,7 +183,7 @@
     applyTheme(); fit();
   }
 
-  // Starts a Daily Challenge or a two-player game from the menu.
+  // Starts a Daily Challenge from the menu.
   function launch(kind) {
     if (state === 'dying' || state === 'play' || state === 'countdown') return;
     if (state === 'paused' && game.steps > 0) endGame();
@@ -201,6 +206,7 @@
     if (settings.countdown || resuming) { state = 'countdown'; countT = performance.now(); countN = -1; }
     else { state = 'play'; acc = 0; A.sfx.start(); }
     ui.hideMenu(); A.set({ duck: false }); keepAwake(true);
+    if (foe && !duelTold) { duelTold = true; ui.note('Player 1: WASD, or swipe ' + ui.sideNames()[0], 'Player 2: arrow keys, or swipe ' + ui.sideNames()[1]); }
   }
   // Stops the screen turning off during a game, on browsers that allow it.
   let wakeLock = null;
@@ -301,11 +307,19 @@
       for (const e of q.g.events) {
         const cx = e.x * CELL + CELL / 2, cy = e.y * CELL + CELL / 2;
         if (e.type === 'eat') {
-          const B = SK.BURST_STYLES[SK.BURSTS[q.skin.burst]] || SK.BURST_STYLES.Classic;
-          view.fx.burst(cx, cy, now, B.colors, B.count || (B.shape === 'dot' ? 14 : 16), B.shape);
-          q.eats.push(gameTime); q.mouth = 0; A.sfx.eat(); vibrate(12);
+          if (e.kind === 'gold') { view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#ff9838'], 22); A.sfx.gold(); }
+          else if (e.kind !== 'portal') {
+            const B = SK.BURST_STYLES[SK.BURSTS[q.skin.burst]] || SK.BURST_STYLES.Classic;
+            view.fx.burst(cx, cy, now, B.colors, B.count || (B.shape === 'dot' ? 14 : 16), B.shape);
+          }
+          for (let k = 0; k < (e.worth || 1); k++) q.eats.push(gameTime - k * stepMs() * 0.6);
+          q.bar.fed(now); q.mouth = 0; A.sfx.eat(); vibrate(12);
+        } else if (e.type === 'portal') {
+          const c = R.PORTAL_COLORS[e.pair % R.PORTAL_COLORS.length];
+          view.fx.ring(cx, cy, now, c); view.fx.burst(e.tx * CELL + CELL / 2, e.ty * CELL + CELL / 2, now, [c, '#ffffff', c], 10); A.sfx.portal();
         } else if (e.type === 'poison') { view.fx.burst(cx, cy, now, ['#9b5cf0', '#e2c2ff', '#4a1f86']); A.sfx.poison(); }
-        else if (e.type === 'shrink') view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5);
+        else if (e.type === 'shrink') { view.fx.burst(cx, cy, now, ['#8a9a90', '#5a6a60', '#c0c8c4'], 5); q.bar.hit(now); }
+        else if (e.type === 'expire') view.fx.burst(cx, cy, now, ['#ffc83d', '#fff6c4', '#a86f00'], 6);
         else if (e.type === 'wall') A.sfx.wall();
         else if (e.type === 'die') aimReach(q, e.x, e.y, e.meet);
       }
@@ -461,7 +475,7 @@
   const DIRS4 = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
   // The preview plays the real mode: a locked mode tapped on the Modes page gets a try-out here too.
   let pvTry = null, pvTarget = null, pvHint = null;
-  const pvModeId = () => pvTry || settings.mode;
+  const pvModeId = () => pvTry || (settings.duel ? settings.duelMode : settings.mode);
   function pvTheme() { pvAmbient.reset(pvView.setTheme(pvModeId(), settings.boardSkin).amb, PV_COLS, PV_ROWS); }
   function pvNew() {
     pvGame = new S.Game({ cols: PV_COLS, rows: PV_ROWS, apples: settings.apples, mode: pvModeId(), grace: false });
@@ -703,7 +717,7 @@
       const n = q.g, a = U.lerpAng(U.angOf(n.prevDir.x, n.prevDir.y), U.angOf(n.dir.x, n.dir.y), U.ease(Math.min(1, p / 0.7)));
       q.drawer.draw(g, n.cells, n.prevTail, p, CELL, a, q.skin, q.fx);
     }
-    if (game.rules.hunger && state !== 'menu') hunger.draw(g, game.cols, game.rows, game.hungerLevel(state === 'play' ? p : 0), t, fdt);
+    if (game.rules.hunger && state !== 'menu') for (const q of players) q.bar.draw(g, game.cols, game.rows, q.g.hungerLevel(state === 'play' ? p : 0), t, fdt, q === foe, foe ? U.rgb(U.hexRgb(SK.colorHex(q.skin))) : null);
     view.fx.draw(g, t, fdt);
     if (game.rules.dark) { const P = view.snake.path; R.drawDark(g, game.cols, game.rows, P.x[P.n - 1], P.y[P.n - 1], game.apples, t); }   // over the effects, so they stay hidden in the dark too
     if (state === 'countdown') {
@@ -732,7 +746,7 @@
     },
     gameChanged: () => {
       store.save();
-      pick = 'solo';
+      pick = basePick();
       if (state === 'paused') { pendingNew = true; ui.setPlayLabel('New game'); }
       else if (state === 'menu' || state === 'over') { newGame(); state = 'menu'; ui.closeCard(); ui.setPlayLabel('Play'); }
       ui.el.mBest.textContent = currentBest();
@@ -740,11 +754,6 @@
       pvTheme(); fit();
     },
     daily: () => launch('daily'),
-    duel: mode => {
-      match = { mode, wins: [0, 0] };
-      launch('duel');
-      if (foe) ui.note('Player 1: WASD, or swipe ' + ui.sideNames()[0], 'Player 2: arrow keys, or swipe ' + ui.sideNames()[1]);
-    },
     tryMode: id => { if (pvTry === id) return; pvTry = id; pvTheme(); fit(); },
     settingsChanged: key => {
       store.save(); applyAudio();
@@ -767,7 +776,7 @@
       if (state !== 'paused' && state !== 'over') return;
       A.sfx.click();
       if (state === 'paused' && game.steps > 0) endGame();
-      pick = 'solo'; newGame(); state = 'menu';
+      pick = basePick(); match = null; newGame(); state = 'menu';
       showMenu(GAME_NAME, 'Play');
     }
   });

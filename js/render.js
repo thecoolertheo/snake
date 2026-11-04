@@ -1147,9 +1147,10 @@
     reset() { this.v = 0; this.fedT = -1e9; this.hitT = -1e9; }
     fed(t) { this.fedT = t; }
     hit(t) { this.hitT = t; }
-    draw(g, cols, rows, target, t, dt) {
+    // top: two-player, where player 2's bar sits at the top. mark: a dot in that snake's colour.
+    draw(g, cols, rows, target, t, dt, top, mark) {
       this.v += (target - this.v) * Math.min(1, dt / (target > this.v ? 70 : 170));
-      const L = this.v, W = cols * CELL, H = rows * CELL, w = W * 0.62, h = 14, x = (W - w) / 2, y = H - h - 12;
+      const L = this.v, W = cols * CELL, H = rows * CELL, w = W * 0.62, h = 14, x = (W - w) / 2, y = top ? 12 : H - h - 12;
       const rm = R.reduced, danger = U.clamp((L - 0.6) / 0.4, 0, 1), still = rm ? 0 : 1;
       const fedAge = U.clamp((t - this.fedT) / 340, 0, 1), hitAge = U.clamp((t - this.hitT) / 280, 0, 1);
       const pulse = 0.5 + 0.5 * Math.sin(t / (210 - 130 * danger));
@@ -1161,6 +1162,7 @@
         g.globalAlpha = danger * (0.25 + 0.4 * pulse); g.fillStyle = '#ff3b30';
         roundRect(g, x - 7, y - 7, w + 14, h + 14, (h + 14) / 2); g.fill(); g.globalAlpha = 1;
       }
+      if (mark) { g.fillStyle = mark; dot(g, x + w + 16, y + h / 2, 7); }
       g.fillStyle = 'rgba(6,10,8,.8)'; roundRect(g, x - 3, y - 3, w + 6, h + 6, (h + 6) / 2); g.fill();
       if (this.gradFor !== g || this.gradW !== x) {   // green → yellow → red across the whole track
         const c = g.createLinearGradient(x, 0, x + w, 0);

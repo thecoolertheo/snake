@@ -308,7 +308,7 @@
       eq(C.mergeDocs(old, nu).settings, { color: 7, hat: 0 });
       const t = Date.now(); eq(C.mergeDocs({ settings: { color: 1 }, settingsAt: t }, { settings: { color: 2 }, settingsAt: t + 1 }).settings.color, 2, 'real timestamps'); eq(C.mergeDocs(nu, old).settings, { color: 7, hat: 0 }); eq(C.mergeDocs(nu, old).settingsAt, 200);
     });
-    const LOOK = { color: 1, pattern: 2, shape: 0, eyes: 3, hat: 4, burst: 5, trail: 6, food: 7, boardSkin: 8, customColor: '#123456' };
+    const LOOK = { color: 1, pattern: 2, shape: 0, eyes: 3, hat: 4, burst: 5, trail: 6, food: 7, boardSkin: 8, customColor: '#123456', customGrad: '#ff5a1f,#2bd4ff,3' };
     const slots = o => [0, 1, 2, 3, 4].map(i => o[i] || { look: null, at: 0 });
     test('sync: saved looks merge slot by slot', () => {
       const a = { combos: slots({ 0: { look: LOOK, at: 5 } }) }, b = { combos: slots({ 3: { look: Object.assign({}, LOOK, { hat: 9 }), at: 2 } }) };
@@ -336,6 +336,63 @@
       const m = C.sanitize({ devices: { A: { games: -5, xp: 'lots', apples: 1 / 0 }, '': { games: 3 } }, best: { k: -1, j: 'x', ok: 4 }, unlocked: [1, 'a', 'a', null],
         settings: { color: 2, mode: 'turbo', customColor: 'red', hat: 1e9 }, settingsAt: -1 });
       eq(m.devices, { A: { games: 0, apples: 0, timeMs: 0, xp: 0, longest: 0, at: 0 } }); eq(m.best, { ok: 4 }); eq(m.unlocked, ['a']); eq(m.settings, { color: 2 }); eq(m.settingsAt, 0);
+    });
+  }
+
+  // Rewards and your own gradient
+  if (typeof module !== 'undefined' && !root.document && !S.skins) require('./js/skins.js');
+  if (S.skins) {
+    const SK = S.skins, hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+    test('rewards: exactly 500, all different, every path long enough', () => {
+      eq(SK.UNLOCKS.length, 500); eq(new Set(SK.UNLOCKS.map(u => u.id)).size, 500);
+      eq(new Set(SK.UNLOCKS.map(u => u.kind + u.index)).size, 500, 'one reward per item');
+      for (const t of SK.TRACKS) {
+        if (t.steps.length < 22) throw new Error(t.id + ' has only ' + t.steps.length);
+        eq(new Set(t.steps.map(s => s.goal)).size, t.steps.length, t.id + ' repeats a goal');
+      }
+    });
+    test('rewards: saved looks keep pointing at the same items', () => {
+      eq(SK.COLORS[47][0], 'Custom'); eq(SK.CUSTOM, 47); eq(SK.PATTERNS[25], 'Racing'); eq(SK.EYES[19], 'Cat'); eq(SK.HATS[20], 'Bunny ears');
+      eq(SK.BURSTS[13], 'Blossoms'); eq(SK.TRAILS[11], 'Mist'); eq(SK.FOODS[12], 'Blueberry'); eq(SK.BOARDS[10], 'Volcano');
+    });
+    test('rewards: every item has what it needs to be shown, and nothing added is free', () => {
+      const LIST = { color: 'COLORS', pattern: 'PATTERNS', eyes: 'EYES', hat: 'HATS', burst: 'BURSTS', trail: 'TRAILS', food: 'FOODS', board: 'BOARDS' };
+      const FIRST = { color: 48, pattern: 26, eyes: 20, hat: 21, burst: 14, trail: 12, food: 13, board: 11 };
+      for (const k in LIST) for (let i = FIRST[k]; i < SK[LIST[k]].length; i++) if (!SK.unlockFor(k, i)) throw new Error('no reward for ' + SK[LIST[k]][i]);
+      for (const k in LIST) eq(new Set(SK[LIST[k]].map(x => (Array.isArray(x) ? x[0] : x))).size, SK[LIST[k]].length, k + ' repeats a name');
+      for (const n of SK.PATTERNS.slice(26, -1)) if (!SK.GRADIENTS[n] && !SK.FIXED_BANDS[n]) throw new Error('pattern ' + n);
+      for (const n of SK.BURSTS) if (!SK.BURST_STYLES[n]) throw new Error('burst ' + n);
+      for (const n of SK.TRAILS.slice(1)) if (!SK.TRAIL_STYLES[n]) throw new Error('trail ' + n);
+      for (const n of SK.BOARDS.slice(1)) if (!SK.BOARD_THEMES[n]) throw new Error('board ' + n);
+    });
+    test('rewards: no two built-in colours look the same', () => {
+      const c = SK.COLORS.filter((x, i) => i !== SK.CUSTOM);
+      for (let i = 0; i < c.length; i++) for (let j = 0; j < i; j++) if (SK.colorDistance(c[i][1], c[j][1]) < 6) throw new Error(c[i][0] + ' / ' + c[j][0]);
+    });
+    test('rewards: the gradient is the last Collector stop and needs everything else', () => {
+      const t = SK.TRACKS.find(x => x.id === 'collector'), last = t.steps[t.steps.length - 1];
+      eq(last.id, 'p-gradient'); eq(last.goal, SK.UNLOCKS.length - 1); eq(last.index, SK.GRAD);
+    });
+    test('gradient: can\'t remake a built-in pattern', () => {
+      for (const n in SK.GRADIENTS) {
+        const G = SK.GRADIENTS[n], a = hex(G[0]), b = hex(G[2]);
+        eq(SK.gradCheck(a, b).ok, false, n); eq(SK.gradCheck(b, a).ok, false, n + ' reversed');
+      }
+      for (const n in SK.FIXED_BANDS) { const F = SK.FIXED_BANDS[n]; eq(SK.gradCheck(hex(F[0]), hex(F[1])).ok, false, n); }
+      eq(SK.gradCheck('#3366cc', '#3468cf').why, 'solid');
+      eq(SK.gradCheck('#5b8cff', '#2c4370').ok, false, 'Fade of Blue');
+    });
+    test('gradient: the default passes its own check, and bad saves fall back to it', () => {
+      const G = SK.GRAD_DEFAULT.split(',');
+      eq(SK.gradCheck(G[0], G[1]).ok, true);
+      eq(SK.gradOf({ customGrad: 'red,blue,9' }).a, G[0]); eq(SK.gradOf({ customGrad: '#112233,#445566,5' }).dir, 5);
+    });
+    if (S.syncCore) test('gradient: syncs, and bad values are dropped', () => {
+      const C = S.syncCore, v = '#ff5a1f,#2bd4ff,3';
+      eq(C.sanitize({ settings: { customGrad: v } }).settings.customGrad, v);
+      eq(C.sanitize({ settings: { customGrad: null } }).settings.customGrad, null);
+      eq('customGrad' in C.sanitize({ settings: { customGrad: 'javascript:1' } }).settings, false);
+      eq('customGrad' in C.sanitize({ settings: { customGrad: '#ff5a1f,#2bd4ff,8' } }).settings, false);
     });
   }
 

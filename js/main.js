@@ -64,7 +64,8 @@
   function applyAccent() {
     const pat = SK.PATTERNS[settings.pattern];
     let c = U.hexRgb(SK.colorHex(settings));
-    if (SK.GRADIENTS[pat]) c = SK.GRADIENTS[pat][1];
+    const stops = SK.stopsFor(settings);
+    if (stops) c = stops[1];
     else if (SK.FIXED_BANDS[pat]) c = SK.FIXED_BANDS[pat][0];
     const lum = (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255, st = document.documentElement.style;
     st.setProperty('--mode-accent', U.rgb(c));
@@ -255,7 +256,7 @@
     let changed = false;
     for (const u of SK.UNLOCKS) {
       if (store.isUnlocked(u.id) || u.value(p) < u.goal) continue;
-      data.unlocked.push(u.id); liveUnlocked.push(u); changed = true; if (u.id !== 'c-custom') p.collected++;
+      data.unlocked.push(u.id); liveUnlocked.push(u); changed = true; if (u.id !== 'p-gradient') p.collected++;
       if (!pops) continue;
       const r = ui.toast(u);
       A.sfx.unlock(); vibrate([15, 40, 15]);
@@ -598,7 +599,7 @@
     settingsChanged: key => {
       store.save(); applyAudio();
       R.noConfetti = !settings.confetti;
-      if (key === 'color' || key === 'pattern') applyAccent();
+      if (key === 'color' || key === 'pattern' || key === 'customGrad') applyAccent();
       if (key === 'board' || key === 'boardSkin') { applyTheme(); fit(); }
       if (key === 'dpad') fit();
       if (key === 'speed' || key === 'ramp') ui.refresh();

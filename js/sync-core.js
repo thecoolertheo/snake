@@ -10,7 +10,7 @@
 // slot is merged by itself, so changing one thing on one device never touches the others.
 (function (root) {
   'use strict';
-  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'unlockToasts'];
+  const SYNCED = ['color', 'pattern', 'eyes', 'shape', 'hat', 'burst', 'trail', 'food', 'boardSkin', 'customColor', 'customGrad', 'unlockToasts'];
   const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
   const COUNTS = ['games', 'apples', 'timeMs', 'xp'];
   const ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // no 0/O or 1/I/L, so codes are easy to read out
@@ -33,12 +33,14 @@
   }
 
   const okHex = v => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
+  const okGrad = v => typeof v === 'string' && /^#[0-9a-fA-F]{6},#[0-9a-fA-F]{6},[0-7]$/.test(v);
   // One saved look: every part must be a small whole number, or the slot is dropped.
   function cleanLook(c) {
     if (!c || typeof c !== 'object') return null;
     const o = {};
     for (const k of LOOK_KEYS) { if (!Number.isInteger(c[k]) || c[k] < 0 || c[k] >= 1000) return null; o[k] = c[k]; }
     o.customColor = okHex(c.customColor) ? c.customColor : null;
+    o.customGrad = okGrad(c.customGrad) ? c.customGrad : null;
     return o;
   }
 
@@ -72,6 +74,7 @@
         if (typeof v === 'number' && isFinite(v) && v >= 0 && v < 1000) out.settings[k] = Math.floor(v);
         else if (typeof v === 'boolean') out.settings[k] = v;
         else if (k === 'customColor' && (v === null || okHex(v))) out.settings[k] = v;
+        else if (k === 'customGrad' && (v === null || okGrad(v))) out.settings[k] = v;
       }
     }
     out.settingsAt = num(d.settingsAt);

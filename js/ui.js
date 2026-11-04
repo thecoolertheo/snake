@@ -179,6 +179,7 @@
     const colorBox = $('optColor');
     SK.COLORS.forEach(([name, hex], i) => {
       const b = el('button', 'sw'); b.type = 'button'; b.style.background = hex; b.title = name;
+      if (i === SK.CUSTOM) b.style.order = -1;   // your own colour is always the first tile
       b.addEventListener('click', () => {
         const u = lockedItem('color', i);
         if (u) { showLock(u); return; }
@@ -202,6 +203,7 @@
     inp.addEventListener('input', () => check(true));
     inp.addEventListener('change', () => { check(true); h.click(); });
     ui.customCheck = check;
+    buildGradPick();
 
     const chips = (id, key, items, kind) => {
       const box = $(id);
@@ -210,8 +212,13 @@
         b.addEventListener('click', () => {
           const u = kind && lockedItem(kind, i);
           if (u) { showLock(u); return; }
+          if (key === 'pattern') {
+            $('gradPick').hidden = i !== SK.GRAD;
+            if (i === SK.GRAD) { hideLock(); openGradPick(); gradSave(); h.click(); return; }
+          }
           st[key] = i; hideLock(); h.settingsChanged(key); h.click(); renderSkins();
         });
+        if (key === 'pattern' && i === SK.GRAD) b.style.order = -1;   // your own gradient is always the first tile
         box.appendChild(b);
       });
     };
@@ -226,6 +233,46 @@
     chips('optFood', 'food', SK.FOODS, 'food');
     chips('optBoardSkin', 'boardSkin', SK.BOARDS, 'board');
     buildWardrobe();
+  }
+  // Your own gradient: any two colours and a direction, as long as it isn't just a built-in pattern again.
+  // The picker always shows what you're trying; only a gradient that passes the check gets saved.
+  let gradDir = 0;
+  const gradCss = (a, b, dir) => 'linear-gradient(' + (90 + dir * 45) + 'deg,' + a + ',' + b + ')';
+  function gradSave() {
+    const a = $('gradA').value, b = $('gradB').value, r = SK.gradCheck(a, b);
+    $('gradBar').style.background = gradCss(a, b, gradDir);
+    $('gradDirName').textContent = SK.GRAD_DIRS[gradDir];
+    const n = '<b>' + r.name + '</b>';
+    $('gradStatus').innerHTML = r.ok ? '<span class="ok">Unique!</span> Closest pattern: ' + r.name
+      : r.why === 'solid' ? '<span class="bad">Too similar.</span> These two colours would just look solid.'
+      : '<span class="bad">Too close to</span> ' + n + '. Try something more different.';
+    $('gradPick').classList.toggle('invalid', !r.ok);
+    if (r.ok) { st.customGrad = a + ',' + b + ',' + gradDir; st.pattern = SK.GRAD; h.settingsChanged('pattern'); renderSkins(); }
+    return r.ok;
+  }
+  function openGradPick() {
+    const G = SK.gradOf(st);
+    $('gradA').value = G.a; $('gradB').value = G.b; gradDir = G.dir;
+    [...$('gradDirs').children].forEach((b, i) => b.setAttribute('aria-pressed', i === gradDir));
+    $('gradPick').hidden = false;
+    $('gradBar').style.background = gradCss(G.a, G.b, gradDir);
+    $('gradDirName').textContent = SK.GRAD_DIRS[gradDir];
+  }
+  function buildGradPick() {
+    const box = $('gradDirs');
+    for (let i = 0; i < 8; i++) {
+      const b = el('button', '', '<svg viewBox="0 0 24 24" style="transform:rotate(' + i * 45 + 'deg)" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+      b.type = 'button'; b.setAttribute('aria-label', SK.GRAD_DIRS[i]); b.title = SK.GRAD_DIRS[i];
+      b.addEventListener('click', () => {
+        gradDir = i; [...box.children].forEach((x, j) => x.setAttribute('aria-pressed', j === i));
+        gradSave(); h.click();
+      });
+      box.appendChild(b);
+    }
+    for (const id of ['gradA', 'gradB']) {
+      $(id).addEventListener('input', gradSave);
+      $(id).addEventListener('change', () => { gradSave(); h.click(); });
+    }
   }
   // Customize page: one category at a time, next to the live preview.
   const cats = () => [
@@ -259,7 +306,7 @@
     ui.cat = id; hideLock();
     if (id === 'combos' && S.sync && S.sync.ready) S.sync.pull();
     for (const c of $('wardrobe').querySelectorAll('.cat')) c.hidden = c.dataset.cat !== id;
-    renderCats();
+    renderSkins();
     const tab = $('catTabs').querySelector('[data-cat="' + id + '"]');
     if (tab.scrollIntoView) tab.scrollIntoView({ block: 'nearest', inline: 'center', behavior: S.render.reduced ? 'auto' : 'smooth' });
   };
@@ -281,14 +328,14 @@
   }
   // Saved looks: 5 slots that each remember every type of customization.
   const LOOK_KEYS = ['color', 'pattern', 'shape', 'eyes', 'hat', 'burst', 'trail', 'food', 'boardSkin'];
-  const sameLook = c => LOOK_KEYS.every(k => c[k] === st[k]) && (st.color !== SK.CUSTOM || c.customColor === st.customColor);
+  const sameLook = c => LOOK_KEYS.every(k => c[k] === st[k]) && (st.color !== SK.CUSTOM || c.customColor === st.customColor) && (st.pattern !== SK.GRAD || c.customGrad === st.customGrad);
   function renderCombos() {
     const box = $('optCombos');
     let html = '';
     st.combos.forEach((c, i) => {
       if (!c) { html += '<div class="combo-slot"><button type="button" class="combo empty" data-slot="' + i + '" aria-label="Save current look in slot ' + (i + 1) + '"><b>+</b><small>Save</small></button></div>'; return; }
       html += '<div class="combo-slot"><button type="button" class="combo" data-slot="' + i + '" aria-pressed="' + sameLook(c) + '" aria-label="Wear saved look ' + (i + 1) + '">' +
-        '<img alt="" src="' + S.render.icon('hat', c.hat, SK.colorHex(c)) + '"><i style="background:' + patternSwatch(c.pattern) + '"></i></button>' +
+        '<img alt="" src="' + S.render.icon('hat', c.hat, SK.colorHex(c)) + '"><i style="background:' + patternSwatch(c.pattern, c) + '"></i></button>' +
         '<button type="button" class="combo-x" data-clear="' + i + '" aria-label="Clear saved look ' + (i + 1) + '">×</button></div>';
     });
     box.innerHTML = html;
@@ -302,13 +349,15 @@
     const b = e.target.closest('[data-slot]'); if (!b) return;
     const i = +b.dataset.slot, c = st.combos[i];
     if (!c) {
-      const look = { customColor: st.customColor };
+      const look = { customColor: st.customColor, customGrad: st.customGrad };
       for (const k of LOOK_KEYS) look[k] = st[k];
       st.combos[i] = look; h.settingsChanged('combos');
     } else {
       st.customColor = c.customColor;
+      if (c.customGrad) st.customGrad = c.customGrad;   // a look saved before you had a gradient leaves yours alone
       for (const k of LOOK_KEYS) { st[k] = c[k]; h.settingsChanged(k); }
       $('customPick').hidden = st.color !== SK.CUSTOM;
+      syncGradPick();
       ui.bump(ui.el.pv);
     }
     h.click(); renderSkins();
@@ -318,32 +367,35 @@
   function shuffleLook() {
     for (const [id, , kind, items] of cats()) {
       const open = [];
-      for (let i = 0; i < items.length; i++) if ((!kind || !lockedItem(kind, i)) && !(id === 'color' && i === SK.CUSTOM && !st.customColor)) open.push(i);
+      for (let i = 0; i < items.length; i++) if ((!kind || !lockedItem(kind, i)) && !(id === 'color' && i === SK.CUSTOM && !st.customColor) && !(id === 'pattern' && i === SK.GRAD && !st.customGrad)) open.push(i);
       st[id] = open[Math.floor(Math.random() * open.length)];
       h.settingsChanged(id);
     }
     $('customPick').hidden = st.color !== SK.CUSTOM;
+    syncGradPick();
     h.click(); renderSkins(); ui.bump(ui.el.pv);
   }
+  function syncGradPick() { if (st.pattern === SK.GRAD) openGradPick(); else $('gradPick').hidden = true; }
 
   function showLock(u) { ui.lockFocus = u; ui.el.lockText.textContent = lockText(u) + ' '; ui.el.lockNote.hidden = false; h.click(); }
   function hideLock() { ui.el.lockNote.hidden = true; }
 
+  // Only the open category is drawn: with this many items, redrawing all of them on every tap adds up.
   function renderSkins() {
-    const colorBox = $('optColor');
-    const custom = colorBox.children[SK.CUSTOM];
-    custom.style.background = st.customColor
-      ? 'radial-gradient(circle, ' + st.customColor + ' 52%, transparent 54%), conic-gradient(#ff5a4e, #ffc83d, #4cc35b, #27c2b0, #5b8cff, #9b6bff, #ff5a4e)'
-      : 'conic-gradient(#ff5a4e, #ffc83d, #4cc35b, #27c2b0, #5b8cff, #9b6bff, #ff5a4e)';
-    const customOpen = !lockedItem('color', SK.CUSTOM) && st.color === SK.CUSTOM;
-    if (customOpen) $('customPick').hidden = false;
-    if (st.customColor) $('customInput').value = st.customColor;
-    [...colorBox.children].forEach((b, i) => {
-      const u = lockedItem('color', i);
-      b.classList.toggle('locked', !!u); b.innerHTML = u ? LOCK : '';
-      b.setAttribute('aria-pressed', st.color === i);
-      b.setAttribute('aria-label', SK.COLORS[i][0] + (u ? ' (locked)' : ''));
-    });
+    if (ui.cat === 'color') {
+      const colorBox = $('optColor'), custom = colorBox.children[SK.CUSTOM];
+      custom.style.background = st.customColor
+        ? 'radial-gradient(circle, ' + st.customColor + ' 52%, transparent 54%), conic-gradient(#ff5a4e, #ffc83d, #4cc35b, #27c2b0, #5b8cff, #9b6bff, #ff5a4e)'
+        : 'conic-gradient(#ff5a4e, #ffc83d, #4cc35b, #27c2b0, #5b8cff, #9b6bff, #ff5a4e)';
+      if (!lockedItem('color', SK.CUSTOM) && st.color === SK.CUSTOM) $('customPick').hidden = false;
+      if (st.customColor) $('customInput').value = st.customColor;
+      [...colorBox.children].forEach((b, i) => {
+        const u = lockedItem('color', i);
+        b.classList.toggle('locked', !!u); b.innerHTML = u ? LOCK : '';
+        b.setAttribute('aria-pressed', st.color === i);
+        b.setAttribute('aria-label', SK.COLORS[i][0] + (u ? ' (locked)' : ''));
+      });
+    }
     const chipsRender = (id, key, items, kind) => [...$(id).children].forEach((b, i) => {
       const u = kind && lockedItem(kind, i);
       b.classList.toggle('locked', !!u);
@@ -351,14 +403,10 @@
       b.setAttribute('aria-pressed', st[key] === i); b.title = items[i];
       b.setAttribute('aria-label', items[i] + (u ? ' (locked)' : ''));
     });
-    chipsRender('optPattern', 'pattern', SK.PATTERNS, 'pattern');
-    chipsRender('optEyes', 'eyes', SK.EYES, 'eyes');
-    chipsRender('optShape', 'shape', SK.SHAPES);
-    chipsRender('optHat', 'hat', SK.HATS, 'hat');
-    chipsRender('optBurst', 'burst', SK.BURSTS, 'burst');
-    chipsRender('optTrail', 'trail', SK.TRAILS, 'trail');
-    chipsRender('optFood', 'food', SK.FOODS, 'food');
-    chipsRender('optBoardSkin', 'boardSkin', SK.BOARDS, 'board');
+    if (ui.cat === 'pattern' && st.pattern === SK.GRAD && !lockedItem('pattern', SK.GRAD) && $('gradPick').hidden) openGradPick();
+    for (const [id, , kind, items] of cats()) {
+      if (id === ui.cat && id !== 'color') chipsRender({ pattern: 'optPattern', shape: 'optShape', eyes: 'optEyes', hat: 'optHat', burst: 'optBurst', trail: 'optTrail', food: 'optFood', boardSkin: 'optBoardSkin' }[id], id, items, kind);
+    }
     renderCats();
   }
 
@@ -416,8 +464,14 @@
     }
 
   }
-  function patternSwatch(i) {
+  function patternSwatch(i, look) {
     const n = SK.PATTERNS[i];
+    if (i === SK.GRAD) {
+      const who = look || st;
+      if (!who.customGrad) return 'conic-gradient(#ff5a4e,#ffc83d,#4cc35b,#27c2b0,#5b8cff,#9b6bff,#ff5a4e)';
+      const G = SK.gradOf(who);
+      return gradCss(G.a, G.b, G.dir);
+    }
     if (SK.GRADIENTS[n]) return 'linear-gradient(135deg,' + SK.GRADIENTS[n].map(c => 'rgb(' + c.join(',') + ')').join(',') + ')';
     if (n === 'Duo') return 'linear-gradient(90deg,#9db8ff 50%,#5b8cff 50%)';
     if (n === 'Zebra') return 'repeating-linear-gradient(90deg,#2a3f73 0 3px,#5b8cff 3px 11px)';
@@ -428,6 +482,8 @@
     if (n === 'Rainbow') return 'linear-gradient(90deg,#ff5a4e,#ffc83d,#4cc35b,#27c2b0,#5b8cff,#9b6bff)';
     if (n === 'Galaxy') return 'radial-gradient(circle at 30% 35%,#fff 6%,transparent 8%),radial-gradient(circle at 70% 60%,#fff 5%,transparent 7%),linear-gradient(135deg,#28287a,#6e32aa,#eb5abe)';
     if (n === 'Spots') return 'radial-gradient(circle at 35% 40%,rgba(0,0,0,.35) 18%,transparent 20%),radial-gradient(circle at 68% 65%,rgba(0,0,0,.35) 18%,transparent 20%),#5b8cff';
+    const F = SK.FIXED_BANDS[n];
+    if (F) { const w = Math.max(2, Math.round(F[2] * 12)); return 'repeating-linear-gradient(135deg,rgb(' + F[1].join(',') + ') 0 ' + w + 'px,rgb(' + F[0].join(',') + ') ' + w + 'px 12px)'; }
     return '#5b8cff';
   }
 
@@ -534,6 +590,7 @@
     const b = e.target.closest('.stop'); if (!b) return;
     const u = SK.UNLOCKS.find(x => x.id === b.dataset.id), note = b.closest('.track').querySelector('[data-note]');
     if (store.isUnlocked(u.id)) {   // wear it
+      if (u.id === 'p-gradient' && !st.customGrad) { ui.openPage('snake'); ui.setCat('pattern'); openGradPick(); h.click(); return; }
       st[SK.settingKey(u.kind)] = u.index; h.click();
       if (u.kind === 'mode') h.gameChanged(); else h.settingsChanged(u.kind);
       renderRoadmap(); renderSkins();
@@ -752,6 +809,7 @@
     const b = e.target.closest('.ms-item[data-id]'); if (!b) return;
     const u = SK.UNLOCKS.find(x => x.id === b.dataset.id);
     if (u.kind === 'color' && u.index === SK.CUSTOM && !st.customColor) { ui.openPage('snake'); ui.setCat('color'); $('customPick').hidden = false; h.click(); return; }
+    if (u.id === 'p-gradient' && !st.customGrad) { ui.openPage('snake'); ui.setCat('pattern'); openGradPick(); h.click(); return; }
     st[SK.settingKey(u.kind)] = u.index; h.click();
     if (u.kind === 'mode') h.gameChanged(); else h.settingsChanged(u.kind);
     ui.refresh(); ui.bump(ui.el.pv);

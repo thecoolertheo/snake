@@ -142,14 +142,25 @@
               <div class="ward-body" id="wardrobe">
                 <div class="cat-head"><span class="cat-name"><b id="catTitle"></b><small id="catNow"></small></span><span class="cat-tools"><small id="catCount"></small><button class="cat-filter" id="catFilter" type="button" aria-pressed="false">Hide locked</button></span></div>
                 <div class="lock-note" id="lockNote" hidden><span id="lockText"></span><button type="button" class="link" id="lockRoad">See it on the roadmap</button></div>
-                <div class="cat" data-cat="color"><div class="swatches" id="optColor"></div>
+                <div class="cat" data-cat="color">
                 <div class="custom-pick" id="customPick" hidden>
                   <label class="cp-row"><span class="cp-well"><input type="color" id="customInput" value="#00c2a8" aria-label="Pick your custom colour"></span>
                     <span class="cp-text"><b>Your own colour</b><small id="customStatus">Pick any colour that isn't already in the game.</small></span></label>
                 </div>
+                <div class="swatches" id="optColor"></div>
                 </div>
                 <div class="cat" data-cat="combos" hidden><div class="combos" id="optCombos"></div><p class="hint" id="comboHint"></p></div>
-                <div class="cat" data-cat="pattern" hidden><div class="chips" id="optPattern"></div></div>
+                <div class="cat" data-cat="pattern" hidden>
+                <div class="custom-pick grad-pick" id="gradPick" hidden>
+                  <div class="gp-top">
+                    <span class="cp-well"><input type="color" id="gradA" value="#ff5a1f" aria-label="First gradient colour"></span>
+                    <span class="gp-bar" id="gradBar"><i></i></span>
+                    <span class="cp-well"><input type="color" id="gradB" value="#2bd4ff" aria-label="Second gradient colour"></span>
+                  </div>
+                  <div class="gp-dirs" id="gradDirs" role="group" aria-label="Fade direction"></div>
+                  <p class="cp-text"><b id="gradDirName">Tail to head</b><small id="gradStatus"></small></p>
+                </div>
+                <div class="chips" id="optPattern"></div></div>
                 <div class="cat" data-cat="shape" hidden><div class="chips" id="optShape"></div></div>
                 <div class="cat" data-cat="eyes" hidden><div class="chips" id="optEyes"></div></div>
                 <div class="cat" data-cat="hat" hidden><div class="chips" id="optHat"></div></div>

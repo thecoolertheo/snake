@@ -17,7 +17,7 @@
       v: VERSION,
       settings: { color: 0, pattern: 0, eyes: 0, shape: 0, speed: 1, muted: false,
                   mode: 'classic', board: 'm', boardChosen: false, apples: 1, ramp: false,
-                  volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, unlockToasts: true,
+                  volume: 0.8, sfx: true, music: false, dpad: false, vibrate: true, hat: 0, burst: 0, trail: 0, food: 0, boardSkin: 0, customColor: null, customGrad: null, unlockToasts: true,
                   combos: [null, null, null, null, null],
                   autoRestart: false, countdown: true, grace: true, wake: true, shake: true, confetti: true, swipe: 1 },
       best: {},        // "mode|board|apples" -> best score
@@ -73,7 +73,7 @@
     // Snapshot used by unlock conditions.
     progress() {
       const st = this.data.stats;
-      return { games: st.games, apples: st.apples, longest: st.longest, minutes: Math.floor(st.timeMs / 60000), xp: st.xp, level: S.skins.levelOf(st.xp), collected: this.data.unlocked.filter(id => id !== 'c-custom').length, bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
+      return { games: st.games, apples: st.apples, longest: st.longest, minutes: Math.floor(st.timeMs / 60000), xp: st.xp, level: S.skins.levelOf(st.xp), collected: this.data.unlocked.filter(id => id !== 'p-gradient').length, bestAny: this.bestAny(), bestMode: m => this.bestMode(m) };
     },
     isUnlocked(id) { return this.data.unlocked.indexOf(id) >= 0; },
     getBest(mode, board, apples) { return this.data.best[bestKey(mode, board, apples)] || 0; },

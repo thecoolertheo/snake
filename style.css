@@ -44,6 +44,7 @@
   --ease: cubic-bezier(.2, .8, .2, 1);
   --t-fast: 120ms;
   --t-med: 220ms;
+  --t-slide: 340ms;
 
   --pad: var(--sp-4);
   color-scheme: dark;
@@ -715,8 +716,16 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 @keyframes lg-blink { 0%, 95%, 100% { transform: scaleY(1); } 97.500% { transform: scaleY(.08); } }
 @keyframes lg-tongue { 0%, 70%, 100% { transform: translateX(-14px); } 76%, 88% { transform: translateX(0); } }
 .brand.logo { display: none; }
-@media (min-width: 820px) { .brand.logo { display: block; width: 150px; padding: 0; margin: var(--sp-1) var(--sp-3) var(--sp-3); } }
-.shell[data-page="home"] .brand { visibility: hidden; }
+/* Sidebar: Home has the big logo, so the small one fades out and the tabs slide up into its place.
+   Moving them with transform keeps it smooth, and the sidebar's size never changes. */
+@media (min-width: 820px) {
+  .side-nav { --brand-h: 65px; }
+  .brand.logo { display: block; flex: none; width: 150px; height: var(--brand-h); padding: 0; margin: var(--sp-1) var(--sp-3) var(--sp-3); transform-origin: left top; transition: opacity var(--t-slide) var(--ease), transform var(--t-slide) var(--ease); }
+  .tabs { transition: transform var(--t-slide) var(--ease); }
+  .shell[data-page="home"] .brand.logo { opacity: 0; transform: translateY(-10px) scale(.9); pointer-events: none; }
+  .shell[data-page="home"] .tabs { transform: translateY(calc((var(--brand-h) + var(--sp-1) + var(--sp-3) + var(--sp-3)) * -1)); }
+}
+@media (max-height: 520px) { .shell[data-page="home"] .tabs { transform: none; } }
 .shell[data-page="home"] .page-head { display: none; }
 .shell[data-page="home"] .panels { padding-top: max(var(--sp-4), env(safe-area-inset-top)); }
 @media (min-width: 1000px) and (min-height: 560px) { .logo-hero { width: min(100%, 520px); } }
@@ -729,11 +738,11 @@ kbd { font: 500 var(--fs-xs) var(--font); color: var(--c-fg); padding: 3px 7px; 
 .combos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-2); max-width: 620px; }
 #comboHint { margin: 0; line-height: 1.45; }
 .combo-slot { position: relative; min-width: 0; }
-.combo { width: 100%; aspect-ratio: 1; display: grid; place-items: center; align-content: center; padding: 0; position: relative; overflow: hidden; border-radius: var(--r-md); border: 1px solid rgba(255, 255, 255, .07); background: var(--c-surface-2); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .22); cursor: pointer; transition: transform var(--t-fast); }
+.combo { width: 100%; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; position: relative; overflow: hidden; border-radius: var(--r-md); border: 1px solid rgba(255, 255, 255, .07); background: var(--c-surface-2); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .22); cursor: pointer; transition: transform var(--t-fast); }
 .combo:hover { transform: translateY(-1px); }
 .combo:active { transform: scale(.94); }
-.combo img { width: 78%; height: 78%; margin-top: -8%; }
-.combo i { position: absolute; left: 0; right: 0; bottom: 0; height: 16%; }
+.combo img { flex: 1 1 0; min-height: 0; width: 100%; padding: 8% 8% 4%; object-fit: contain; }
+.combo i { flex: none; align-self: stretch; height: 13%; }
 .combo.empty { border-style: dashed; border-color: rgba(255, 255, 255, .2); background: none; box-shadow: none; color: var(--c-muted); }
 .combo.empty b { font-size: var(--fs-xl); font-weight: 500; line-height: 1; }
 .combo.empty small { font-size: var(--fs-xs); }

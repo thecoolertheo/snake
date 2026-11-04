@@ -566,7 +566,7 @@
   // The logo: SNAKE in tube letters like the snake's body (the S has a head), with PLUS in gold beneath.
   const LOGO = (function () {
     const letters = ['M66 20H36A15 15 0 0 0 36 50H52A15 15 0 0 1 52 80H20', 'M97 80V20L137 80V20', 'M157 80L181 20L205 80M167 58H195', 'M225 20V80M261 20L227 50L261 80', 'M317 20H283V80H317M283 50H311'];
-    const plus = ['M119 134V106H129A7.500 7.500 0 0 1 129 121H119', 'M147 106V134H162', 'M174 106V124A8 8 0 0 0 190 124V106', 'M217 109H207A6.500 6.500 0 0 0 207 120H212A6.500 6.500 0 0 1 212 131H200'];
+    const plus = ['M119 134V106H129A7.500 7.500 0 0 1 129 121H119', 'M147 106V134H162', 'M174 106V126A8 8 0 0 0 190 126V106', 'M218 106H207A7 7 0 0 0 207 120H211A7 7 0 0 1 211 134H200'];
     const layer = (cls, list) => list.map((d, i) => '<path class="' + cls + '" pathLength="1" style="--i:' + i + '" d="' + d + '"/>').join('');
     return '<svg viewBox="0 0 336 146" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
       '<path class="lg-rule" d="M20 120H101"/><path class="lg-rule" d="M235 120H316"/>' +

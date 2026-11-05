@@ -720,7 +720,7 @@
       return;
     }
     g.font = '700 ' + Math.round(r * 1.25) + 'px Rubik, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    const label = a.kind === 'gold' ? '3' : 'ABCDEFGH'[a.pair % 8];   // what it's worth, or which pair it belongs to
+    const pair = 'ABCDEFGH'[a.pair % 8], label = a.kind === 'gold' ? '3' : a.gold ? pair + '3' : pair;   // what it's worth, which pair it belongs to, or both
     g.lineWidth = 4; g.strokeStyle = '#000'; g.strokeText(label, cx, cy + 1); g.fillStyle = '#fff'; g.fillText(label, cx, cy + 1);
   }
 
@@ -728,7 +728,7 @@
     const pop = popScale(a, t);
     // Golden apples blink in their last few steps before turning normal.
     let alpha = 1;
-    if (a.kind === 'gold' && game) { const left = a.until - game.steps; if (left <= 10) alpha = 0.55 + 0.45 * Math.abs(Math.cos(t / (left <= 4 ? 70 : 140))); }
+    if ((a.kind === 'gold' || a.gold) && game) { const left = a.until - game.steps; if (left <= 10) alpha = 0.55 + 0.45 * Math.abs(Math.cos(t / (left <= 4 ? 70 : 140))); }
     if (alpha < 1) g.globalAlpha = alpha;
     const bob = R.reduced ? 1 : 1 + Math.sin(t / 220 + a.x) * 0.04;
     let ax = a.x, ay = a.y, hop = 0;
@@ -738,6 +738,7 @@
     const cx = ax * CELL + CELL / 2, cy = ay * CELL + CELL / 2 + 1 - hop, r = CELL * 0.33 * pop * bob;
     if (r <= 0) return;
     const portal = a.kind === 'portal', color = portal ? PORTAL_COLORS[a.pair % PORTAL_COLORS.length] : null;
+    const golden = a.kind === 'gold' || a.gold;   // a golden portal keeps its pair's ring around a gold middle
     // contact shadow
     g.fillStyle = 'rgba(0,0,0,0.3)';
     g.beginPath(); g.ellipse(cx + 1.5, cy + r * 0.92, r * 0.78, r * 0.26, 0, 0, TAU); g.fill();
@@ -748,7 +749,7 @@
     }
     if (a.kind === 'apple' && R.food) { drawFood(g, cx, cy, r, R.food); if (R.contrast) ring(g, cx, cy, r); g.globalAlpha = 1; return; }
     g.save(); g.translate(cx, cy); g.scale(r, r);
-    g.fillStyle = grad(g, a.kind, color); dot(g, 0, 0, 1);
+    g.fillStyle = a.gold ? grad(g, 'gold') : grad(g, a.kind, color); dot(g, 0, 0, 1);
     g.fillStyle = 'rgba(255,255,255,0.6)';
     g.beginPath(); g.ellipse(-0.38, -0.42, 0.24, 0.14, -0.6, 0, TAU); g.fill();
     if (a.kind === 'poison') {
@@ -763,7 +764,7 @@
     }
     if (R.contrast) ring(g, cx, cy, r);
     if (R.safe) marker(g, a, cx, cy, r);
-    if (a.kind === 'gold' && !R.reduced) {   // twinkle
+    if (golden && !R.reduced) {   // twinkle
       const tw = (Math.sin(t / 180 + a.y) + 1) / 2, sx = cx + r * 0.75, sy = cy - r * 0.55, sr = 2 + 3 * tw;
       g.fillStyle = '#fffbe6'; g.beginPath();
       g.moveTo(sx, sy - sr); g.lineTo(sx + sr * 0.3, sy - sr * 0.3); g.lineTo(sx + sr, sy); g.lineTo(sx + sr * 0.3, sy + sr * 0.3);

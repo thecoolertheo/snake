@@ -28,12 +28,11 @@
   // The Mixer: your own mode, built from the rules of the others. It isn't in MODES, so the Modes list,
   // the Daily Challenge and the roadmap never treat it as one of the normal twelve.
   const MIX_IDS = ['borderless', 'walls', 'portal', 'poison', 'turbo', 'mirror', 'dark', 'gold', 'hunger', 'runaway'];
-  const MIX_CLASH = { portal: ['poison', 'gold', 'runaway'], poison: ['portal'], gold: ['portal'], runaway: ['portal'] };   // portals replace ordinary apples
   MODE.mix = { id: 'mix', name: 'Mixer', desc: 'Pick the rules yourself and play them all at once.' };
-  // A valid list, always in the same order. If two rules clash, the one that comes first in the list stays.
+  // A valid list, always in the same order.
   function mixClean(list) {
     const out = [];
-    for (const id of MIX_IDS) if (Array.isArray(list) && list.indexOf(id) >= 0 && !(MIX_CLASH[id] || []).some(o => out.indexOf(o) >= 0)) out.push(id);
+    for (const id of MIX_IDS) if (Array.isArray(list) && list.indexOf(id) >= 0) out.push(id);
     return out;
   }
   function mixRules(list) {
@@ -156,12 +155,12 @@
           this.apples.push(pa);
           const b = this.randomFree();
           if (!b) { this.apples.pop(); break; }
-          this.apples.push({ x: b.x, y: b.y, kind: 'portal', pair: host.pairSeq });
+          const pb = { x: b.x, y: b.y, kind: 'portal', pair: host.pairSeq };
+          this.apples.push(pb);
           host.pairSeq++;
+          if (r.gold && this.steps > 0 && this.rng() < GOLD_CHANCE) { pa.gold = pb.gold = true; pa.until = pb.until = this.steps + GOLD_LIFE; }   // both ends turn gold together
         }
-        return;
-      }
-      while (this._count('apple') + this._count('gold') < this.appleCount) {
+      } else while (this._count('apple') + this._count('gold') < this.appleCount) {
         const c = this.randomFree(); if (!c) break;
         if (r.gold && this.steps > 0 && this.rng() < GOLD_CHANCE) this.apples.push({ x: c.x, y: c.y, kind: 'gold', until: this.steps + GOLD_LIFE });
         else this.apples.push({ x: c.x, y: c.y, kind: 'apple' });
@@ -304,9 +303,9 @@
             for (const z of [apple, partner]) this.apples.splice(this.apples.indexOf(z), 1);   // in place: two snakes share this list
             this.events.push({ type: 'portal', x: apple.x, y: apple.y, tx: hx, ty: hy, pair: apple.pair });
           } else this.apples.splice(ai, 1);
-          const worth = apple.kind === 'gold' ? 3 : 1;
+          const gold = apple.kind === 'gold' || apple.gold, worth = gold ? 3 : 1;
           this.score += worth; this.grow += worth; this.eaten++;
-          this.events.push({ type: 'eat', x: hx, y: hy, kind: apple.kind, worth });
+          this.events.push({ type: 'eat', x: hx, y: hy, kind: gold ? 'gold' : apple.kind, worth });
           if (r.walls) { this.wall[i] = 1; this.pendingWalls.push(i); }
         }
       }
@@ -345,9 +344,10 @@
       this.steps++;
       if (this.cells.length > this.maxLen) this.maxLen = this.cells.length;
       if (r.runaway && this.steps % 3 === 0) this._flee();
-      // Golden apples that weren't eaten in time turn back into normal ones.
-      for (const a of this.apples) if (a.kind === 'gold' && this.steps >= a.until) {
-        a.kind = 'apple'; delete a.until;
+      // Golden apples and portals that weren't eaten in time turn back into normal ones.
+      for (const a of this.apples) if ((a.kind === 'gold' || a.gold) && this.steps >= a.until) {
+        if (a.gold) a.gold = false; else a.kind = 'apple';
+        delete a.until;
         this.events.push({ type: 'expire', x: a.x, y: a.y });
       }
       if (apple) this.fillApples();
@@ -395,7 +395,7 @@
   Game.prototype._flee = function () {
     const h = this.cells[0];
     for (const a of this.apples) {
-      if (a.kind !== 'apple') continue;
+      if (a.kind !== 'apple' && a.kind !== 'portal') continue;   // each end of a portal moves on its own
       const d0 = Math.abs(a.x - h.x) + Math.abs(a.y - h.y);
       if (d0 > 5 || this.rng() > 0.7) continue;
       let best = null, bestD = d0, n = 0;
@@ -425,5 +425,5 @@
   S.MODES = MODES;
   S.MODE = MODE;
   S.PEACE_GOAL = PEACE_GOAL;
-  S.MIX_IDS = MIX_IDS; S.MIX_CLASH = MIX_CLASH; S.mixClean = mixClean; S.mixKey = mixKey;
+  S.MIX_IDS = MIX_IDS; S.mixClean = mixClean; S.mixKey = mixKey;
 })(typeof window !== 'undefined' ? window : globalThis);

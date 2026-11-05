@@ -550,10 +550,51 @@
     eq(Object.keys(g.rules).length, 0);
     eq(S.mixClean(['nope', 'peaceful', 'classic', 'mix', 'dark', 'dark']), ['dark']); eq(S.mixClean('dark'), []); eq(S.mixClean(null), []);
   });
-  test('mixer: portals never sit alongside the rules that need ordinary apples', () => {
-    eq(S.mixClean(['poison', 'portal', 'gold', 'runaway', 'dark']), ['portal', 'dark']);
-    const g = new S.Game({ cols: 10, rows: 9, mode: 'mix', mix: ['portal', 'poison'], rng: S.util.rng(1) });
-    eq(g.rules.poison, undefined); eq(g.apples.every(a => a.kind === 'portal'), true);
+  test('mixer: every rule can go with every other', () => {
+    eq(S.mixClean(S.MIX_IDS), S.MIX_IDS);
+  });
+  test('mixer: portals and poison share the board', () => {
+    const g = new S.Game({ cols: 10, rows: 9, apples: 2, mode: 'mix', mix: ['portal', 'poison'], rng: S.util.rng(1) });
+    eq(g.apples.filter(a => a.kind === 'portal').length, 4, 'portals'); eq(g.apples.filter(a => a.kind === 'poison').length, 1, 'poison');
+    eq(g.apples.some(a => a.kind === 'apple'), false, 'portals are still the food');
+    const a = g.apples.find(x => x.kind === 'poison'), h = g.cells[0], len = g.cells.length;
+    g.apples.splice(g.apples.indexOf(a), 1); g.apples.push({ x: h.x + 1, y: h.y, kind: 'poison' });
+    g.step(); eq(g.score, 0, 'poison scores nothing'); eq(g.cells.length <= len, true, 'no growth'); eq(g.apples.filter(x => x.kind === 'poison').length, 1, 'poison comes back');
+  });
+  test('mixer: runaway portals hop, each end on its own, onto free tiles', () => {
+    const g = mk({ mode: 'mix', mix: ['portal', 'runaway'] }), h = g.cells[0];
+    g.setApples([{ x: h.x + 2, y: h.y, kind: 'portal', pair: 0 }, { x: 0, y: 0, kind: 'portal', pair: 0 }]);
+    g.rng = () => 0;   // always hops
+    const far = { x: g.apples[1].x, y: g.apples[1].y }, near = g.apples[0], was = near.x + ',' + near.y;
+    g._flee();
+    if (near.x + ',' + near.y === was) throw new Error('the near end stayed put');
+    eq(g.apples[1].x, far.x); eq(g.apples[1].y, far.y);
+    eq(g.apples[0].pair, g.apples[1].pair, 'still a pair');
+    const hx = g.cells[0].x, hy = g.cells[0].y;
+    eq(Math.abs(near.x - hx) + Math.abs(near.y - hy) > 2, true, 'moved away from the head');
+  });
+  test('mixer: both ends of a golden portal turn gold, score 3, and fade together', () => {
+    const g = new S.Game({ cols: 12, rows: 11, apples: 3, mode: 'mix', mix: ['portal', 'gold'], rng: S.util.rng(4) }); g.steps = 1;
+    let pairs = 0;
+    for (let i = 0; i < 60; i++) {
+      g.apples = []; g.fillApples();
+      for (const a of g.apples) {
+        const b = g.apples.find(o => o !== a && o.pair === a.pair);
+        eq(!!a.gold, !!b.gold, 'ends match'); eq(a.until, b.until, 'same timer'); if (a.gold) pairs++;
+      }
+    }
+    eq(pairs > 0 && pairs < 360, true, 'some but not all');
+    const m = mk({ mode: 'mix', mix: ['portal', 'gold'] }), h = m.cells[0], len = m.cells.length;
+    m.setApples([{ x: h.x + 1, y: h.y, kind: 'portal', pair: 0 }, { x: 7, y: 1, kind: 'portal', pair: 0 }]);
+    for (const a of m.apples) { a.gold = true; a.until = 99; }
+    m.step();
+    eq(m.score, 3, 'score'); eq(m.eaten, 1, 'one portal'); eq(m.cells[0].x, 7, 'came out the other end'); eq(m.cells.length + m.grow, len + 3, 'grows like a golden apple');
+    eq(m.events.some(e => e.type === 'eat' && e.kind === 'gold' && e.worth === 3), true, 'gold event'); eq(m.events.some(e => e.type === 'portal'), true, 'portal event');
+    const f = mk({ mode: 'mix', mix: ['portal', 'gold'] });
+    f.setApples([{ x: 0, y: 0, kind: 'portal', pair: 0 }, { x: 0, y: 2, kind: 'portal', pair: 0 }]);
+    for (const a of f.apples) { a.gold = true; a.until = 1; }
+    f.step();
+    eq(f.apples.filter(a => a.kind === 'portal').length, 2, 'stays a portal'); eq(f.apples.some(a => a.gold), false, 'gold gone');
   });
   test('mixer: each combination has one best, whatever order you picked it in', () => {
     eq(S.mixKey(['dark', 'walls']), S.mixKey(['walls', 'dark']));

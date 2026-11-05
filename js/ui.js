@@ -477,19 +477,12 @@
     renderCats();
   }
 
-  // The Mixer. Rules that can't go together switch each other off, and the note says what happened.
+  // The Mixer: every rule can go with every other.
   function toggleMix(id) {
     const u = !st.duel && lockedItem('mode', id);
     if (u) { showModeLock(u); return; }
     hideModeLock();
-    const had = st.mix.indexOf(id) >= 0;
-    let list = st.mix.filter(x => x !== id), note = '';
-    if (!had) {
-      const off = list.filter(x => (S.MIX_CLASH[id] || []).indexOf(x) >= 0);
-      if (off.length) note = S.MODE[id].name + ' replaces ordinary apples, so ' + off.map(x => S.MODE[x].name).join(' and ') + (off.length > 1 ? ' are' : ' is') + ' off.';
-      list = list.filter(x => off.indexOf(x) < 0).concat(id);
-    }
-    st.mix = S.mixClean(list); ui.mixNote = note;
+    st.mix = S.mixClean(st.mix.indexOf(id) >= 0 ? st.mix.filter(x => x !== id) : st.mix.concat(id));
     h.gameChanged(); h.click();
   }
   // A mode's name for the screen, with a mix spelled out.
@@ -516,7 +509,7 @@
       b.querySelector('small').innerHTML = st.duel ? (id === 'peaceful' ? 'First to ' + S.PEACE_GOAL : id === 'mix' ? 'Your own rules' : 'Two players') : id === 'mix' ? 'Your own rules. Best ' + store.getBest(S.mixKey(st.mix), st.board, st.apples) : u ? LOCK + ' ' + u.goal + ' ' + u.track.unit : 'Best ' + store.getBest(id, st.board, st.apples);
     }
     const mixing = (st.duel ? st.duelMode : st.mode) === 'mix';
-    ui.modeDesc.textContent = !mixing ? (st.duel ? duelDesc(st.duelMode) : S.MODE[st.mode].desc) : ui.mixNote || (st.mix.length ? ui.modeName('mix', st.mix) : 'Pick some rules below. With none picked, it plays like Classic.');
+    ui.modeDesc.textContent = !mixing ? (st.duel ? duelDesc(st.duelMode) : S.MODE[st.mode].desc) : (st.mix.length ? ui.modeName('mix', st.mix) : 'Pick some rules below. With none picked, it plays like Classic.');
     $('mixBox').hidden = !mixing;
     for (const b of $('mixBox').children) {
       const id = b.dataset.rule, u = !st.duel && lockedItem('mode', id);

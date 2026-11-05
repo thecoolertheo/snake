@@ -532,6 +532,10 @@
   function pvGild(g) {
     if (!g.rules.gold) return;
     for (const a of g.apples) if (a.kind === 'apple' && !a.seen) { a.seen = 1; if (Math.random() < 0.6) { a.kind = 'gold'; a.until = g.steps + 24; } }
+    else if (a.kind === 'portal' && !a.seen) {
+      const b = g.apples.find(o => o !== a && o.kind === 'portal' && o.pair === a.pair), gild = Math.random() < 0.6;
+      for (const z of [a, b]) if (z) { z.seen = 1; if (gild) { z.gold = true; z.until = g.steps + 24; } }
+    }
   }
   // Tile index one step from (x, y), going round the edges in wrapping modes, or -1.
   function pvNext(g, x, y, d) {
